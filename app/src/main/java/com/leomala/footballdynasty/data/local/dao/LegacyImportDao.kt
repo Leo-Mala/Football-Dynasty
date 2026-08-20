@@ -19,4 +19,10 @@ interface LegacyImportDao {
 
     @Upsert
     suspend fun upsertManifest(manifest: LegacyImportManifestEntity)
+
+    @Query("DELETE FROM legacy_import_manifest WHERE scope = :scope")
+    suspend fun deleteManifest(scope: String)
+
+    @Query("DELETE FROM legacy_import_state WHERE scope = :scope")
+    suspend fun deleteState(scope: String)
 }
