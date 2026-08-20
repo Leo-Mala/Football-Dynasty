@@ -11,6 +11,7 @@ import com.leomala.footballdynasty.foundation.error.IntegrityMismatchException
 import com.leomala.footballdynasty.foundation.error.LegacyFormatException
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.util.concurrent.CancellationException
 
 const val LEGACY_BAN_IMPORT_SCOPE: String = "legacy-ban-corpus-v1"
 const val LEGACY_BAN_ADAPTER_VERSION: Int = 1
@@ -106,19 +107,24 @@ class LegacyBanImporter(
             )
             verifyPersisted(expected)
             return expected
-        } catch (error: Throwable) {
-            database.legacyImportDao().upsertState(
-                LegacyImportStateEntity(
-                    scope = scope,
-                    status = LegacyImportStatus.FAILED.name,
-                    adapterVersion = LEGACY_BAN_ADAPTER_VERSION,
-                    schemaVersion = DATA_SCHEMA_V1,
-                    sourceManifestSha256 = sourceManifestSha256,
-                    semanticFingerprint = semanticFingerprint,
-                    updatedAtEpochMillis = clockMillis(),
-                    lastError = error.message ?: error.javaClass.name,
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            try {
+                database.legacyImportDao().upsertState(
+                    LegacyImportStateEntity(
+                        scope = scope,
+                        status = LegacyImportStatus.FAILED.name,
+                        adapterVersion = LEGACY_BAN_ADAPTER_VERSION,
+                        schemaVersion = DATA_SCHEMA_V1,
+                        sourceManifestSha256 = sourceManifestSha256,
+                        semanticFingerprint = semanticFingerprint,
+                        updatedAtEpochMillis = clockMillis(),
+                        lastError = error.message ?: error.javaClass.name,
+                    )
                 )
-            )
+            } catch (_: Exception) {
+                // Best effort only: never hide the original import failure.
+            }
             throw error
         }
     }
@@ -214,13 +220,14 @@ class LegacyBanImporter(
         }
 
         return sorted.map { source ->
-            val bytes = source.openStream().use(InputStream::readBytes)
+            val bytes = source.openStream().use { input -> input.readBytes() }
             if (bytes.isEmpty()) {
                 throw LegacyFormatException("Legacy .ban source ${source.logicalPath} is empty")
             }
             val snapshot = try {
                 gateway.readTeamBan(ByteArrayInputStream(bytes))
-            } catch (error: Throwable) {
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
                 throw LegacyFormatException(
                     "Failed to read legacy .ban source ${source.logicalPath}",
                     error,
