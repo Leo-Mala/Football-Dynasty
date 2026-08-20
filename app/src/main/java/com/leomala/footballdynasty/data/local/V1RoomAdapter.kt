@@ -1,10 +1,12 @@
 package com.leomala.footballdynasty.data.local
 
+import com.leomala.footballdynasty.data.local.entity.CareerMetadataEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.data.local.entity.PlayerEntity
 import com.leomala.footballdynasty.data.local.entity.SquadMembershipEntity
 import com.leomala.footballdynasty.foundation.error.ImportVersionException
 import com.leomala.footballdynasty.foundation.error.IntegrityMismatchException
+import com.leomala.footballdynasty.migration.v1.CareerDataV1
 import com.leomala.footballdynasty.migration.v1.ClubDataV1
 import com.leomala.footballdynasty.migration.v1.DATA_SCHEMA_V1
 import com.leomala.footballdynasty.migration.v1.PlayerDataV1
@@ -69,6 +71,34 @@ object V1RoomAdapter {
             clubId = data.sourceClubId,
             rosterKind = data.rosterKind.name,
             sourceOrdinal = data.sourceOrdinal,
+        )
+    }
+
+    fun careerEntity(
+        data: CareerDataV1,
+        createdAtEpochMillis: Long,
+        updatedAtEpochMillis: Long,
+    ): CareerMetadataEntity {
+        requireV1(data.schemaVersion, "career", data.id)
+        return CareerMetadataEntity(
+            id = data.id,
+            dataVersion = data.schemaVersion,
+            displayName = data.displayName,
+            legacyMetadataFingerprint = data.legacyMetadataFingerprint,
+            legacyCareerFingerprint = data.legacyCareerFingerprint,
+            createdAtEpochMillis = createdAtEpochMillis,
+            updatedAtEpochMillis = updatedAtEpochMillis,
+        )
+    }
+
+    fun careerData(entity: CareerMetadataEntity): CareerDataV1 {
+        requireV1(entity.dataVersion, "career entity", entity.id)
+        return CareerDataV1(
+            schemaVersion = entity.dataVersion,
+            id = entity.id,
+            displayName = entity.displayName,
+            legacyMetadataFingerprint = entity.legacyMetadataFingerprint,
+            legacyCareerFingerprint = entity.legacyCareerFingerprint,
         )
     }
 
