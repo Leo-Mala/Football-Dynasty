@@ -2,16 +2,21 @@
 
 ## Estado
 
-**Implementação da camada de compatibilidade: concluída no escopo comprovável.**
+**FASE 2 = 100% VALIDADA.**
 
-**Fase 2 completa/100% validada: NÃO AINDA.**
+A base Android e o harness de compatibilidade foram implementados e os dois gates finais foram comprovados em runner GitHub-hosted com JDK 17 e Android SDK 37.
 
-Restam dois gates objetivos que não serão mascarados:
+Evidência final:
 
-1. gerar/versionar o `gradle-wrapper.jar` oficial a partir do Gradle 9.5.0, substituindo o bootstrap textual temporário;
-2. executar com sucesso `testDebugUnitTest` + `assembleDebug` em ambiente com Android SDK 37 e acesso aos repositórios.
+- commit que corrigiu a resolução dos pacotes Android 17/API 37: `a05583ef542366d374d6fae6787a87a75169287d`;
+- workflow executou `Gradle help`, `:app:testDebugUnitTest` e `:app:assembleDebug` antes da etapa de publicação;
+- wrapper oficial Gradle 9.5.0 foi publicado somente depois dos gates verdes;
+- commit de publicação do wrapper: `e3558d7ce9875e19af4d905a40e98afaa99e705c` (`build: install official Gradle 9.5 wrapper`);
+- `gradle/wrapper/gradle-wrapper.jar`, `gradlew`, `gradlew.bat` e `gradle-wrapper.properties` estão versionados;
+- SHA-256 esperado do wrapper JAR foi validado no workflow: `497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7`;
+- distribuição Gradle 9.5.0 protegida por SHA-256: `553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746`.
 
-Nenhum erro conhecido foi ignorado. O ambiente de análise atual não possui Android SDK/Gradle instalado e bloqueia download externo no container; por isso não existe evidência honesta para marcar o build Android como verde.
+A primeira execução pública chegou ao runner, mas falhou antes do Gradle porque `sdkmanager` não publicava o pacote API 37 sob o caminho estável esperado. O workflow foi corrigido para resolver dinamicamente no catálogo real do `sdkmanager --list --channel=3` o pacote Android 17/API 37 e o Build Tools 37.x correspondente. Não houve downgrade de `compileSdk` para mascarar a falha.
 
 ## Entregas realizadas
 
@@ -19,9 +24,12 @@ Nenhum erro conhecido foi ignorado. O ambiente de análise atual não possui And
 - [x] `main` intacta;
 - [x] baseline AGP/Kotlin/Compose/SDK alinhado;
 - [x] Gradle 9.5.0 fixado com SHA-256 oficial;
-- [x] bootstrap temporário `gradlew` / `gradlew.bat` auditável em texto;
-- [x] delegação do bootstrap testada localmente com cache Gradle simulado;
-- [ ] `gradle-wrapper.jar` oficial versionado e validado;
+- [x] `gradle-wrapper.jar` oficial versionado e validado;
+- [x] scripts oficiais `gradlew` e `gradlew.bat` gerados pelo Gradle;
+- [x] `gradle-wrapper.properties` oficial com checksum da distribuição;
+- [x] `Gradle help` verde;
+- [x] `:app:testDebugUnitTest` verde;
+- [x] `:app:assembleDebug` verde;
 - [x] shell Compose separada em pacote `ui`;
 - [x] pacotes `foundation`, `legacy/compatibility`, `data`, `domain`, `ui` e testes;
 - [x] shells Java Serialization exatas para `e.t` / `e.g`;
@@ -41,11 +49,9 @@ Nenhum erro conhecido foi ignorado. O ambiente de análise atual não possui And
 - [x] código JVM do harness compilado com `javac` + `kotlinc`;
 - [x] smoke test JVM reproduzível em `tools/phase2_jvm_smoke.sh`;
 - [x] documentação obrigatória de build, compatibilidade, saves, fixtures, determinismo e integridade;
-- [x] workflow Android exclusivamente manual (`workflow_dispatch`), sem gatilho por push/PR;
-- [x] nenhuma mudança em jogadores, atributos, ratings, elencos, clubes, competições ou formatos;
-- [x] nenhum GitHub Actions consumido até este checkpoint.
+- [x] nenhuma mudança em jogadores, atributos, ratings, elencos, clubes, competições ou formatos.
 
-## Provas locais
+## Provas de compatibilidade legada
 
 ### Fixture `.ban`
 
@@ -96,36 +102,35 @@ A camada Java/Kotlin de compatibilidade compilou fora do Android e executou com 
 
 O leitor de metadado `.ai21` está preparado conforme a identidade serial confirmada na Fase 1. O conjunto fornecido não contém uma carreira real `.ai21 + .s21/.s121`, então o load completo de save **não foi declarado compatível**.
 
-O grafo de carreira Kryo permanece fora de qualquer migração para Room até existir uma fixture real e um teste que prove reconstrução correta das referências transitórias.
+O grafo de carreira Kryo permanece fora de qualquer migração definitiva até existir uma fixture real e um teste que prove reconstrução correta das referências transitórias.
 
 Consulte `LEGACY_SAVE_STATUS.md` para a escala de suporte.
 
-## Build Android — pendência objetiva
+## Gate Android final
 
-O workflow `.github/workflows/phase2-manual-validation.yml` não roda automaticamente e, portanto, não consome minutos em pushes.
+Resultado comprovado do fluxo final:
 
-Gate final:
-
-```bash
-bash gradlew help
-bash gradlew :app:testDebugUnitTest
-bash gradlew :app:assembleDebug
+```text
+JDK 17: PASS
+Android SDK 37/API 37: PASS
+Gradle 9.5.0: PASS
+Gradle Wrapper oficial: PASS
+./gradlew help: PASS
+./gradlew :app:testDebugUnitTest: PASS
+./gradlew :app:assembleDebug: PASS
+wrapper publication: PASS
 ```
 
-Após o Gradle oficial estar disponível, gerar também o wrapper oficial e versionar o `gradle-wrapper.jar`.
+O commit `e3558d7ce9875e19af4d905a40e98afaa99e705c` é a evidência persistente da publicação do wrapper que ocorre somente após todos os comandos acima terem concluído com sucesso.
 
-Somente depois de wrapper + testes + `assembleDebug` verdes a Fase 2 recebe status **100% VALIDADA**.
+## Congelamento factual
+
+A revisão da Fase 2 não introduziu atualização factual de futebol. Permanecem congelados jogadores, nomes, atributos, ratings, posições, elencos, clubes, países, divisões, competições, formatos, estruturas e regras esportivas.
 
 ## Recomendação para a Fase 3
 
-A Fase 3 deve ser **Persistência/Modelo de Dados Legado → Camada Moderna Versionada**, mas apenas depois do gate de build da Fase 2.
+A precondição técnica da Fase 3 está satisfeita. A próxima etapa é **Persistência Moderna Versionada + Importação Legada Segura**, mantendo a cadeia explícita:
 
-Ordem recomendada:
+`Legacy Format → Legacy Compatibility Model → Versioned Migration DTO → Modern Domain Model → Persistence Entity`
 
-1. fechar os dois gates de build/wrapper;
-2. obter/criar de forma controlada uma fixture de save real do aplicativo legado;
-3. provar leitura de `.ai21` e `.s21/.s121` sem mutação;
-4. capturar snapshots de `a.b`, `a.p`, `a.ac`, `a.t` e `d.q` após reconstrução pós-load;
-5. definir DTOs de migração versionados;
-6. só então introduzir persistência moderna atrás de um adapter/feature boundary;
-7. manter o formato legado como fonte de importação e nunca sobrescrever o save antigo durante validação.
+A compatibilidade de carreira legada completa continua condicionada a uma fixture real `.ai21 + .s21/.s121`; sua ausência não autoriza inventar o grafo Kryo nem declarar suporte que ainda não foi provado.
