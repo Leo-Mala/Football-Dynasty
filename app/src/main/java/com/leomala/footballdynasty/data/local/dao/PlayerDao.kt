@@ -25,6 +25,9 @@ interface PlayerDao {
     )
     suspend fun playersForClub(clubId: String): List<PlayerEntity>
 
+    @Query("SELECT * FROM players WHERE importScope = :scope ORDER BY id")
+    suspend fun allForImportScope(scope: String): List<PlayerEntity>
+
     @Query("SELECT COUNT(*) FROM players")
     suspend fun count(): Int
 
