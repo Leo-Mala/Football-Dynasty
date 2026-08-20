@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "f656e406b8bb7bd04860edfd2b0a7ee7",
+    "identityHash": "37c2e4df984290903730a25553bdbed5",
     "entities": [
       {
         "tableName": "clubs",
@@ -432,7 +432,7 @@
       },
       {
         "tableName": "legacy_import_manifest",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scope` TEXT NOT NULL, `adapterVersion` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `sourceCount` INTEGER NOT NULL, `clubCount` INTEGER NOT NULL, `playerCount` INTEGER NOT NULL, `juniorCount` INTEGER NOT NULL, `sourceManifestSha256` TEXT NOT NULL, `semanticFingerprint` TEXT NOT NULL, `importedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`scope`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scope` TEXT NOT NULL, `adapterVersion` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `sourceCount` INTEGER NOT NULL, `clubCount` INTEGER NOT NULL, `seniorCount` INTEGER NOT NULL, `juniorCount` INTEGER NOT NULL, `sourceManifestSha256` TEXT NOT NULL, `semanticFingerprint` TEXT NOT NULL, `importedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`scope`))",
         "fields": [
           {
             "fieldPath": "scope",
@@ -465,8 +465,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "playerCount",
-            "columnName": "playerCount",
+            "fieldPath": "seniorCount",
+            "columnName": "seniorCount",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -504,7 +504,7 @@
       },
       {
         "tableName": "career_metadata",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dataVersion` INTEGER NOT NULL, `displayName` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dataVersion` INTEGER NOT NULL, `displayName` TEXT, `legacyMetadataFingerprint` TEXT, `legacyCareerFingerprint` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -521,6 +521,16 @@
           {
             "fieldPath": "displayName",
             "columnName": "displayName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "legacyMetadataFingerprint",
+            "columnName": "legacyMetadataFingerprint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "legacyCareerFingerprint",
+            "columnName": "legacyCareerFingerprint",
             "affinity": "TEXT"
           },
           {
@@ -546,7 +556,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f656e406b8bb7bd04860edfd2b0a7ee7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '37c2e4df984290903730a25553bdbed5')"
     ]
   }
 }
