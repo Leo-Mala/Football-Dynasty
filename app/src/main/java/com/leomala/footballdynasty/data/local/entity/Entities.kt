@@ -111,7 +111,7 @@ data class LegacyImportManifestEntity(
     val schemaVersion: Int,
     val sourceCount: Int,
     val clubCount: Int,
-    val playerCount: Int,
+    val seniorCount: Int,
     val juniorCount: Int,
     val sourceManifestSha256: String,
     val semanticFingerprint: String,
