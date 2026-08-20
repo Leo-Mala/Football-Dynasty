@@ -88,7 +88,7 @@ class LegacyBanImporter(
                     schemaVersion = DATA_SCHEMA_V1,
                     sourceCount = prepared.size,
                     clubCount = clubs.size,
-                    playerCount = seniorCount,
+                    seniorCount = seniorCount,
                     juniorCount = juniorCount,
                     sourceManifestSha256 = sourceManifestSha256,
                     semanticFingerprint = semanticFingerprint,
@@ -145,7 +145,7 @@ class LegacyBanImporter(
             scope = scope,
             sourceCount = manifest.sourceCount,
             clubCount = manifest.clubCount,
-            seniorCount = manifest.playerCount,
+            seniorCount = manifest.seniorCount,
             juniorCount = manifest.juniorCount,
             sourceManifestSha256 = manifest.sourceManifestSha256,
             semanticFingerprint = manifest.semanticFingerprint,
@@ -168,7 +168,7 @@ class LegacyBanImporter(
         if (manifest.schemaVersion != DATA_SCHEMA_V1) return false
         if (manifest.sourceCount != expected.sourceCount) return false
         if (manifest.clubCount != expected.clubCount) return false
-        if (manifest.playerCount != expected.seniorCount) return false
+        if (manifest.seniorCount != expected.seniorCount) return false
         if (manifest.juniorCount != expected.juniorCount) return false
         if (manifest.sourceManifestSha256 != expected.sourceManifestSha256) return false
         if (manifest.semanticFingerprint != expected.semanticFingerprint) return false
