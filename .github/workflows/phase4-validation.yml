@@ -2,6 +2,7 @@ name: Phase 4 Validation
 
 on:
   workflow_dispatch:
+  # Temporary one-shot push trigger; remove after the validated Phase 4 gate.
   push:
     branches:
       - phase4/core-game-domain
