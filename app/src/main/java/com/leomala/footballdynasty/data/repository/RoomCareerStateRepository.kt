@@ -29,6 +29,8 @@ class RoomCareerStateRepository(
 
     override suspend fun findById(id: String): CareerState? =
         database.careerCoreStateDao().findById(id)?.let { entity ->
-            CareerCoreStateRoomAdapter.state(entity).also(CareerIntegrityValidator::validate)
+            CareerCoreStateRoomAdapter.state(entity).also { state ->
+                CareerIntegrityValidator.validate(state)
+            }
         }
 }
