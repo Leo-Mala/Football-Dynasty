@@ -7,11 +7,15 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "clubs",
-    indices = [Index(value = ["sourceFileRef"], unique = true)],
+    indices = [
+        Index(value = ["sourceFileRef"], unique = true),
+        Index(value = ["importScope"]),
+    ],
 )
 data class ClubEntity(
     @PrimaryKey val id: String,
     val dataVersion: Int,
+    val importScope: String?,
     val sourceFileRef: String,
     val name: String,
     val country: Int,
@@ -33,10 +37,14 @@ data class ClubEntity(
     val legacyValid: Boolean,
 )
 
-@Entity(tableName = "players")
+@Entity(
+    tableName = "players",
+    indices = [Index(value = ["importScope"])],
+)
 data class PlayerEntity(
     @PrimaryKey val id: String,
     val dataVersion: Int,
+    val importScope: String?,
     val name: String,
     val age: Int,
     val country: Int,
