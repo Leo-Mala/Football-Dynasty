@@ -55,6 +55,17 @@ object LegacySerialization {
         reputation = legacyReputation(),
         players = legacyPlayers().map { it.toSnapshot() },
         juniors = legacyJuniors().map { it.toSnapshot() },
+        primaryColor = legacyPrimaryColor().orEmpty(),
+        secondaryColor = legacySecondaryColor().orEmpty(),
+        coach = legacyCoach().orEmpty(),
+        coachCountry = legacyCoachCountry(),
+        baseColor = legacyBaseColor(),
+        legacyAid = legacyAid(),
+        legacySid = legacySid(),
+        legacyTid = legacyTid(),
+        legacyVid = legacyVid(),
+        legacyId = legacyId(),
+        legacyValid = legacyValid(),
     )
 
     private fun g.toSnapshot() = LegacyPlayerSnapshot(
@@ -68,5 +79,9 @@ object LegacySerialization {
         cr2 = legacyCr2(),
         star = legacyStar(),
         worldTop = legacyWorldTop(),
+        legacyAid = legacyAid(),
+        legacySid = legacySid(),
+        legacyTid = legacyTid(),
+        legacyHash = legacyHash(),
     )
 }
