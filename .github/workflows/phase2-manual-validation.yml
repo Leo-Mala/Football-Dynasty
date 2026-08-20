@@ -63,6 +63,17 @@ jobs:
           chmod +x gradlew
           ./gradlew --version --no-daemon
 
+      - name: Gradle help
+        run: ./gradlew help --no-daemon
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Debug build
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      # Publish only after every build gate is green, so a repository-permission
+      # problem cannot hide the actual Android test/build result.
       - name: Commit official wrapper if changed
         shell: bash
         run: |
@@ -75,15 +86,6 @@ jobs:
             git push origin HEAD:phase2/compatibility-harness
           fi
 
-      - name: Gradle help
-        run: ./gradlew help --no-daemon
-
-      - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
-
-      - name: Debug build
-        run: ./gradlew :app:assembleDebug --no-daemon
-
       - name: Phase 2 gate summary
         if: success()
         run: |
@@ -91,3 +93,4 @@ jobs:
           echo "Official Gradle wrapper generated and SHA-256 validated."
           echo "testDebugUnitTest: PASS"
           echo "assembleDebug: PASS"
+          echo "wrapper publication: PASS"
