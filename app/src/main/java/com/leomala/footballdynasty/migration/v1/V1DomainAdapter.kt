@@ -1,5 +1,6 @@
 package com.leomala.footballdynasty.migration.v1
 
+import com.leomala.footballdynasty.domain.model.Career
 import com.leomala.footballdynasty.domain.model.Club
 import com.leomala.footballdynasty.domain.model.Player
 import com.leomala.footballdynasty.domain.model.RosterKind
@@ -35,5 +36,10 @@ object V1DomainAdapter {
         cr2 = data.cr2,
         star = data.star,
         worldTop = data.worldTop,
+    )
+
+    fun career(data: CareerDataV1): Career = Career(
+        id = data.id,
+        displayName = data.displayName,
     )
 }
