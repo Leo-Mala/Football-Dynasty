@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import java.security.MessageDigest
 import java.util.Base64
 
 class LegacyBanCharacterizationTest {
@@ -12,6 +13,12 @@ class LegacyBanCharacterizationTest {
         val encoded = requireNotNull(javaClass.getResourceAsStream("/legacy/12deoctubre_par.ban.b64"))
             .bufferedReader().use { it.readText() }
         val bytes = Base64.getMimeDecoder().decode(encoded)
+
+        assertEquals(
+            "7f386a66e3e87042695b6dfaf23f2bc53143cfe8fa35b91a95ccd5ad060e85a7",
+            sha256(bytes),
+        )
+
         val team = LegacySerialization.readBan(ByteArrayInputStream(bytes))
 
         assertEquals("12 de Octubre", team.name)
@@ -27,4 +34,9 @@ class LegacyBanCharacterizationTest {
             DeterministicFingerprint.team(team),
         )
     }
+
+    private fun sha256(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { "%02x".format(it) }
 }
