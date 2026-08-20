@@ -2,6 +2,11 @@ name: Phase 2 Manual Validation
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - phase2/compatibility-harness
+    paths:
+      - .github/workflows/phase2-manual-validation.yml
 
 permissions:
   contents: write
