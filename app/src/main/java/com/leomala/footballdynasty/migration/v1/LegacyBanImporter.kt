@@ -9,6 +9,8 @@ import com.leomala.footballdynasty.data.local.entity.LegacyImportStateEntity
 import com.leomala.footballdynasty.foundation.error.DuplicateStableIdentityException
 import com.leomala.footballdynasty.foundation.error.IntegrityMismatchException
 import com.leomala.footballdynasty.foundation.error.LegacyFormatException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.util.concurrent.CancellationException
@@ -23,10 +25,47 @@ class LegacyBanImporter(
     private val clockMillis: () -> Long = System::currentTimeMillis,
 ) {
     private val store = RoomV1DataStore(database)
+    private val mutationMutex = Mutex()
 
     suspend fun import(
         sources: List<LegacyBanSource>,
         scope: String = LEGACY_BAN_IMPORT_SCOPE,
+    ): LegacyBanImportReport = mutationMutex.withLock {
+        importLocked(sources, scope)
+    }
+
+    suspend fun verify(scope: String = LEGACY_BAN_IMPORT_SCOPE): LegacyBanImportReport {
+        val manifest = database.legacyImportDao().manifest(scope)
+            ?: throw IntegrityMismatchException("No import manifest exists for scope $scope")
+        val state = database.legacyImportDao().state(scope)
+            ?: throw IntegrityMismatchException("No import state exists for scope $scope")
+        if (state.status != LegacyImportStatus.COMPLETE.name) {
+            throw IntegrityMismatchException(
+                "Import scope $scope is ${state.status}, expected ${LegacyImportStatus.COMPLETE.name}"
+            )
+        }
+
+        val report = LegacyBanImportReport(
+            outcome = LegacyBanImportOutcome.ALREADY_CURRENT,
+            scope = scope,
+            sourceCount = manifest.sourceCount,
+            clubCount = manifest.clubCount,
+            seniorCount = manifest.seniorCount,
+            juniorCount = manifest.juniorCount,
+            sourceManifestSha256 = manifest.sourceManifestSha256,
+            semanticFingerprint = manifest.semanticFingerprint,
+        )
+        verifyPersisted(report)
+        return report
+    }
+
+    suspend fun reset(scope: String = LEGACY_BAN_IMPORT_SCOPE) = mutationMutex.withLock {
+        store.resetImportScope(scope)
+    }
+
+    private suspend fun importLocked(
+        sources: List<LegacyBanSource>,
+        scope: String,
     ): LegacyBanImportReport {
         require(scope.isNotBlank()) { "Import scope must not be blank" }
         if (sources.isEmpty()) {
@@ -127,35 +166,6 @@ class LegacyBanImporter(
             }
             throw error
         }
-    }
-
-    suspend fun verify(scope: String = LEGACY_BAN_IMPORT_SCOPE): LegacyBanImportReport {
-        val manifest = database.legacyImportDao().manifest(scope)
-            ?: throw IntegrityMismatchException("No import manifest exists for scope $scope")
-        val state = database.legacyImportDao().state(scope)
-            ?: throw IntegrityMismatchException("No import state exists for scope $scope")
-        if (state.status != LegacyImportStatus.COMPLETE.name) {
-            throw IntegrityMismatchException(
-                "Import scope $scope is ${state.status}, expected ${LegacyImportStatus.COMPLETE.name}"
-            )
-        }
-
-        val report = LegacyBanImportReport(
-            outcome = LegacyBanImportOutcome.ALREADY_CURRENT,
-            scope = scope,
-            sourceCount = manifest.sourceCount,
-            clubCount = manifest.clubCount,
-            seniorCount = manifest.seniorCount,
-            juniorCount = manifest.juniorCount,
-            sourceManifestSha256 = manifest.sourceManifestSha256,
-            semanticFingerprint = manifest.semanticFingerprint,
-        )
-        verifyPersisted(report)
-        return report
-    }
-
-    suspend fun reset(scope: String = LEGACY_BAN_IMPORT_SCOPE) {
-        store.resetImportScope(scope)
     }
 
     private suspend fun isAlreadyCurrent(expected: LegacyBanImportReport): Boolean {
