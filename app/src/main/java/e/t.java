@@ -37,6 +37,8 @@ public final class t implements Serializable {
     public int legacyCountry() { return a; }
     public int legacyState() { return b; }
     public int legacyLevel() { return c; }
+    public String legacyPrimaryColor() { return cor1; }
+    public String legacySecondaryColor() { return cor2; }
     public String legacyFileRef() { return d; }
     public String legacyName() { return e; }
     public String legacyStadium() { return f; }
