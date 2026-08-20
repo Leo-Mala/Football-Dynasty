@@ -2,6 +2,12 @@ name: Phase 2 Manual Validation
 
 on:
   workflow_dispatch:
+  # Temporary one-shot trigger for the public-repo Phase 2 gate.
+  push:
+    branches:
+      - phase2/compatibility-harness
+    paths:
+      - .github/workflows/phase2-manual-validation.yml
 
 permissions:
   contents: write
@@ -23,6 +29,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Prepare the Android toolchain before Gradle configures the Android module.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -65,6 +72,8 @@ jobs:
       - name: Debug build
         run: ./gradlew :app:assembleDebug --no-daemon
 
+      # Publish only after every build gate is green, so a repository-permission
+      # problem cannot hide the actual Android test/build result.
       - name: Commit official wrapper if changed
         shell: bash
         run: |
