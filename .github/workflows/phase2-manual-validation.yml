@@ -33,8 +33,20 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install required Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+      - name: Install required Android 17 SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --list --channel=3 > /tmp/sdk-packages.txt
+          PLATFORM_PACKAGE="$(awk '/^[[:space:]]*platforms;android-37([^0-9]|$)/ {print $1; exit}' /tmp/sdk-packages.txt)"
+          BUILD_TOOLS_PACKAGE="$(awk '/^[[:space:]]*build-tools;37\.[0-9]+\.[0-9]+/ {print $1}' /tmp/sdk-packages.txt | sort -V | tail -1)"
+          if [ -z "$PLATFORM_PACKAGE" ] || [ -z "$BUILD_TOOLS_PACKAGE" ]; then
+            echo "Android 17/API 37 SDK packages were not found in sdkmanager channel 3."
+            grep -E 'platforms;android-37|build-tools;37\.' /tmp/sdk-packages.txt || true
+            exit 1
+          fi
+          echo "Installing $PLATFORM_PACKAGE and $BUILD_TOOLS_PACKAGE"
+          sdkmanager --channel=3 "$PLATFORM_PACKAGE" "$BUILD_TOOLS_PACKAGE"
 
       - name: Set up Gradle 9.5.0
         uses: gradle/actions/setup-gradle@v4
