@@ -27,4 +27,10 @@ interface PlayerDao {
 
     @Query("SELECT COUNT(*) FROM players")
     suspend fun count(): Int
+
+    @Query("SELECT COUNT(*) FROM players WHERE importScope = :scope")
+    suspend fun countForImportScope(scope: String): Int
+
+    @Query("DELETE FROM players WHERE importScope = :scope")
+    suspend fun deleteForImportScope(scope: String)
 }
