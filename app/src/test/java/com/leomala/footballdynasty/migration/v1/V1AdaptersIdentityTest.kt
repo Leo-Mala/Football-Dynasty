@@ -98,9 +98,12 @@ class V1AdaptersIdentityTest {
     }
 
     @Test
-    fun `database V1 has explicit empty migration registry`() {
-        assertEquals(1, FootballDynastyDatabase.SCHEMA_VERSION)
-        assertTrue(FootballDynastyMigrations.ALL.isEmpty())
+    fun `database V2 preserves explicit migration registry from V1`() {
+        assertEquals(2, FootballDynastyDatabase.SCHEMA_VERSION)
+        assertEquals(1, FootballDynastyMigrations.ALL.size)
+        val migration = FootballDynastyMigrations.ALL.single()
+        assertEquals(1, migration.startVersion)
+        assertEquals(2, migration.endVersion)
     }
 
     @Test
