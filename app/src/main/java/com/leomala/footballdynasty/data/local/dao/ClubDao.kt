@@ -19,6 +19,15 @@ interface ClubDao {
     @Query("SELECT * FROM clubs ORDER BY sourceFileRef")
     suspend fun all(): List<ClubEntity>
 
+    @Query("SELECT * FROM clubs WHERE importScope = :scope ORDER BY sourceFileRef")
+    suspend fun allForImportScope(scope: String): List<ClubEntity>
+
     @Query("SELECT COUNT(*) FROM clubs")
     suspend fun count(): Int
+
+    @Query("SELECT COUNT(*) FROM clubs WHERE importScope = :scope")
+    suspend fun countForImportScope(scope: String): Int
+
+    @Query("DELETE FROM clubs WHERE importScope = :scope")
+    suspend fun deleteForImportScope(scope: String)
 }
