@@ -37,13 +37,19 @@ fun main(args: Array<String>) {
             LegacyFormatKind.CAREER_KRYO_OR_LEGACY
     )
 
-    try {
+    val careerReaderBlocked = throwsUnsupported {
         LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf()))
-    } catch (_: UnsupportedOperationException) {
-        println("PHASE2_JVM_PROOF_OK team=${team.name} players=${team.players.size} draws=${a.draws}")
-        return
     }
-    error("Legacy career reader must remain blocked until a real save fixture is characterized")
+    check(careerReaderBlocked)
+
+    println("PHASE2_JVM_PROOF_OK team=${team.name} players=${team.players.size} draws=${a.draws}")
+}
+
+private fun throwsUnsupported(action: () -> Unit): Boolean = try {
+    action()
+    false
+} catch (_: UnsupportedOperationException) {
+    true
 }
 
 private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
