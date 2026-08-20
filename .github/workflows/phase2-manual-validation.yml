@@ -26,5 +26,7 @@ jobs:
       - name: Install required Android SDK packages
         run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
 
+      # The repository API does not preserve the executable bit when creating
+      # a text file, so invoke the wrapper bootstrap through bash explicitly.
       - name: Unit tests and debug build
-        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
+        run: bash gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
