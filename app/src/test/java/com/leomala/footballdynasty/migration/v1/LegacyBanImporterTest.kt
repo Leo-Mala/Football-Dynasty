@@ -128,6 +128,7 @@ class LegacyBanImporterTest {
         assertEquals(20, database.playerDao().countForImportScope(LEGACY_BAN_IMPORT_SCOPE))
         assertEquals(LegacyImportStatus.COMPLETE, importer.status())
         importer.verify()
+        Unit
     }
 
     @Test
@@ -146,6 +147,7 @@ class LegacyBanImporterTest {
             }
             else -> throw AssertionError("reset/import race left a non-terminal state")
         }
+        Unit
     }
 
     @Test
