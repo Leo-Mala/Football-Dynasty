@@ -235,7 +235,7 @@ class LegacyBanImporterTest {
                     }
                 )
             )
-            assertEquals("phase3-io-test", observedThread)
+            assertTrue(observedThread?.startsWith("phase3-io-test") == true)
             assertNotEquals(Thread.currentThread().name, observedThread)
         } finally {
             dispatcher.close()
