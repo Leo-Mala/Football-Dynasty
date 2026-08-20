@@ -39,9 +39,11 @@ object LegacySerialization {
         }
         val value = ObjectInputStream(buffered).use { it.readObject() }
         require(expected.isInstance(value)) {
-            "Expected ${expected.name}, found ${value.javaClass.name}"
+            "Expected ${expected.name}, found ${value?.javaClass?.name ?: "null"}"
         }
-        return expected.cast(value)
+        return requireNotNull(expected.cast(value)) {
+            "Expected ${expected.name}, found null"
+        }
     }
 
     private fun t.toSnapshot() = LegacyTeamSnapshot(
