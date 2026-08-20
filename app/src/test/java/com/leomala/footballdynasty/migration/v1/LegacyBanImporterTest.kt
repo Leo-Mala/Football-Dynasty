@@ -7,6 +7,8 @@ import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.repository.RoomClubRepository
 import com.leomala.footballdynasty.foundation.error.IntegrityMismatchException
 import com.leomala.footballdynasty.testsupport.LegacyFixtureLoader
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -86,6 +88,22 @@ class LegacyBanImporterTest {
         assertEquals(firstManifest, secondManifest)
         assertEquals(1, database.clubDao().countForImportScope(LEGACY_BAN_IMPORT_SCOPE))
         assertEquals(20, database.playerDao().countForImportScope(LEGACY_BAN_IMPORT_SCOPE))
+    }
+
+    @Test
+    fun `concurrent unchanged imports serialize without duplication`() = runBlocking {
+        val reports = listOf(
+            async { importer.import(listOf(realFixtureSource())) },
+            async { importer.import(listOf(realFixtureSource())) },
+        ).awaitAll()
+
+        assertEquals(
+            setOf(LegacyBanImportOutcome.IMPORTED, LegacyBanImportOutcome.ALREADY_CURRENT),
+            reports.map { it.outcome }.toSet(),
+        )
+        assertEquals(1, database.clubDao().countForImportScope(LEGACY_BAN_IMPORT_SCOPE))
+        assertEquals(20, database.playerDao().countForImportScope(LEGACY_BAN_IMPORT_SCOPE))
+        importer.verify()
     }
 
     @Test
