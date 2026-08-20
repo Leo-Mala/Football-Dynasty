@@ -4,6 +4,15 @@
 
 Criar uma camada de leitura que preserve os formatos antigos antes de qualquer migração de regras de negócio ou persistência.
 
+## Fronteira criada
+
+A camada moderna agora separa quatro responsabilidades:
+
+- `LegacyFormatProbe` — identifica estruturalmente o tipo de artefato sem alegar desserialização que não foi provada;
+- `LegacySerialization` — contém os leitores Java Serialization comprováveis;
+- `LegacySaveReader` — boundary read-only para metadados/save e gate explícito do grafo de carreira;
+- `LegacyDataGateway` — expõe essas operações ao restante do aplicativo sem vazar os shells serializáveis.
+
 ## `.ban` — compatibilidade comprovada
 
 Os arquivos `.ban` são Java Object Serialization. O stream real começa com `AC ED 00 05` e referencia as classes `e.t` (time) e `e.g` (jogador-base), ambas com `serialVersionUID = 16`.
@@ -44,11 +53,19 @@ Fingerprint canônico do snapshot:
 
 A fixture é armazenada em Base64 apenas para permitir versionamento textual no Git; ao executar o teste ela é decodificada sem transformação semântica.
 
+Além da fixture, o leitor foi executado read-only sobre **2.689/2.689 `.ban`** do corpus fornecido sem falha de desserialização.
+
+## `options.bcf` — formato identificado
+
+A Fase 1 confirmou `est.Options` via Java Object Serialization. `LegacyFormatProbe` somente classifica um `.bcf` como `OPTIONS_JAVA_SERIALIZATION` quando o magic `AC ED` está presente.
+
+Não há fixture `options.bcf` real no conjunto fornecido, portanto não foi criado um snapshot de opções nem declarada desserialização empírica completa.
+
 ## `.ai21` — camada preparada, fixture real ausente
 
 A classe legada `est.InfoArquivoSalvoType` usa Java serialization (`serialVersionUID = 1`) e possui os campos `a`, `n`, `tc`, `i`, `path`.
 
-Foi criada a shell de compatibilidade com identidade serial exata e `LegacySerialization.readSaveMetadata()`.
+Foi criada a shell de compatibilidade com identidade serial exata e `LegacySerialization.readSaveMetadata()`. `LegacySaveReader.readMetadata()` encapsula esse acesso.
 
 O APK/decompilado fornecido não contém um arquivo `.ai21` de carreira real. Portanto a estrutura está implementada, mas **compatibilidade com um save real ainda não foi empiricamente provada**.
 
@@ -56,7 +73,11 @@ O APK/decompilado fornecido não contém um arquivo `.ai21` de carreira real. Po
 
 A Fase 1 confirmou o caminho moderno de gravação do agregado `a.b` via Kryo e a necessidade de reconstrução de referências transitórias após load. Não existe fixture real de carreira entre os arquivos fornecidos.
 
-Por isso a Fase 2 não introduz um leitor incompleto ou inventado para o grafo inteiro. A próxima prova exige um save real e o conjunto exato de classes/serializers usados pelo caminho de load.
+`LegacyFormatProbe` reconhece essas extensões como `CAREER_KRYO_OR_LEGACY`, mas isso é somente classificação estrutural. `LegacySaveReader.readCareer()` lança deliberadamente `UnsupportedOperationException` até existir uma fixture real e um teste que prove o caminho correto.
+
+## `.sbck`
+
+É reconhecido como backup do save principal. A Fase 1 mostrou que é produzido como cópia binária; por isso não há um decoder separado inventado nesta fase.
 
 ## Regra de segurança
 
