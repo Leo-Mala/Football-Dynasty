@@ -1,5 +1,6 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
+import com.leomala.footballdynasty.foundation.error.UnsupportedLegacySaveException
 import com.leomala.footballdynasty.testsupport.LegacyFixtureLoader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -34,7 +35,7 @@ class LegacyFormatProbeTest {
         assertFalse(result.javaSerializationMagic)
     }
 
-    @Test(expected = UnsupportedOperationException::class)
+    @Test(expected = UnsupportedLegacySaveException::class)
     fun `career reader remains blocked until real fixture exists`() {
         LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf()))
     }
