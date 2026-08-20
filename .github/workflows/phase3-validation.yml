@@ -2,7 +2,7 @@ name: Phase 3 Validation
 
 on:
   workflow_dispatch:
-  # Temporary one-shot trigger. Removed after the final Phase 3 gate is green.
+  # Temporary retry trigger after fixing JUnit return types. Removed after green.
   push:
     branches:
       - phase3/versioned-persistence
