@@ -41,5 +41,14 @@ object V1DomainAdapter {
     fun career(data: CareerDataV1): Career = Career(
         id = data.id,
         displayName = data.displayName,
+        legacyMetadataFingerprint = data.legacyMetadataFingerprint,
+        legacyCareerFingerprint = data.legacyCareerFingerprint,
+    )
+
+    fun careerData(career: Career): CareerDataV1 = CareerDataV1(
+        id = career.id,
+        displayName = career.displayName,
+        legacyMetadataFingerprint = career.legacyMetadataFingerprint,
+        legacyCareerFingerprint = career.legacyCareerFingerprint,
     )
 }

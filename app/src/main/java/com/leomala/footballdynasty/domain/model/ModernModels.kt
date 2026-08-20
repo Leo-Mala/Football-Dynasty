@@ -50,7 +50,10 @@ data class Match(
     val awayGoals: Int?,
 )
 
+/** Modern persistence-independent career envelope. */
 data class Career(
     val id: String,
     val displayName: String?,
+    val legacyMetadataFingerprint: String?,
+    val legacyCareerFingerprint: String?,
 )
