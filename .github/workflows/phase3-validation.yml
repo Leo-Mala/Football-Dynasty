@@ -2,7 +2,7 @@ name: Phase 3 Validation
 
 on:
   workflow_dispatch:
-  # Temporary one-shot trigger. Removed after the Phase 3 gate is stable.
+  # Temporary one-shot trigger. Removed after the final Phase 3 gate is green.
   push:
     branches:
       - phase3/versioned-persistence
@@ -55,6 +55,36 @@ jobs:
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
+      - name: Emit unit-test and benchmark evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+          files = glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
+          if not files:
+              raise SystemExit('No JUnit XML files were generated')
+          tests = failures = errors = skipped = 0
+          benchmark = []
+          for path in files:
+              root = ET.parse(path).getroot()
+              tests += int(root.attrib.get('tests', 0))
+              failures += int(root.attrib.get('failures', 0))
+              errors += int(root.attrib.get('errors', 0))
+              skipped += int(root.attrib.get('skipped', 0))
+              for node in root.findall('system-out'):
+                  if node.text:
+                      benchmark.extend(line for line in node.text.splitlines() if 'PHASE3_FIXTURE_BENCHMARK' in line)
+          print(f'PHASE3_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          for line in benchmark:
+              print(line)
+          if failures or errors:
+              raise SystemExit('JUnit XML reports failures/errors')
+          if not benchmark:
+              raise SystemExit('Phase 3 fixture benchmark evidence was not emitted')
+          PY
+
       - name: Debug build
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
@@ -65,7 +95,15 @@ jobs:
           SCHEMA_FILE="$(find app/schemas -type f -name '1.json' | head -1)"
           test -n "$SCHEMA_FILE"
           grep -Eq '"version"[[:space:]]*:[[:space:]]*1' "$SCHEMA_FILE"
-          echo "Room schema: $SCHEMA_FILE"
+          grep -q '"seniorCount"' "$SCHEMA_FILE"
+          if grep -q '"playerCount"' "$SCHEMA_FILE"; then
+            echo "Stale Room schema still contains playerCount."
+            exit 1
+          fi
+          grep -q '"legacyMetadataFingerprint"' "$SCHEMA_FILE"
+          grep -q '"legacyCareerFingerprint"' "$SCHEMA_FILE"
+          echo "PHASE3_ROOM_SCHEMA=$SCHEMA_FILE"
+          grep -m1 '"identityHash"' "$SCHEMA_FILE"
 
       - name: Commit generated Room schema if changed
         shell: bash
@@ -75,7 +113,7 @@ jobs:
           if ! git diff --cached --quiet -- app/schemas; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "build: version Room schema V1 [skip ci]"
+            git commit -m "build: regenerate final Room schema V1 [skip ci]"
             git push origin HEAD:phase3/versioned-persistence
           fi
 
@@ -84,4 +122,4 @@ jobs:
           echo "Gradle help: PASS"
           echo "testDebugUnitTest: PASS"
           echo "assembleDebug: PASS"
-          echo "Room schema V1 export: PASS"
+          echo "Room schema V1 export/audit: PASS"
