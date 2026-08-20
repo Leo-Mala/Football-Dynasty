@@ -120,13 +120,16 @@ data class LegacyImportManifestEntity(
 
 /**
  * Initial modern save envelope only. It does not represent or claim migration
- * of the legacy Kryo career graph.
+ * of the legacy Kryo career graph. Fingerprints remain null unless corresponding
+ * legacy artifacts have been characterized and verified.
  */
 @Entity(tableName = "career_metadata")
 data class CareerMetadataEntity(
     @PrimaryKey val id: String,
     val dataVersion: Int,
     val displayName: String?,
+    val legacyMetadataFingerprint: String?,
+    val legacyCareerFingerprint: String?,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
 )
