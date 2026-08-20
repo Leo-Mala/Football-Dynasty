@@ -9,11 +9,16 @@ import com.leomala.footballdynasty.data.local.entity.LegacyImportStateEntity
 import com.leomala.footballdynasty.foundation.error.DuplicateStableIdentityException
 import com.leomala.footballdynasty.foundation.error.IntegrityMismatchException
 import com.leomala.footballdynasty.foundation.error.LegacyFormatException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.util.concurrent.CancellationException
+import java.util.logging.Level
+import java.util.logging.Logger
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 const val LEGACY_BAN_IMPORT_SCOPE: String = "legacy-ban-corpus-v1"
 const val LEGACY_BAN_ADAPTER_VERSION: Int = 1
@@ -22,16 +27,28 @@ class LegacyBanImporter(
     private val database: FootballDynastyDatabase,
     private val gateway: LegacyDataGateway = LegacyDataGateway(),
     private val adapter: LegacyBanToV1Adapter = LegacyBanToV1Adapter(),
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val logger: LegacyImportLogger = JulLegacyImportLogger,
+    private val nanoTime: () -> Long = System::nanoTime,
     private val clockMillis: () -> Long = System::currentTimeMillis,
 ) {
     private val store = RoomV1DataStore(database)
-    private val mutationMutex = Mutex()
+    private val writeMutex = Mutex()
 
     suspend fun import(
         sources: List<LegacyBanSource>,
         scope: String = LEGACY_BAN_IMPORT_SCOPE,
-    ): LegacyBanImportReport = mutationMutex.withLock {
+    ): LegacyBanImportReport = writeMutex.withLock {
         importLocked(sources, scope)
+    }
+
+    suspend fun status(scope: String = LEGACY_BAN_IMPORT_SCOPE): LegacyImportStatus {
+        val stored = database.legacyImportDao().state(scope) ?: return LegacyImportStatus.NOT_IMPORTED
+        return try {
+            LegacyImportStatus.valueOf(stored.status)
+        } catch (error: IllegalArgumentException) {
+            throw IntegrityMismatchException("Unknown import status '${stored.status}' for scope $scope")
+        }
     }
 
     suspend fun verify(scope: String = LEGACY_BAN_IMPORT_SCOPE): LegacyBanImportReport {
@@ -54,13 +71,15 @@ class LegacyBanImporter(
             juniorCount = manifest.juniorCount,
             sourceManifestSha256 = manifest.sourceManifestSha256,
             semanticFingerprint = manifest.semanticFingerprint,
+            timing = LegacyBanImportTiming.ZERO,
         )
         verifyPersisted(report)
         return report
     }
 
-    suspend fun reset(scope: String = LEGACY_BAN_IMPORT_SCOPE) = mutationMutex.withLock {
+    suspend fun reset(scope: String = LEGACY_BAN_IMPORT_SCOPE) = writeMutex.withLock {
         store.resetImportScope(scope)
+        logger.info("legacy-ban reset scope=$scope")
     }
 
     private suspend fun importLocked(
@@ -72,14 +91,27 @@ class LegacyBanImporter(
             throw LegacyFormatException("Legacy .ban import requires at least one source")
         }
 
+        val totalStart = nanoTime()
+        logger.info(
+            "legacy-ban start scope=$scope adapter=$LEGACY_BAN_ADAPTER_VERSION " +
+                "schema=$DATA_SCHEMA_V1 sources=${sources.size}"
+        )
+
         val prepared = prepareSources(sources)
-        val clubs = prepared.map { it.club }
+        val clubs = prepared.sources.map { it.club }
         validateBatch(clubs)
 
-        val sourceManifestSha256 = V1Fingerprint.sourceManifest(
-            prepared.map { SourceManifestEntryV1(it.logicalPath, it.sourceSha256) }
-        )
-        val semanticFingerprint = V1Fingerprint.corpus(clubs)
+        val manifestStart = nanoTime()
+        val sourceManifestSha256 = withContext(ioDispatcher) {
+            V1Fingerprint.sourceManifest(
+                prepared.sources.map { SourceManifestEntryV1(it.logicalPath, it.sourceSha256) }
+            )
+        }
+        val manifestNanos = elapsed(manifestStart)
+
+        val fingerprintStart = nanoTime()
+        val semanticFingerprint = withContext(ioDispatcher) { V1Fingerprint.corpus(clubs) }
+        val fingerprintNanos = elapsed(fingerprintStart)
         val seniorCount = clubs.sumOf { club ->
             club.players.count { it.rosterKind == RosterKindV1.SENIOR }
         }
@@ -87,19 +119,38 @@ class LegacyBanImporter(
             club.players.count { it.rosterKind == RosterKindV1.JUNIOR }
         }
 
+        val baseTiming = LegacyBanImportTiming(
+            readDecodeNanos = prepared.readDecodeNanos,
+            sourceHashNanos = prepared.sourceHashNanos,
+            adapterNanos = prepared.adapterNanos,
+            sourceManifestNanos = manifestNanos,
+            semanticFingerprintNanos = fingerprintNanos,
+            persistenceNanos = 0L,
+            verificationNanos = 0L,
+            totalNanos = 0L,
+        )
         val expected = LegacyBanImportReport(
             outcome = LegacyBanImportOutcome.IMPORTED,
             scope = scope,
-            sourceCount = prepared.size,
+            sourceCount = prepared.sources.size,
             clubCount = clubs.size,
             seniorCount = seniorCount,
             juniorCount = juniorCount,
             sourceManifestSha256 = sourceManifestSha256,
             semanticFingerprint = semanticFingerprint,
+            timing = baseTiming,
         )
 
         if (isAlreadyCurrent(expected)) {
-            return expected.copy(outcome = LegacyBanImportOutcome.ALREADY_CURRENT)
+            val timing = baseTiming.copy(totalNanos = elapsed(totalStart))
+            logger.info(
+                "legacy-ban already-current scope=$scope clubs=${clubs.size} seniors=$seniorCount " +
+                    "juniors=$juniorCount fingerprint=${semanticFingerprint.take(16)} totalNanos=${timing.totalNanos}"
+            )
+            return expected.copy(
+                outcome = LegacyBanImportOutcome.ALREADY_CURRENT,
+                timing = timing,
+            )
         }
 
         val startedAt = clockMillis()
@@ -118,6 +169,7 @@ class LegacyBanImporter(
 
         try {
             val completedAt = clockMillis()
+            val persistenceStart = nanoTime()
             store.replaceImportScope(
                 scope = scope,
                 clubs = clubs,
@@ -125,7 +177,7 @@ class LegacyBanImporter(
                     scope = scope,
                     adapterVersion = LEGACY_BAN_ADAPTER_VERSION,
                     schemaVersion = DATA_SCHEMA_V1,
-                    sourceCount = prepared.size,
+                    sourceCount = prepared.sources.size,
                     clubCount = clubs.size,
                     seniorCount = seniorCount,
                     juniorCount = juniorCount,
@@ -144,8 +196,21 @@ class LegacyBanImporter(
                     lastError = null,
                 ),
             )
+            val persistenceNanos = elapsed(persistenceStart)
+
+            val verificationStart = nanoTime()
             verifyPersisted(expected)
-            return expected
+            val verificationNanos = elapsed(verificationStart)
+            val timing = baseTiming.copy(
+                persistenceNanos = persistenceNanos,
+                verificationNanos = verificationNanos,
+                totalNanos = elapsed(totalStart),
+            )
+            logger.info(
+                "legacy-ban complete scope=$scope clubs=${clubs.size} seniors=$seniorCount juniors=$juniorCount " +
+                    "fingerprint=${semanticFingerprint.take(16)} totalNanos=${timing.totalNanos}"
+            )
+            return expected.copy(timing = timing)
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             try {
@@ -158,12 +223,13 @@ class LegacyBanImporter(
                         sourceManifestSha256 = sourceManifestSha256,
                         semanticFingerprint = semanticFingerprint,
                         updatedAtEpochMillis = clockMillis(),
-                        lastError = error.message ?: error.javaClass.name,
+                        lastError = safeError(error),
                     )
                 )
             } catch (_: Exception) {
                 // Best effort only: never hide the original import failure.
             }
+            logger.error("legacy-ban failed scope=$scope error=${safeError(error)}", error)
             throw error
         }
     }
@@ -207,7 +273,7 @@ class LegacyBanImporter(
         }
 
         val roundTrip = store.readImportScope(expected.scope)
-        val persistedFingerprint = V1Fingerprint.corpus(roundTrip)
+        val persistedFingerprint = withContext(ioDispatcher) { V1Fingerprint.corpus(roundTrip) }
         if (persistedFingerprint != expected.semanticFingerprint) {
             throw IntegrityMismatchException(
                 "Room semantic fingerprint mismatch for ${expected.scope}: " +
@@ -216,40 +282,56 @@ class LegacyBanImporter(
         }
     }
 
-    private fun prepareSources(sources: List<LegacyBanSource>): List<PreparedBanSource> {
-        val sorted = sources.sortedBy { it.logicalPath }
-        val paths = sorted.map { it.logicalPath }
-        if (paths.any { it.isBlank() }) {
-            throw LegacyFormatException("Legacy .ban source path must not be blank")
-        }
-        if (paths.toSet().size != paths.size) {
-            throw LegacyFormatException("Duplicate logical path in legacy .ban source set")
-        }
-        if (paths.any { !it.lowercase().endsWith(".ban") }) {
-            throw LegacyFormatException("Legacy .ban importer received a non-.ban source")
-        }
-
-        return sorted.map { source ->
-            val bytes = source.openStream().use { input -> input.readBytes() }
-            if (bytes.isEmpty()) {
-                throw LegacyFormatException("Legacy .ban source ${source.logicalPath} is empty")
+    private suspend fun prepareSources(sources: List<LegacyBanSource>): PreparedBatch =
+        withContext(ioDispatcher) {
+            val sorted = sources.sortedBy { it.logicalPath }
+            val paths = sorted.map { it.logicalPath }
+            if (paths.any { it.isBlank() }) {
+                throw LegacyFormatException("Legacy .ban source path must not be blank")
             }
-            val snapshot = try {
-                gateway.readTeamBan(ByteArrayInputStream(bytes))
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                throw LegacyFormatException(
-                    "Failed to read legacy .ban source ${source.logicalPath}",
-                    error,
+            if (paths.toSet().size != paths.size) {
+                throw LegacyFormatException("Duplicate logical path in legacy .ban source set")
+            }
+            if (paths.any { !it.lowercase().endsWith(".ban") }) {
+                throw LegacyFormatException("Legacy .ban importer received a non-.ban source")
+            }
+
+            var readDecodeNanos = 0L
+            var sourceHashNanos = 0L
+            var adapterNanos = 0L
+            val prepared = sorted.map { source ->
+                val readStart = nanoTime()
+                val bytes = source.openStream().use { input -> input.readBytes() }
+                if (bytes.isEmpty()) {
+                    throw LegacyFormatException("Legacy .ban source ${source.logicalPath} is empty")
+                }
+                val snapshot = try {
+                    gateway.readTeamBan(ByteArrayInputStream(bytes))
+                } catch (error: Exception) {
+                    if (error is CancellationException) throw error
+                    throw LegacyFormatException(
+                        "Failed to read legacy .ban source ${source.logicalPath}",
+                        error,
+                    )
+                }
+                readDecodeNanos += elapsed(readStart)
+
+                val hashStart = nanoTime()
+                val sourceSha = V1Fingerprint.sha256(bytes)
+                sourceHashNanos += elapsed(hashStart)
+
+                val adapterStart = nanoTime()
+                val club = adapter.adapt(snapshot)
+                adapterNanos += elapsed(adapterStart)
+
+                PreparedBanSource(
+                    logicalPath = source.logicalPath,
+                    sourceSha256 = sourceSha,
+                    club = club,
                 )
             }
-            PreparedBanSource(
-                logicalPath = source.logicalPath,
-                sourceSha256 = V1Fingerprint.sha256(bytes),
-                club = adapter.adapt(snapshot),
-            )
+            PreparedBatch(prepared, readDecodeNanos, sourceHashNanos, adapterNanos)
         }
-    }
 
     private fun validateBatch(clubs: List<ClubDataV1>) {
         val clubIds = clubs.map { it.id }
@@ -265,6 +347,14 @@ class LegacyBanImporter(
             throw DuplicateStableIdentityException("Duplicate player identity across legacy .ban sources")
         }
     }
+
+    private fun elapsed(start: Long): Long = (nanoTime() - start).coerceAtLeast(0L)
+
+    private fun safeError(error: Throwable): String =
+        (error.message ?: error.javaClass.simpleName)
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .take(512)
 }
 
 data class LegacyBanSource(
@@ -273,6 +363,7 @@ data class LegacyBanSource(
 )
 
 enum class LegacyImportStatus {
+    NOT_IMPORTED,
     RUNNING,
     COMPLETE,
     FAILED,
@@ -281,6 +372,21 @@ enum class LegacyImportStatus {
 enum class LegacyBanImportOutcome {
     IMPORTED,
     ALREADY_CURRENT,
+}
+
+data class LegacyBanImportTiming(
+    val readDecodeNanos: Long,
+    val sourceHashNanos: Long,
+    val adapterNanos: Long,
+    val sourceManifestNanos: Long,
+    val semanticFingerprintNanos: Long,
+    val persistenceNanos: Long,
+    val verificationNanos: Long,
+    val totalNanos: Long,
+) {
+    companion object {
+        val ZERO = LegacyBanImportTiming(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L)
+    }
 }
 
 data class LegacyBanImportReport(
@@ -292,10 +398,37 @@ data class LegacyBanImportReport(
     val juniorCount: Int,
     val sourceManifestSha256: String,
     val semanticFingerprint: String,
-)
+    val timing: LegacyBanImportTiming,
+) {
+    val totalPlayerCount: Int get() = seniorCount + juniorCount
+}
+
+interface LegacyImportLogger {
+    fun info(message: String)
+    fun error(message: String, error: Throwable? = null)
+}
+
+object JulLegacyImportLogger : LegacyImportLogger {
+    private val logger = Logger.getLogger("FootballDynasty.LegacyImport")
+
+    override fun info(message: String) {
+        logger.info(message)
+    }
+
+    override fun error(message: String, error: Throwable?) {
+        if (error == null) logger.warning(message) else logger.log(Level.WARNING, message, error)
+    }
+}
 
 private data class PreparedBanSource(
     val logicalPath: String,
     val sourceSha256: String,
     val club: ClubDataV1,
+)
+
+private data class PreparedBatch(
+    val sources: List<PreparedBanSource>,
+    val readDecodeNanos: Long,
+    val sourceHashNanos: Long,
+    val adapterNanos: Long,
 )
