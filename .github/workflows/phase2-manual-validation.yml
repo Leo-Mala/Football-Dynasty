@@ -2,7 +2,7 @@ name: Phase 2 Manual Validation
 
 on:
   workflow_dispatch:
-  # Temporary one-shot trigger. Remove after the Phase 2 Android gate is proven.
+  # Temporary one-shot trigger. Remove after the Phase 2 Android gate is proven. USER
   push:
     branches:
       - phase2/compatibility-harness
