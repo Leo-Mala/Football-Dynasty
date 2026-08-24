@@ -14,6 +14,7 @@ object LegacyAnnualPlayerMovementRules {
     data class AnnualT1Plan(
         val amount: Int,
         val activityMainTeamDirty: Boolean,
+        val relinkToTarget: Boolean,
         val resetX: Boolean,
         val resetZ: Boolean,
         val leaveYUnchanged: Boolean,
@@ -21,6 +22,7 @@ object LegacyAnnualPlayerMovementRules {
         val sourceBCode1Amount: Int?,
         val targetDCode1Amount: Int?,
         val legacyDurationArgument: Long,
+        val callQ1: Boolean,
         val clearSourceSpecialReferences: Boolean,
         val removeFromSource: Boolean,
         val addToTarget: Boolean,
@@ -50,6 +52,7 @@ object LegacyAnnualPlayerMovementRules {
         return AnnualT1Plan(
             amount = amount,
             activityMainTeamDirty = (sourceExists && sourceManaged) || targetManaged,
+            relinkToTarget = true,
             resetX = true,
             resetZ = true,
             leaveYUnchanged = true,
@@ -57,6 +60,7 @@ object LegacyAnnualPlayerMovementRules {
             sourceBCode1Amount = sourceLedgerAmount,
             targetDCode1Amount = targetLedgerAmount,
             legacyDurationArgument = LEGACY_DURATION_ARGUMENT,
+            callQ1 = true,
             clearSourceSpecialReferences = sourceExists,
             removeFromSource = sourceExists,
             addToTarget = true,
