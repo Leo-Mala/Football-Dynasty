@@ -1,10 +1,10 @@
-name: Phase 4R Validation
+name: Phase 5 Validation
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - phase4r/brasfoot-2026-rebaseline
+      - phase5/season-lifecycle-parity
   pull_request:
     branches:
       - phase4/core-game-domain
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase4r-validation-${{ github.ref }}
+  group: phase5-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout exact Phase 4R head
+      - name: Checkout exact Phase 5 head
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -72,22 +72,28 @@ jobs:
               raise SystemExit('No JUnit XML files were generated')
           tests = failures = errors = skipped = 0
           benchmark = []
+          phase5 = []
           for path in files:
               root = ET.parse(path).getroot()
               tests += int(root.attrib.get('tests', 0))
               failures += int(root.attrib.get('failures', 0))
               errors += int(root.attrib.get('errors', 0))
               skipped += int(root.attrib.get('skipped', 0))
+              if root.attrib.get('name', '').endswith('LegacyCareerCalendarCharacterizationTest'):
+                  phase5.append((root.attrib.get('tests', '0'), root.attrib.get('failures', '0'), root.attrib.get('errors', '0')))
               for node in root.findall('system-out'):
                   if node.text:
                       benchmark.extend(line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line)
-          print(f'PHASE4R_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          print(f'PHASE5_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          print(f'PHASE5_SEASON_CHARACTERIZATION={phase5}')
           for line in benchmark:
               print(line)
           if failures or errors:
               raise SystemExit('JUnit XML reports failures/errors')
           if not benchmark:
-              raise SystemExit('Phase 4 core performance evidence was not emitted')
+              raise SystemExit('Core performance evidence was not emitted')
+          if not phase5 or any(f != '0' or e != '0' for _, f, e in phase5):
+              raise SystemExit('Phase 5 season characterization evidence missing or failing')
           PY
 
       - name: Verify active Brasfoot 2026 fixture integrity
@@ -124,11 +130,12 @@ jobs:
           fi
           git diff --exit-code -- app/schemas
 
-      - name: Phase 4R gate summary
+      - name: Phase 5 gate summary
         run: |
           echo "Gradle help: PASS"
           echo "Room schema V2 generation: PASS"
           echo "testDebugUnitTest: PASS"
+          echo "Brasfoot 2026 season characterization: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
