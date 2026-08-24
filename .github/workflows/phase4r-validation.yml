@@ -94,6 +94,8 @@ jobs:
               'LegacyAnnualSquadFloorRulesTest': None,
               'LegacyAnnualA0IRulesTest': None,
               'LegacyAnnualA0OrchestrationRulesTest': None,
+              'LegacyAnnualJAndBestFDeepTest': None,
+              'LegacyAnnualPlayerMovementRulesTest': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -176,6 +178,8 @@ jobs:
           echo "Brasfoot 2026 annual squad floor maintenance: PASS"
           echo "Brasfoot 2026 best.a0.i relocation filters: PASS"
           echo "Brasfoot 2026 best.a0 orchestration: PASS"
+          echo "Brasfoot 2026 best.a0.j/best.f deep selection: PASS"
+          echo "Brasfoot 2026 annual T1 movement plan: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
