@@ -188,7 +188,7 @@ class CareerPlayerRuntimeStoreTest {
     }
 
     @Test
-    fun `career scoped runtime survives database reopen`() = runBlocking {
+    fun `career scoped runtime and rng survive database reopen together`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase7-career-runtime-reopen.db"
         context.deleteDatabase(name)
@@ -205,10 +205,18 @@ class CareerPlayerRuntimeStoreTest {
                 legacyCareerFingerprint = null,
             )
         )
-        CareerPlayerRuntimeStore(fileDb).saveProceduralPlayer(
-            runtime("reopen-career", "reopen-player", overall = 77),
-            procedural("reopen-career", "reopen-player", "Reopen Player"),
-            membership("reopen-career", "reopen-player", "reopen-club", 1),
+        val initialState = CareerStateFactory.create("reopen-career", seed = 73L)
+        val persistedState = initialState.copy(
+            random = initialState.random.copy(
+                internalState = (initialState.random.internalState + 123L) and ((1L shl 48) - 1L),
+                draws = initialState.random.draws + 9L,
+            ),
+        )
+        CareerPlayerRuntimeStore(fileDb).saveProceduralPlayerAndCareerState(
+            state = persistedState,
+            runtime = runtime("reopen-career", "reopen-player", overall = 77),
+            procedural = procedural("reopen-career", "reopen-player", "Reopen Player"),
+            membership = membership("reopen-career", "reopen-player", "reopen-club", 1),
         )
         fileDb.close()
 
@@ -217,9 +225,13 @@ class CareerPlayerRuntimeStoreTest {
             .addMigrations(*FootballDynastyMigrations.ALL)
             .build()
         val loaded = requireNotNull(CareerPlayerRuntimeStore(fileDb).find("reopen-career", "reopen-player"))
+        val loadedState = requireNotNull(RoomCareerStateRepository(fileDb).findById("reopen-career"))
         assertEquals(77, loaded.runtime.overall)
         assertEquals("Reopen Player", loaded.procedural?.name)
         assertEquals("reopen-club", loaded.membership?.clubId)
+        assertEquals(persistedState, loadedState)
+        assertEquals(persistedState.random.internalState, loadedState.random.internalState)
+        assertEquals(persistedState.random.draws, loadedState.random.draws)
         fileDb.close()
         context.deleteDatabase(name)
         Unit
