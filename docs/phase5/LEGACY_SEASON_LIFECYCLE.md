@@ -86,20 +86,67 @@ A regra não prova que todo modo de jogo usa sempre 2026: existe explicitamente 
 
 Classificação: `JAVA_CONFIRMED_BY_SMALI` para a fórmula e os dois anos-base; `REVALIDATION_REQUIRED` para o significado funcional completo do modo `22`.
 
+## best.b.w1() — incremento de temporada
+
+Java e SMALI confirmam que `w1()` faz somente:
+
+- lê o campo de temporada `b`;
+- incrementa em `1`;
+- grava novamente o campo `b`.
+
+Isso confirma que o incremento ocorre antes da reconstrução do calendário em `l()`.
+
+Classificação: `JAVA_CONFIRMED_BY_SMALI`.
+
+## best.b.c(year) — materialização do calendário anual
+
+Java e SMALI confirmam que `c(int year)`:
+
+1. cria um `java.util.Calendar` em `1º de janeiro` do ano solicitado;
+2. percorre um dia por vez enquanto o ano permanecer igual ao argumento;
+3. cria um objeto de dia legado `best.a` para cada data e o adiciona ao estado central;
+4. durante janeiro, detecta o primeiro domingo (`Calendar.DAY_OF_WEEK == 1`);
+5. salva o índice desse primeiro domingo via `T2(index)`;
+6. avança por `Calendar.DAY_OF_MONTH + 1` até terminar o ano;
+7. chama `y1()` ao final.
+
+Isto confirma diretamente os invariantes modernos já existentes de:
+
+- 365/366 dias conforme o ano;
+- início de temporada no primeiro domingo de janeiro;
+- transição 2026 -> 2027 -> 2028 com tratamento natural de ano bissexto.
+
+Classificação: `JAVA_CONFIRMED_BY_SMALI` para construção diária e seleção do primeiro domingo; a semântica interna de `y1()` permanece em caracterização.
+
+## Manutenções posteriores já delimitadas
+
+A leitura Java permitiu delimitar, sem ainda transportar semântica para o domínio moderno:
+
+- `s()` percorre uma coleção de entidades, limpa estado anual e executa resets/manutenções condicionais; depois chama `p()` sobre itens de `g1()`;
+- `D()` atualiza uma coleção histórica quando existente ou a cria a partir de competições/temporada anterior;
+- `r()` executa manutenção sobre competições/tabelas, limpa flags anuais e reconstrói listas ordenadas de clubes/participantes;
+- `o()` executa manutenção equivalente sobre outra família de competições e limpa flags anuais;
+- `q()` executa manutenção de coleções, remoções/adições diferidas, limpeza de entradas inválidas e rotinas finais de reorganização.
+
+Essas descrições são deliberadamente estruturais. Os nomes/objetos obfuscados ainda não permitem afirmar com segurança todos os efeitos esportivos de cada método.
+
+Classificação: `JAVA_PARTIAL_SEMANTICS`; confirmação SMALI pontual será exigida antes de modelar cada efeito no domínio.
+
 ## Impacto no domínio moderno
 
 - `CareerState`, `SeasonState`, `CareerCalendarState` e RNG persistível permanecem válidos;
 - `LegacyCalendarRules.BASE_YEAR = 2026` está revalidado contra o baseline 2026/27 para o caminho padrão;
-- `transitionSeason()` continua útil como projeção mínima, mas ainda não representa todos os efeitos colaterais de `best.b.d()`;
+- a implementação de `transitionSeason()` está alinhada com `w1() + l() + c(year)` nos invariantes de temporada, ano, quantidade de dias e primeiro domingo;
+- `transitionSeason()` ainda não representa todos os efeitos colaterais anuais de `best.b.d()`;
 - nenhuma alteração de Room é justificada por esta caracterização inicial;
-- não é correto declarar paridade completa de fim de temporada enquanto a semântica dos métodos obfuscados da sequência não for caracterizada.
+- não é correto declarar paridade completa de fim de temporada enquanto a semântica dos resets/manutenções anuais não for caracterizada.
 
 ## Próximas investigações
 
 Prioridade de recuperação:
 
-1. `best.b.w1()` e `best.b.c(year)` para construção do calendário;
-2. `best.b.s()`, `D()`, `r()`, `o()` para manutenção central;
+1. `y1()` e os efeitos finais de calendário;
+2. `best.b.s()`, `D()`, `r()`, `o()` com Java↔SMALI para identificar invariantes anuais seguros;
 3. `g1().l1()` para efeitos por entidade;
 4. `P0()`, `Y3()` e `q()` para reconstrução/limpeza pós-transição;
 5. Java↔SMALI de qualquer método truncado ou contraditório encontrado nessas rotinas;
