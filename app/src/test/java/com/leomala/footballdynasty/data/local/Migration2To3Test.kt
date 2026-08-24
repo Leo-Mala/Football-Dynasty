@@ -1,9 +1,11 @@
 package com.leomala.footballdynasty.data.local
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -81,6 +83,22 @@ class Migration2To3Test {
                 "(careerId,playerId,name,country,position,status,side,cr1,cr2) " +
                 "VALUES ('migration-career','generated','PROCEDURAL',29,3,0,1,4,11)"
         )
+
+        try {
+            db.execSQL(
+                "INSERT INTO career_squad_memberships " +
+                    "(careerId,playerId,clubId,rosterKind,sourceOrdinal) " +
+                    "VALUES ('migration-career','generated','missing-club','SENIOR',0)"
+            )
+            fail("Expected migrated career_squad_memberships.clubId foreign key rejection")
+        } catch (_: SQLiteConstraintException) {
+            // Expected: V2->V3 must materialize the clubs.id FK, not only the current Room schema.
+        }
+        db.query("SELECT COUNT(*) FROM career_squad_memberships").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+
         db.execSQL(
             "INSERT INTO career_squad_memberships " +
                 "(careerId,playerId,clubId,rosterKind,sourceOrdinal) " +
