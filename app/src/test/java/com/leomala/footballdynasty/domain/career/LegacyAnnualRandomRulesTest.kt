@@ -132,7 +132,7 @@ class LegacyAnnualRandomRulesTest {
     }
 
     @Test
-    fun `best f n O0 Q0 override occurs after a qualifying rng draw`() {
+    fun `best f n O0 Q0 short circuit selects alternate route without rng`() {
         val random = FixedIntRandomSource(0)
         val route = LegacyAnnualSelectionRules.bestFNRoute(
             random = random,
@@ -142,7 +142,7 @@ class LegacyAnnualRandomRulesTest {
         )
 
         assertEquals(BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G, route)
-        assertEquals(1L, random.draws)
+        assertEquals(0L, random.draws)
     }
 
     @Test
