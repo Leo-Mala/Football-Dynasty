@@ -23,7 +23,7 @@ Ela não copia a arquitetura legado. Em vez disso, transforma decisões comprova
 - `best.a0.i()` — `nextInt(100) > 25`;
 - oito sites de `best.a0.j(...)`: thresholds `10,90,30,30,35,45,75,95`;
 - `best.f` construtor — `>10`;
-- `best.f.n()` — `<=60`;
+- `best.f.n()` — `<=60` apenas no branch que efetivamente alcança o sorteio;
 - shuffle Fisher–Yates por `RandomSource`.
 
 ### `LegacyAnnualSelectionRules`
@@ -36,8 +36,9 @@ Ela não copia a arquitetura legado. Em vez disso, transforma decisões comprova
 - filtro do jogador selecionável;
 - roteamento modo 0/1 e `n/o` preservando consumo sequencial de RNG;
 - short-circuit diferente entre construtor `best.f` modos 0 e 1;
-- roteamento de `best.f.n()`;
+- short-circuit de `best.f.n()` que evita RNG em `O0 && Q0`;
 - ranges e filtros de `best.f.q(...)`;
+- seleção de modo 2 por capacidade + `p0()`;
 - fallback `best.f.p()`.
 
 ### `LegacyAnnualSquadFloorRules`
@@ -63,12 +64,35 @@ Reconstrói o método Java truncado `best.a0.i()` usando SMALI:
 - `best.f` modo `2`;
 - tentativa `n(false)` seguida de `o(false)` somente quando a primeira não resolve.
 
+A facade usa `LegacyAnnualSelectionRules` como fonte única dos predicados compartilhados, evitando drift entre subsistemas.
+
 ### `LegacyAnnualA0OrchestrationRules`
 
 - tier de chamadas de `best.a0.b(...)`: 1/2/3/4 pares de passagens conforme índice;
 - primeiro loop de `best.a0.a()`;
 - segundo loop e short-circuit antes do gate `>30`;
 - ação de `best.a0.c()` (`NONE`, `CALL_H1`, `SET_S0_FALSE`).
+
+### `LegacyAnnualPlayerMovementRules`
+
+Modela estruturalmente a chamada anual comprovada:
+
+`best.o.T1(destination, A0(), false, false, false)`.
+
+Java + SMALI confirmam, entre outros efeitos:
+
+- relink do jogador para o destino;
+- resets `X=false` e `Z=false`;
+- `Y` não alterado por esse call shape;
+- cálculo percentual secundário igual a zero porque o primeiro booleano é `false`;
+- chamadas de código `1` condicionadas a `A0()>0` e `Q0()`;
+- argumento estrutural `180L`;
+- `Q1()`;
+- limpeza/removal da origem quando ela existe;
+- inclusão no destino;
+- efeitos extras quando origem e destino são ambos `Q0()`.
+
+A Fase 6 congela esse plano, mas não grava uma versão parcial no Room enquanto todos os campos dinâmicos afetados por `T1` não estiverem representados com equivalência comprovada.
 
 ## Engenharia reversa concluída nesta fase
 
@@ -105,7 +129,9 @@ Testes preservam:
 - snapshot/restore do RNG;
 - shuffle determinístico;
 - filtros de seleção;
-- limites de elenco.
+- limites de elenco;
+- seleção profunda de `best.a0.j()/best.f`;
+- plano estrutural anual de `T1`.
 
 ## Persistência / Room
 
@@ -150,6 +176,8 @@ O workflow exige, no mesmo head:
 - `LegacyAnnualSquadFloorRulesTest`;
 - `LegacyAnnualA0IRulesTest`;
 - `LegacyAnnualA0OrchestrationRulesTest`;
+- `LegacyAnnualJAndBestFDeepTest`;
+- `LegacyAnnualPlayerMovementRulesTest`;
 - benchmark/evidência de performance existente;
 - integridade SHA-256 da fixture Brasfoot 2026;
 - `assembleDebug`;
