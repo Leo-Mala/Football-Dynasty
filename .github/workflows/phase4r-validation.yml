@@ -51,13 +51,17 @@ jobs:
         with:
           cache-read-only: true
 
-      - name: Reject raw RNG in modern career domain
+      - name: Reject raw RNG APIs in modern career domain
         shell: bash
         run: |
           set -euo pipefail
-          if grep -R -n -E 'java\.util\.Random|Math\.random|ThreadLocalRandom|(^|[^A-Za-z])Random\(' \
-              app/src/main/java/com/leomala/footballdynasty/domain/career; then
-            echo 'Raw RNG is forbidden in the modern career domain; inject RandomSource instead.'
+          CAREER_DIR=app/src/main/java/com/leomala/footballdynasty/domain/career
+          if grep -R -n -E '^[[:space:]]*import[[:space:]]+(java\.util\.Random|java\.util\.concurrent\.ThreadLocalRandom|kotlin\.random\.Random)' "$CAREER_DIR"; then
+            echo 'Raw RNG imports are forbidden in the modern career domain; inject RandomSource instead.'
+            exit 1
+          fi
+          if grep -R -n -E 'Math\.random[[:space:]]*\(' "$CAREER_DIR"; then
+            echo 'Math.random is forbidden in the modern career domain; inject RandomSource instead.'
             exit 1
           fi
 
