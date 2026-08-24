@@ -29,9 +29,13 @@ android {
 
     sourceSets {
         // AGP 9.x exposes AndroidSourceDirectorySet.directories as String paths.
-        // Keep the exported Room schema visible to migration tests without
-        // converting the path to File (which fails Kotlin DSL compilation).
+        // Room's MigrationTestHelper first reads instrumentation test assets and
+        // then falls back to target/app assets. Robolectric unit tests do not
+        // reliably package the custom `test` asset directory, so expose the
+        // exported schemas only to the debug variant as well. Release APKs do
+        // not receive schema JSON files.
         getByName("test").assets.directories.add("$projectDir/schemas")
+        getByName("debug").assets.directories.add("$projectDir/schemas")
     }
 
     compileOptions {
