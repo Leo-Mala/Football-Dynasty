@@ -28,7 +28,10 @@ android {
     }
 
     sourceSets {
-        getByName("test").assets.directories.add(file("$projectDir/schemas"))
+        // AGP 9.x exposes AndroidSourceDirectorySet.directories as String paths.
+        // Keep the exported Room schema visible to migration tests without
+        // converting the path to File (which fails Kotlin DSL compilation).
+        getByName("test").assets.directories.add("$projectDir/schemas")
     }
 
     compileOptions {
