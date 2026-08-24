@@ -7,12 +7,15 @@ on:
     paths:
       - '.github/workflows/phase7-corpus-bootstrap.yml'
       - 'app/src/main/assets/bootstrap/**'
+  pull_request:
+    branches:
+      - phase4/core-game-domain
 
 permissions:
   contents: write
 
 concurrency:
-  group: phase7-corpus-bootstrap
+  group: phase7-corpus-bootstrap-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -20,10 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout Phase 7 branch
+      - name: Checkout exact Phase 7 head
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check bootstrap parts
         id: parts
