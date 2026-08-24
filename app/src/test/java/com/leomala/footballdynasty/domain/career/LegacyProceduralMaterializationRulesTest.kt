@@ -19,15 +19,15 @@ class LegacyProceduralMaterializationRulesTest {
                 legacyE = 3,
                 legacyO = 50,
             ),
-            target = target(clubLevel = 22, countryGroup = 0),
+            target = target(clubLevel = 22, legacyJ = 0),
         )
 
         assertEquals(listOf(5, 3), random.bounds)
-        assertEquals(13, materialized.overall)
+        assertEquals(15, materialized.overall)
         assertTrue(materialized.star)
         assertFalse(materialized.worldTop)
         assertEquals(8, materialized.legacyHash)
-        assertEquals(114_380, materialized.marketValue)
+        assertEquals(152_280, materialized.marketValue)
         assertEquals(18, materialized.age)
         assertEquals(300L, materialized.durationDays)
     }
@@ -44,10 +44,11 @@ class LegacyProceduralMaterializationRulesTest {
                 legacyE = 4,
                 legacyO = 60,
             ),
-            target = target(clubLevel = 18, countryGroup = 1),
+            target = target(clubLevel = 18, legacyJ = 1),
         )
 
         assertEquals(listOf(5, 10, 200, 300), random.bounds)
+        assertEquals(20, materialized.overall)
         assertFalse(materialized.star)
         assertFalse(materialized.worldTop)
         assertEquals(9, materialized.legacyHash)
@@ -88,12 +89,12 @@ class LegacyProceduralMaterializationRulesTest {
         legacyM = 6,
     )
 
-    private fun target(clubLevel: Int, countryGroup: Int) =
+    private fun target(clubLevel: Int, legacyJ: Int) =
         LegacyProceduralMaterializationRules.TargetContext(
             legacyR0 = false,
             legacyO = 0,
             legacyP0 = 4,
-            countryGroup = countryGroup,
+            legacyJ = legacyJ,
             clubLevel = clubLevel,
             currentYear = 2026,
         )
