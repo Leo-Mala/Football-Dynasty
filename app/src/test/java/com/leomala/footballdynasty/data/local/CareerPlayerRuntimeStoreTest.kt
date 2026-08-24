@@ -1,12 +1,15 @@
 package com.leomala.footballdynasty.data.local
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
 import com.leomala.footballdynasty.data.repository.RoomCareerRepository
+import com.leomala.footballdynasty.data.repository.RoomCareerStateRepository
+import com.leomala.footballdynasty.domain.career.CareerStateFactory
 import com.leomala.footballdynasty.domain.career.LegacyAnnualPlayerMovementRules
 import com.leomala.footballdynasty.domain.model.Career
 import kotlinx.coroutines.runBlocking
@@ -15,6 +18,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,6 +70,43 @@ class CareerPlayerRuntimeStoreTest {
         assertEquals("club-b", b.membership?.clubId)
         assertEquals(0, database.playerDao().count())
         assertEquals(0, database.squadMembershipDao().count())
+    }
+
+    @Test
+    fun `procedural player and rng state rollback together when membership write fails`() = runBlocking {
+        val careerStateRepository = RoomCareerStateRepository(database) { 200L }
+        val before = CareerStateFactory.create("career-a", seed = 42L)
+        careerStateRepository.save(before)
+
+        // Occupy the unique career/club/roster/ordinal tuple. The attempted generated player below
+        // reaches the final membership write only after runtime + procedural rows were written.
+        store.saveProceduralPlayer(
+            runtime("career-a", "blocker", overall = 60),
+            procedural("career-a", "blocker", "Blocker"),
+            membership("career-a", "blocker", "club-a", 0),
+        )
+
+        val advanced = before.copy(
+            random = before.random.copy(
+                internalState = (before.random.internalState + 1L) and ((1L shl 48) - 1L),
+                draws = before.random.draws + 7L,
+            ),
+        )
+
+        try {
+            store.saveProceduralPlayerAndCareerState(
+                state = advanced,
+                runtime = runtime("career-a", "rolled-back", overall = 72),
+                procedural = procedural("career-a", "rolled-back", "Rolled Back"),
+                membership = membership("career-a", "rolled-back", "club-a", 0),
+            )
+            fail("Expected unique membership constraint failure")
+        } catch (_: SQLiteConstraintException) {
+            // Expected: Room transaction must roll back runtime/procedural rows and career RNG state.
+        }
+
+        assertNull(store.find("career-a", "rolled-back"))
+        assertEquals(before, requireNotNull(careerStateRepository.findById("career-a")))
     }
 
     @Test
