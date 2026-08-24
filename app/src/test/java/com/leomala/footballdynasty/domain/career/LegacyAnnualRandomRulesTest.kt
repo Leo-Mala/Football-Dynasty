@@ -7,17 +7,13 @@ import org.junit.Test
 
 class LegacyAnnualRandomRulesTest {
     @Test
-    fun `best a0 a gate consumes exactly one bounded draw`() {
+    fun `direct annual gates consume one bounded draw`() {
         val random = StatefulJavaRandomSource(202632L)
         LegacyAnnualRandomRules.bestA0AGate(random)
-        assertEquals(1L, random.draws)
-    }
-
-    @Test
-    fun `best a0 i gate consumes exactly one bounded draw`() {
-        val random = StatefulJavaRandomSource(202632L)
         LegacyAnnualRandomRules.bestA0IGate(random)
-        assertEquals(1L, random.draws)
+        LegacyAnnualRandomRules.bestFConstructorGate(random)
+        LegacyAnnualRandomRules.bestFNGate(random)
+        assertEquals(4L, random.draws)
     }
 
     @Test
@@ -38,45 +34,61 @@ class LegacyAnnualRandomRulesTest {
     }
 
     @Test
-    fun `annual gates are reproducible for the same seed`() {
-        val left = StatefulJavaRandomSource(202632L)
-        val right = StatefulJavaRandomSource(202632L)
-
-        fun sequence(random: StatefulJavaRandomSource): List<Boolean> = buildList {
-            repeat(8) {
-                add(LegacyAnnualRandomRules.bestA0AGate(random))
-                add(LegacyAnnualRandomRules.bestA0IGate(random))
-                BestA0JRandomSite.entries.forEach { site ->
-                    add(LegacyAnnualRandomRules.bestA0JGate(random, site))
-                }
-            }
-        }
-
-        assertEquals(sequence(left), sequence(right))
-        assertEquals(left.draws, right.draws)
-        assertEquals(80L, left.draws)
+    fun `deterministic annual shuffle consumes size minus one draws`() {
+        val random = StatefulJavaRandomSource(202632L)
+        val values = (0 until 12).toMutableList()
+        LegacyAnnualRandomRules.shuffleInPlace(values, random)
+        assertEquals(11L, random.draws)
+        assertEquals((0 until 12).toSet(), values.toSet())
     }
 
     @Test
-    fun `annual random sequence resumes exactly from persisted snapshot`() {
+    fun `annual random operations are reproducible for the same seed`() {
+        fun sequence(random: StatefulJavaRandomSource): Pair<List<Boolean>, List<Int>> {
+            val gates = buildList {
+                repeat(4) {
+                    add(LegacyAnnualRandomRules.bestA0AGate(random))
+                    add(LegacyAnnualRandomRules.bestA0IGate(random))
+                    add(LegacyAnnualRandomRules.bestFConstructorGate(random))
+                    add(LegacyAnnualRandomRules.bestFNGate(random))
+                    BestA0JRandomSite.entries.forEach { site ->
+                        add(LegacyAnnualRandomRules.bestA0JGate(random, site))
+                    }
+                }
+            }
+            val shuffled = (0 until 16).toMutableList()
+            LegacyAnnualRandomRules.shuffleInPlace(shuffled, random)
+            return gates to shuffled
+        }
+
+        val left = StatefulJavaRandomSource(202632L)
+        val right = StatefulJavaRandomSource(202632L)
+        assertEquals(sequence(left), sequence(right))
+        assertEquals(left.snapshot(), right.snapshot())
+    }
+
+    @Test
+    fun `annual random operations resume exactly from persisted snapshot`() {
         val original = StatefulJavaRandomSource(202632L)
         repeat(17) { LegacyAnnualRandomRules.bestA0AGate(original) }
         val snapshot = original.snapshot()
 
-        fun tail(random: StatefulJavaRandomSource): List<Boolean> = buildList {
-            repeat(4) {
-                add(LegacyAnnualRandomRules.bestA0IGate(random))
-                BestA0JRandomSite.entries.forEach { site ->
-                    add(LegacyAnnualRandomRules.bestA0JGate(random, site))
-                }
-            }
+        fun tail(random: StatefulJavaRandomSource): Pair<List<Boolean>, List<Int>> {
+            val gates = BestA0JRandomSite.entries.map { site ->
+                LegacyAnnualRandomRules.bestA0JGate(random, site)
+            } + listOf(
+                LegacyAnnualRandomRules.bestFConstructorGate(random),
+                LegacyAnnualRandomRules.bestFNGate(random),
+            )
+            val shuffled = (0 until 10).toMutableList()
+            LegacyAnnualRandomRules.shuffleInPlace(shuffled, random)
+            return gates to shuffled
         }
 
-        val expectedTail = tail(original)
+        val expected = tail(original)
         val restored = StatefulJavaRandomSource.restore(snapshot)
-        val actualTail = tail(restored)
-
-        assertEquals(expectedTail, actualTail)
+        val actual = tail(restored)
+        assertEquals(expected, actual)
         assertEquals(original.snapshot(), restored.snapshot())
     }
 }
