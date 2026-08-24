@@ -23,6 +23,10 @@ object LegacyAnnualSelectionRules {
         OPTIONAL_I_THEN_OPTIONAL_H_THEN_G,
     }
 
+    enum class BestA0IRoute {
+        MODE_2_N_THEN_O_FALLBACK,
+    }
+
     data class BestA0JExecution(
         val mode: Int,
         val useN: Boolean,
@@ -52,7 +56,7 @@ object LegacyAnnualSelectionRules {
         rosterSize < 30 &&
             subjectOverall >= legacyMinimumOverall(targetR0, targetO, targetP0)
 
-    /** Exact projection of `best.c0.Z0(o, boolean)` using the already-counted target positions. */
+    /** Exact projection of `best.c0.Z0(o, boolean)` using already-counted target positions. */
     fun bestC0Z0(
         rosterSize: Int,
         targetR0: Boolean,
@@ -79,6 +83,31 @@ object LegacyAnnualSelectionRules {
         return positionCounts.getOrElse(subjectPosition) { 0 } <= maxExisting
     }
 
+    /** Exact club pre-filter at the start of SMALI-only `best.a0.i()`. */
+    fun bestA0IClubEligible(
+        clubQ0: Boolean,
+        legacyJ: Int,
+        legacyP0: Int,
+    ): Boolean =
+        !clubQ0 && if (legacyJ == 0) legacyP0 < 4 else legacyP0 < 5
+
+    /**
+     * Exact player pre-filter plus RNG gate in `best.a0.i()`. The random draw is intentionally
+     * skipped unless all deterministic filters pass, matching the bytecode short-circuit order.
+     */
+    fun bestA0IPlayerEligible(
+        random: RandomSource,
+        subjectOverall: Int,
+        legacyW: Int,
+        subjectO0: Boolean,
+    ): Boolean {
+        if (subjectOverall <= 50 || legacyW >= 31 || !subjectO0) return false
+        return LegacyAnnualRandomRules.bestA0IGate(random)
+    }
+
+    /** `best.a0.i()` always constructs `best.f` with mode 2, tries `n(false)`, then `o(false)`. */
+    fun bestA0IRoute(): BestA0IRoute = BestA0IRoute.MODE_2_N_THEN_O_FALLBACK
+
     /**
      * Position chosen at the start of `best.a0.j(...)` after the legacy position list has already
      * been shuffled. Passing the order explicitly keeps the selection independently testable.
@@ -88,6 +117,9 @@ object LegacyAnnualSelectionRules {
         shuffledPositions: List<Int>,
         highPass: Boolean,
     ): Int? {
+        require(positionCounts.size >= 5) { "best.a0.j requires position counts 0..4" }
+        require(shuffledPositions.all { it in 0..4 }) { "best.a0.j position order must contain only 0..4" }
+
         if (highPass) {
             shuffledPositions.firstOrNull { positionCounts[it] >= jHighPrimaryCounts[it] }
                 ?.let { return it }
@@ -95,6 +127,24 @@ object LegacyAnnualSelectionRules {
         }
         return shuffledPositions.firstOrNull { positionCounts[it] > jLowCounts[it] }
     }
+
+    /**
+     * Deterministic modern projection of the legacy `Collections.shuffle([0,1,2,3,4])` followed
+     * by the exact overload scan. It intentionally does not claim implicit-seed bit parity.
+     */
+    fun bestA0JSelectOverloadedPosition(
+        random: RandomSource,
+        positionCounts: IntArray,
+        highPass: Boolean,
+    ): Int? {
+        val positions = (0..4).toMutableList()
+        LegacyAnnualRandomRules.shuffleInPlace(positions, random)
+        return bestA0JOverloadedPosition(positionCounts, positions, highPass)
+    }
+
+    /** The SITE_1 draw is unconditional after the position scan, even when no position is found. */
+    fun bestA0JInitialPlayerGate(random: RandomSource): Boolean =
+        LegacyAnnualRandomRules.bestA0JGate(random, BestA0JRandomSite.SITE_1)
 
     /** Filter applied after the unconditional SITE_1 draw in `best.a0.j(...)`. */
     fun bestA0JPlayerEligible(
@@ -109,9 +159,8 @@ object LegacyAnnualSelectionRules {
             (!playerO0 || site1Passed)
 
     /**
-     * Exact routing after `best.a0.j(...)` has selected one player. This preserves the sequential
-     * RNG consumption: an O0 player on the `p1=false` path can consume SITE_3 and then one rating
-     * band site if SITE_3 fails.
+     * Exact routing after `best.a0.j(...)` has selected one player. This preserves sequential RNG
+     * consumption: an O0 player on `p1=false` can consume SITE_3 and then one rating-band site.
      */
     fun bestA0JExecution(
         random: RandomSource,
@@ -249,6 +298,12 @@ object LegacyAnnualSelectionRules {
             !isCurrent &&
             !candidateQ0 &&
             rosterSize < 30
+
+    /** Mode-2 post-shuffle predicate inside `best.f.q(...)`: `!M1() && p0() >= 4`. */
+    fun bestFMode2CandidateEligible(
+        rosterSize: Int,
+        candidateP0: Int,
+    ): Boolean = !bestC0M1(rosterSize) && candidateP0 >= 4
 
     fun bestFPFallbackEligible(
         candidateR0: Boolean,
