@@ -1,0 +1,160 @@
+name: Phase 7 Corpus Bootstrap
+
+on:
+  push:
+    branches:
+      - phase7/procedural-player-runtime
+    paths:
+      - '.github/workflows/phase7-corpus-bootstrap.yml'
+      - 'app/src/main/assets/bootstrap/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase7-corpus-bootstrap
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Phase 7 branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check bootstrap parts
+        id: parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=true
+          for i in 00 01 02 03; do
+            if [ ! -s "app/src/main/assets/bootstrap/phase7-name-corpus-bz2-part${i}.b64" ]; then
+              ready=false
+            fi
+          done
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          echo "PHASE7_CORPUS_BOOTSTRAP_READY=$ready"
+
+      - name: Reconstruct and verify official corpus
+        if: steps.parts.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import bz2
+          import hashlib
+          import re
+          import shutil
+          import struct
+          from pathlib import Path
+
+          repo = Path('.')
+          bootstrap = repo / 'app/src/main/assets/bootstrap'
+          encoded = ''.join(
+              (bootstrap / f'phase7-name-corpus-bz2-part{i:02d}.b64').read_text(encoding='ascii').strip()
+              for i in range(4)
+          )
+          compressed = base64.b64decode(encoded, validate=True)
+          compressed_sha = hashlib.sha256(compressed).hexdigest()
+          if compressed_sha != '95ff3bc75a0d2ac7cf8157b7e223f81ad28c1e15b848961b5fbf85073327e90a':
+              raise SystemExit(f'Bootstrap compressed SHA mismatch: {compressed_sha}')
+
+          container = bz2.decompress(compressed)
+          container_sha = hashlib.sha256(container).hexdigest()
+          if container_sha != '491641ffcba9860d5ddd3762584bf601b6e970cc57709185730e8f09633790c6':
+              raise SystemExit(f'Bootstrap container SHA mismatch: {container_sha}')
+          if not container.startswith(b'FDNC1'):
+              raise SystemExit('Invalid FDNC1 corpus container magic')
+
+          offset = 5
+          count = struct.unpack_from('>I', container, offset)[0]
+          offset += 4
+          if count != 442:
+              raise SystemExit(f'FDNC1 entry count changed: {count}')
+
+          entries = {}
+          for _ in range(count):
+              path_len = struct.unpack_from('>I', container, offset)[0]
+              offset += 4
+              path = container[offset:offset + path_len].decode('ascii')
+              offset += path_len
+              data_len = struct.unpack_from('>I', container, offset)[0]
+              offset += 4
+              data = container[offset:offset + data_len]
+              offset += data_len
+              if path in entries:
+                  raise SystemExit(f'Duplicate FDNC1 path: {path}')
+              if re.fullmatch(r'(names|surnames)/[A-Z0-9]{3}\.txt', path) is None:
+                  raise SystemExit(f'Unexpected FDNC1 path: {path}')
+              entries[path] = data
+          if offset != len(container):
+              raise SystemExit(f'FDNC1 trailing bytes: parsed={offset} total={len(container)}')
+
+          names = [p for p in entries if p.startswith('names/')]
+          surnames = [p for p in entries if p.startswith('surnames/')]
+          if len(names) != 221 or len(surnames) != 221:
+              raise SystemExit(f'Unexpected corpus split: names={len(names)} surnames={len(surnames)}')
+
+          total_bytes = sum(len(data) for data in entries.values())
+          if total_bytes != 495785:
+              raise SystemExit(f'Official corpus byte count changed: {total_bytes}')
+
+          physical_rows = []
+          semantic_rows = []
+          for path in sorted(entries):
+              raw = entries[path]
+              legacy_path = f'resources/assets/{path}'
+              physical_rows.append(
+                  f'{legacy_path}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n'
+              )
+              text = raw.decode('utf-8', errors='replace')
+              accepted = [
+                  line for line in text.splitlines()
+                  if line and '.' not in line and re.search(r'\d+', line) is None
+              ]
+              if not accepted:
+                  raise SystemExit(f'Legacy best.u.b filter produced an empty asset: {path}')
+              inner = ''.join(f'{line}\n' for line in accepted).encode('utf-8')
+              semantic_rows.append(
+                  f'{legacy_path}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n'
+              )
+
+          physical = hashlib.sha256(''.join(physical_rows).encode()).hexdigest()
+          semantic = hashlib.sha256(''.join(semantic_rows).encode()).hexdigest()
+          if physical != '4b8c6db9b6343221cb6e945aef7ba0d7dc081c4744e30bb1f9a0eba3c57e444b':
+              raise SystemExit(f'Physical manifest mismatch: {physical}')
+          if semantic != 'd4cb2a6fd770a7bcdb850ee63b31d6442b66a3da70611f7a100e264b1f2c625f':
+              raise SystemExit(f'Semantic manifest mismatch: {semantic}')
+
+          assets = repo / 'app/src/main/assets'
+          for path, data in entries.items():
+              target = assets / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+
+          shutil.rmtree(bootstrap)
+          (repo / '.github/workflows/phase7-corpus-bootstrap.yml').unlink()
+
+          print('PHASE7_CORPUS_BOOTSTRAP=PASS')
+          print('PHASE7_CORPUS_COUNT=442')
+          print(f'PHASE7_CORPUS_BYTES={total_bytes}')
+          print(f'PHASE7_CORPUS_PHYSICAL={physical}')
+          print(f'PHASE7_CORPUS_SEMANTIC={semantic}')
+          PY
+
+      - name: Commit official corpus to Phase 7
+        if: steps.parts.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'No corpus changes to commit'; exit 0; }
+          git commit -m 'feat: materialize official Brasfoot procedural name corpus'
+          git push origin HEAD:phase7/procedural-player-runtime
