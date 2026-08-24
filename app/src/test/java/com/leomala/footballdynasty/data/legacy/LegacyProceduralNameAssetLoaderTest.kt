@@ -2,35 +2,40 @@ package com.leomala.footballdynasty.data.legacy
 
 import com.leomala.footballdynasty.foundation.random.RandomSource
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LegacyProceduralNameAssetLoaderTest {
     @Test
-    fun `country index resolves exact asset paths and legacy filter does not trim accepted lines`() {
-        val opened = mutableListOf<String>()
-        val assets = mapOf(
-            "names/BRA.txt" to "\nAna\nA. B\nPlayer1\n Ana \nBia\n",
-            "surnames/BRA.txt" to "Silva\nCosta\nSouza\n",
+    fun `country index resolves exact virtual paths and legacy filter does not trim accepted lines`() {
+        val loader = loader(
+            mapOf(
+                "names/BRA.txt" to "\nAna\nA. B\nPlayer1\n Ana \nBia\n",
+                "surnames/BRA.txt" to "Silva\nCosta\nSouza\n",
+            )
         )
-        val loader = loader(assets, opened)
 
         val lists = requireNotNull(loader.load(29))
 
-        assertEquals(listOf("names/BRA.txt", "surnames/BRA.txt"), opened)
         assertEquals(listOf("Ana", " Ana ", "Bia"), lists.names)
         assertEquals(listOf("Silva", "Costa", "Souza"), lists.surnames)
     }
 
     @Test
-    fun `invalid legacy country has no fabricated fallback and opens no asset`() {
-        val opened = mutableListOf<String>()
-        val loader = loader(emptyMap(), opened)
+    fun `invalid legacy country has no fabricated fallback and does not open corpus`() {
+        var opens = 0
+        val loader = LegacyProceduralNameAssetLoader {
+            opens++
+            ByteArrayInputStream(ByteArray(0))
+        }
 
         assertNull(loader.load(-1))
         assertNull(loader.load(221))
-        assertEquals(emptyList<String>(), opened)
+        assertEquals(0, opens)
     }
 
     @Test
@@ -39,8 +44,7 @@ class LegacyProceduralNameAssetLoaderTest {
             mapOf(
                 "names/BRA.txt" to "IndexZero\nAna\nBia\n",
                 "surnames/BRA.txt" to "IndexZero\nSilva\nCosta\n",
-            ),
-            mutableListOf(),
+            )
         )
         val random = QueueRandomSource(1, 2)
 
@@ -49,12 +53,33 @@ class LegacyProceduralNameAssetLoaderTest {
         assertEquals(2L, random.draws)
     }
 
-    private fun loader(
-        assets: Map<String, String>,
-        opened: MutableList<String>,
-    ) = LegacyProceduralNameAssetLoader { path ->
-        opened += path
-        ByteArrayInputStream(requireNotNull(assets[path]) { "Missing fake asset $path" }.toByteArray(Charsets.UTF_8))
+    @Test
+    fun `valid legacy country fails hard when an official virtual path is absent`() {
+        val loader = loader(mapOf("names/BRA.txt" to "Ana\nBia\n"))
+
+        try {
+            loader.load(29)
+            throw AssertionError("Expected missing official surname asset to fail")
+        } catch (expected: java.io.IOException) {
+            assertEquals(
+                "Missing official procedural-name asset: surnames/BRA.txt",
+                expected.message,
+            )
+        }
+    }
+
+    private fun loader(entries: Map<String, String>): LegacyProceduralNameAssetLoader {
+        val corpus = ByteArrayOutputStream().use { bytes ->
+            ZipOutputStream(bytes).use { zip ->
+                entries.forEach { (path, content) ->
+                    zip.putNextEntry(ZipEntry(path))
+                    zip.write(content.toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                }
+            }
+            bytes.toByteArray()
+        }
+        return LegacyProceduralNameAssetLoader { ByteArrayInputStream(corpus) }
     }
 
     private class QueueRandomSource(vararg values: Int) : RandomSource {
