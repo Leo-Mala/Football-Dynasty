@@ -72,28 +72,42 @@ jobs:
               raise SystemExit('No JUnit XML files were generated')
           tests = failures = errors = skipped = 0
           benchmark = []
-          phase5 = []
+          required = {
+              'LegacyCareerCalendarCharacterizationTest': None,
+              'LegacySeasonLifecycleOrderTest': None,
+          }
           for path in files:
               root = ET.parse(path).getroot()
               tests += int(root.attrib.get('tests', 0))
               failures += int(root.attrib.get('failures', 0))
               errors += int(root.attrib.get('errors', 0))
               skipped += int(root.attrib.get('skipped', 0))
-              if root.attrib.get('name', '').endswith('LegacyCareerCalendarCharacterizationTest'):
-                  phase5.append((root.attrib.get('tests', '0'), root.attrib.get('failures', '0'), root.attrib.get('errors', '0')))
+              suite = root.attrib.get('name', '')
+              for name in required:
+                  if suite.endswith(name):
+                      required[name] = (
+                          root.attrib.get('tests', '0'),
+                          root.attrib.get('failures', '0'),
+                          root.attrib.get('errors', '0'),
+                          root.attrib.get('skipped', '0'),
+                      )
               for node in root.findall('system-out'):
                   if node.text:
                       benchmark.extend(line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line)
           print(f'PHASE5_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
-          print(f'PHASE5_SEASON_CHARACTERIZATION={phase5}')
+          print(f'PHASE5_CHARACTERIZATION={required}')
           for line in benchmark:
               print(line)
           if failures or errors:
               raise SystemExit('JUnit XML reports failures/errors')
           if not benchmark:
               raise SystemExit('Core performance evidence was not emitted')
-          if not phase5 or any(f != '0' or e != '0' for _, f, e in phase5):
-              raise SystemExit('Phase 5 season characterization evidence missing or failing')
+          for name, evidence in required.items():
+              if evidence is None:
+                  raise SystemExit(f'{name} evidence missing')
+              _, f, e, s = evidence
+              if f != '0' or e != '0' or s != '0':
+                  raise SystemExit(f'{name} is not fully green')
           PY
 
       - name: Verify active Brasfoot 2026 fixture integrity
@@ -135,7 +149,8 @@ jobs:
           echo "Gradle help: PASS"
           echo "Room schema V2 generation: PASS"
           echo "testDebugUnitTest: PASS"
-          echo "Brasfoot 2026 season characterization: PASS"
+          echo "Brasfoot 2026 calendar characterization: PASS"
+          echo "Brasfoot 2026 lifecycle order characterization: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
