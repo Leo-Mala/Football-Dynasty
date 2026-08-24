@@ -4,11 +4,15 @@ import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
+import com.leomala.footballdynasty.domain.career.CareerIntegrityValidator
+import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.LegacyAnnualPlayerMovementRules
+import com.leomala.footballdynasty.foundation.error.CareerIntegrityException
 
 /** Transactional persistence boundary for player state that belongs to one career/save. */
 class CareerPlayerRuntimeStore(
     private val database: FootballDynastyDatabase,
+    private val clockMillis: () -> Long = System::currentTimeMillis,
 ) {
     data class PlayerSnapshot(
         val runtime: CareerPlayerRuntimeEntity,
@@ -49,24 +53,68 @@ class CareerPlayerRuntimeStore(
         }
     }
 
+    /**
+     * Commits the complete new-career canonical runtime and the RNG state that produced it in one
+     * transaction. This prevents a reopen from replaying q1() draws against already-created state.
+     */
+    suspend fun initializeCanonicalPlayersAndCareerState(
+        state: CareerState,
+        bundles: List<CareerPlayerRuntimeMapper.CanonicalBundle>,
+    ) {
+        validateCareerStateOwner(state)
+        bundles.forEach { bundle ->
+            require(bundle.runtime.sourceType == SOURCE_CANONICAL)
+            requireSameIdentity(
+                state.id,
+                bundle.runtime.playerId,
+                bundle.membership.careerId,
+                bundle.membership.playerId,
+            )
+            require(bundle.runtime.careerId == state.id) { "Runtime belongs to another career" }
+        }
+        database.withTransaction {
+            val dao = database.careerPlayerRuntimeDao()
+            bundles.forEach { bundle ->
+                dao.upsertRuntime(bundle.runtime)
+                dao.upsertMembership(bundle.membership)
+            }
+            database.careerCoreStateDao().upsert(
+                CareerCoreStateRoomAdapter.entity(state, clockMillis())
+            )
+        }
+    }
+
     suspend fun saveProceduralPlayer(
         runtime: CareerPlayerRuntimeEntity,
         procedural: CareerProceduralPlayerEntity,
         membership: CareerSquadMembershipEntity,
     ): PlayerSnapshot {
-        require(runtime.sourceType == SOURCE_PROCEDURAL) {
-            "Procedural runtime must use sourceType=$SOURCE_PROCEDURAL"
-        }
-        requireIdentity(runtime.careerId, runtime.playerId)
-        requireSameIdentity(runtime.careerId, runtime.playerId, procedural.careerId, procedural.playerId)
-        requireSameIdentity(runtime.careerId, runtime.playerId, membership.careerId, membership.playerId)
-
+        validateProceduralIdentity(runtime, procedural, membership)
         return database.withTransaction {
-            val dao = database.careerPlayerRuntimeDao()
-            dao.upsertRuntime(runtime)
-            dao.upsertProceduralPlayer(procedural)
-            dao.upsertMembership(membership)
-            PlayerSnapshot(runtime, procedural, membership)
+            persistProcedural(runtime, procedural, membership)
+        }
+    }
+
+    /**
+     * Commits a generated player and the exact post-generation RNG snapshot in one Room
+     * transaction. A crash/reopen can therefore never observe the player with the pre-generation
+     * RNG state, or consume the draws without the player row.
+     */
+    suspend fun saveProceduralPlayerAndCareerState(
+        state: CareerState,
+        runtime: CareerPlayerRuntimeEntity,
+        procedural: CareerProceduralPlayerEntity,
+        membership: CareerSquadMembershipEntity,
+    ): PlayerSnapshot {
+        validateCareerStateOwner(state)
+        require(runtime.careerId == state.id) { "Runtime belongs to another career" }
+        validateProceduralIdentity(runtime, procedural, membership)
+        return database.withTransaction {
+            val snapshot = persistProcedural(runtime, procedural, membership)
+            database.careerCoreStateDao().upsert(
+                CareerCoreStateRoomAdapter.entity(state, clockMillis())
+            )
+            snapshot
         }
     }
 
@@ -139,6 +187,43 @@ class CareerPlayerRuntimeStore(
             procedural = dao.findProceduralPlayer(careerId, playerId),
             membership = dao.findMembership(careerId, playerId),
         )
+    }
+
+    private suspend fun persistProcedural(
+        runtime: CareerPlayerRuntimeEntity,
+        procedural: CareerProceduralPlayerEntity,
+        membership: CareerSquadMembershipEntity,
+    ): PlayerSnapshot {
+        val dao = database.careerPlayerRuntimeDao()
+        dao.upsertRuntime(runtime)
+        dao.upsertProceduralPlayer(procedural)
+        dao.upsertMembership(membership)
+        return PlayerSnapshot(runtime, procedural, membership)
+    }
+
+    private suspend fun validateCareerStateOwner(state: CareerState) {
+        CareerIntegrityValidator.validate(state)
+        if (database.careerMetadataDao().findById(state.id) == null) {
+            throw CareerIntegrityException("Career metadata ${state.id} must exist before player runtime")
+        }
+        state.managedClub?.let { managed ->
+            if (database.clubDao().findById(managed.clubId) == null) {
+                throw CareerIntegrityException("Managed club ${managed.clubId} does not resolve")
+            }
+        }
+    }
+
+    private fun validateProceduralIdentity(
+        runtime: CareerPlayerRuntimeEntity,
+        procedural: CareerProceduralPlayerEntity,
+        membership: CareerSquadMembershipEntity,
+    ) {
+        require(runtime.sourceType == SOURCE_PROCEDURAL) {
+            "Procedural runtime must use sourceType=$SOURCE_PROCEDURAL"
+        }
+        requireIdentity(runtime.careerId, runtime.playerId)
+        requireSameIdentity(runtime.careerId, runtime.playerId, procedural.careerId, procedural.playerId)
+        requireSameIdentity(runtime.careerId, runtime.playerId, membership.careerId, membership.playerId)
     }
 
     private fun requireIdentity(careerId: String, playerId: String) {
