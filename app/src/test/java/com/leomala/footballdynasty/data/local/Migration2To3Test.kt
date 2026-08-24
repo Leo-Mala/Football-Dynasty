@@ -48,6 +48,7 @@ class Migration2To3Test {
             true,
             FootballDynastyMigrations.MIGRATION_2_3,
         )
+        db.execSQL("PRAGMA foreign_keys=ON")
 
         db.query("SELECT displayName FROM career_metadata WHERE id = 'migration-career'").use { cursor ->
             assertTrue(cursor.moveToFirst())
@@ -78,7 +79,7 @@ class Migration2To3Test {
         db.execSQL(
             "INSERT INTO career_procedural_players " +
                 "(careerId,playerId,name,country,position,status,side,cr1,cr2) " +
-                "VALUES ('migration-career','generated','Generated',29,3,0,1,4,11)"
+                "VALUES ('migration-career','generated','PROCEDURAL',29,3,0,1,4,11)"
         )
         db.execSQL(
             "INSERT INTO career_squad_memberships " +
@@ -94,7 +95,7 @@ class Migration2To3Test {
         ).use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(70, cursor.getInt(0))
-            assertEquals("Generated", cursor.getString(1))
+            assertEquals("PROCEDURAL", cursor.getString(1))
             assertEquals("target-club", cursor.getString(2))
         }
 
