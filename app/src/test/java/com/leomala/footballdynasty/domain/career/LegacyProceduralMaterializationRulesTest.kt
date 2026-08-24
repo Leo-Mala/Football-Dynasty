@@ -34,7 +34,7 @@ class LegacyProceduralMaterializationRulesTest {
 
     @Test
     fun `non flagged path preserves draft hash and mutually exclusive RNG order`() {
-        val random = QueueRandomSource(4, 0, 0)
+        val random = QueueRandomSource(4, 0, 0, 0)
         val materialized = LegacyProceduralMaterializationRules.materialize(
             random = random,
             draft = draft(
