@@ -68,7 +68,7 @@ jobs:
       - name: Gradle help
         run: ./gradlew help --no-daemon
 
-      - name: Generate Room schema V2
+      - name: Generate Room schema V3
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
 
       - name: Retain generated Room schemas
@@ -109,6 +109,12 @@ jobs:
               'LegacyProceduralToPlayerRulesTest': None,
               'LegacyCareerPlayerInitializationRulesTest': None,
               'LegacyCountryAssetCodesTest': None,
+              'LegacyPlayerValueRulesTest': None,
+              'LegacyProceduralMaterializationRulesTest': None,
+              'CareerPlayerRuntimeMapperTest': None,
+              'CareerPlayerRuntimeStoreTest': None,
+              'Migration1To2Test': None,
+              'Migration2To3Test': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -163,34 +169,45 @@ jobs:
           SCHEMA_DIR="app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase"
           V1="$SCHEMA_DIR/1.json"
           V2="$SCHEMA_DIR/2.json"
+          V3="$SCHEMA_DIR/3.json"
           test -s "$V1"
           test -s "$V2"
+          test -s "$V3"
           grep -Eq '"version"[[:space:]]*:[[:space:]]*2' "$V2"
-          grep -q '"tableName": "career_core_state"' "$V2"
-          grep -q '"seasonNumber"' "$V2"
-          grep -q '"rngInternalState"' "$V2"
-          grep -q '"managedClubId"' "$V2"
-          grep -q '"careerId"' "$V2"
+          grep -Eq '"version"[[:space:]]*:[[:space:]]*3' "$V3"
+          grep -q '"tableName": "career_core_state"' "$V3"
+          grep -q '"tableName": "career_player_runtime"' "$V3"
+          grep -q '"tableName": "career_procedural_players"' "$V3"
+          grep -q '"tableName": "career_squad_memberships"' "$V3"
+          grep -q '"rngInternalState"' "$V3"
+          grep -q '"careerId"' "$V3"
           git diff --exit-code origin/phase3/versioned-persistence -- "$V1"
           if grep -R --line-number 'fallbackToDestructiveMigration' app/src/main; then
             echo 'Destructive migration fallback is forbidden.'
             exit 1
           fi
-          git diff --exit-code -- app/schemas
+          SCHEMA_STATUS="$(git status --porcelain --untracked-files=all -- "$SCHEMA_DIR")"
+          if [ -n "$SCHEMA_STATUS" ]; then
+            echo 'Generated Room schemas differ from versioned schemas:'
+            printf '%s\n' "$SCHEMA_STATUS"
+            exit 1
+          fi
 
       - name: Phase 7 gate summary
         run: |
           echo "Raw career-domain RNG guard: PASS"
           echo "Gradle help: PASS"
-          echo "Room schema V2 generation: PASS"
+          echo "Room schema V3 generation: PASS"
           echo "testDebugUnitTest: PASS"
           echo "Brasfoot 2026 calendar/lifecycle regressions: PASS"
           echo "Brasfoot 2026 annual selection/movement regressions: PASS"
           echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
           echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
           echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
-          echo "Brasfoot 2026 new-career q1 overall initialization: PASS"
-          echo "Brasfoot 2026 P0..P220 name-asset code map: PASS"
+          echo "Brasfoot 2026 q1/value/materialization regressions: PASS"
+          echo "Brasfoot 2026 P0..P220 asset/group maps: PASS"
+          echo "Career-scoped runtime isolation/reopen/atomic rollback: PASS"
+          echo "Room V1->V2 and V2->V3 migration tests: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
-          echo "Room V1->V2 migration/schema audit: PASS"
+          echo "Room V1/V2/V3 schema audit: PASS"
