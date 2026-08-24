@@ -36,7 +36,7 @@ class CareerPlayerRuntimeStore(
         database.careerPlayerRuntimeDao().upsertRuntime(entity)
     }
 
-    suspend fun saveCanonicalPlayer(
+    suspend fun saveCanonicalRuntimeAndMembership(
         runtime: CareerPlayerRuntimeEntity,
         membership: CareerSquadMembershipEntity,
     ): PlayerSnapshot {
@@ -73,14 +73,14 @@ class CareerPlayerRuntimeStore(
             require(bundle.runtime.careerId == state.id) { "Runtime belongs to another career" }
         }
         database.withTransaction {
+            database.careerCoreStateDao().upsert(
+                CareerCoreStateRoomAdapter.entity(state, clockMillis())
+            )
             val dao = database.careerPlayerRuntimeDao()
             bundles.forEach { bundle ->
                 dao.upsertRuntime(bundle.runtime)
                 dao.upsertMembership(bundle.membership)
             }
-            database.careerCoreStateDao().upsert(
-                CareerCoreStateRoomAdapter.entity(state, clockMillis())
-            )
         }
     }
 
@@ -97,8 +97,8 @@ class CareerPlayerRuntimeStore(
 
     /**
      * Commits a generated player and the exact post-generation RNG snapshot in one Room
-     * transaction. A crash/reopen can therefore never observe the player with the pre-generation
-     * RNG state, or consume the draws without the player row.
+     * transaction. The core state is written first and player membership last so a downstream
+     * constraint failure exercises rollback of both sides of the atomic boundary.
      */
     suspend fun saveProceduralPlayerAndCareerState(
         state: CareerState,
@@ -110,11 +110,10 @@ class CareerPlayerRuntimeStore(
         require(runtime.careerId == state.id) { "Runtime belongs to another career" }
         validateProceduralIdentity(runtime, procedural, membership)
         return database.withTransaction {
-            val snapshot = persistProcedural(runtime, procedural, membership)
             database.careerCoreStateDao().upsert(
                 CareerCoreStateRoomAdapter.entity(state, clockMillis())
             )
-            snapshot
+            persistProcedural(runtime, procedural, membership)
         }
     }
 
