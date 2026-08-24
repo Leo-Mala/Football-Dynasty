@@ -11,7 +11,7 @@ object LegacyProceduralMaterializationRules {
         val legacyR0: Boolean,
         val legacyO: Int,
         val legacyP0: Int,
-        val countryGroup: Int,
+        val legacyJ: Int,
         val clubLevel: Int,
         val currentYear: Int,
     )
@@ -45,18 +45,21 @@ object LegacyProceduralMaterializationRules {
             targetR0 = target.legacyR0,
             targetO = target.legacyO,
             targetP0 = target.legacyP0,
-            targetJ = target.countryGroup,
+            targetJ = target.legacyJ,
             draftLegacyN = draft.legacyN,
             draftLegacyO = draft.legacyO,
         )
         val side = if (draft.legacyG == 0) 0 else 1
+        val playerCountryGroup = requireNotNull(
+            LegacyCountryAssetCodes.groupForLegacyCountry(draft.legacyD)
+        ) { "Unknown legacy country P${draft.legacyD}" }
 
         // In legacy best.t.e the player calls p()/o() before the final O0/M flag RNG block.
         // Therefore initial A0 is calculated with both flags still false and with the original
         // draft v()/hash. J1(8) can happen only afterwards and must not retroactively change A0.
         val valueBeforeFinalFlags = LegacyPlayerValueRules.calculate(
             LegacyPlayerValueRules.Input(
-                countryGroup = target.countryGroup,
+                countryGroup = playerCountryGroup,
                 clubLevel = target.clubLevel,
                 position = draft.legacyE,
                 status = DEFAULT_STATUS,
