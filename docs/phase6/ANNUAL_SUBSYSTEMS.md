@@ -107,6 +107,21 @@ Além do cap de 30 e do mínimo acima:
 
 Implementação moderna: `LegacyAnnualSelectionRules.bestC0Z0/bestC0A1/bestC0M1`.
 
+## `best.f.n(...)` — short-circuit de RNG
+
+O Java e o SMALI confirmam que a condição começa por uma ternária:
+
+`(subject.O0() && current.Q0()) ? false : ... nextInt(100) <= 60`.
+
+Consequências exatas:
+
+- `subject.O0()==true && current.Q0()==true` escolhe diretamente a rota alternativa e **não consome RNG**;
+- `subject.O() <= 30` escolhe a rota primária sem RNG;
+- `current.Q0()==false` escolhe a rota primária sem RNG;
+- somente quando `!subject.O0() && subject.O()>30 && current.Q0()` ocorre `nextInt(100) <= 60`.
+
+Isso é importante para save/reopen determinístico: consumir um draw no branch `O0 && Q0` deslocaria toda a sequência futura. A regressão está em `LegacyAnnualRandomRulesTest`.
+
 ## `best.f.q(...)` e `p()`
 
 ### Range de `q(...)`
@@ -249,6 +264,6 @@ As regras adicionadas são puras e deriváveis. O estado RNG necessário já est
 
 ## Limite funcional seguro
 
-A fase agora possui regras executáveis para os predicados, limites e decisões anuais comprovados. A aplicação integral de `T1(...)` sobre modelos ricos de contrato/finanças e a geração de fallback `best.p.d(...)` não são inventadas nesta etapa porque o modelo moderno atual ainda não representa, com evidência suficiente, todos os campos necessários desses efeitos.
+A fase possui regras executáveis para os predicados, limites, decisões e planos estruturais anuais comprovados. A aplicação integral de `T1(...)` sobre modelos ricos e a geração procedural `best.p.d(...)` não são inventadas nesta etapa porque o modelo moderno atual ainda não representa, com evidência suficiente, todos os campos necessários desses efeitos.
 
 Essa fronteira é deliberada: preservar comportamento comprovado é preferível a introduzir uma simulação esportiva não demonstrada pelo corpus.
