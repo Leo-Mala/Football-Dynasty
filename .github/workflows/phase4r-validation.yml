@@ -90,6 +90,9 @@ jobs:
               'LegacyCareerCalendarCharacterizationTest': None,
               'LegacySeasonLifecycleOrderTest': None,
               'LegacyAnnualRandomRulesTest': None,
+              'LegacyAnnualSelectionRulesTest': None,
+              'LegacyAnnualSquadFloorRulesTest': None,
+              'LegacyAnnualA0IRulesTest': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -168,6 +171,9 @@ jobs:
           echo "Brasfoot 2026 calendar characterization: PASS"
           echo "Brasfoot 2026 lifecycle order characterization: PASS"
           echo "Brasfoot 2026 deterministic annual RNG boundary: PASS"
+          echo "Brasfoot 2026 annual selection predicates: PASS"
+          echo "Brasfoot 2026 annual squad floor maintenance: PASS"
+          echo "Brasfoot 2026 best.a0.i relocation filters: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
