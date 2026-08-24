@@ -34,6 +34,12 @@ class Migration2To3Test {
                 "rngInitialSeed,rngInternalState,rngDraws,managedClubId,transitionCount,updatedAtEpochMillis) " +
                 "VALUES ('migration-career',1,2,2027,2027,3,3,365,7,11,12,NULL,1,20)"
         )
+        db.execSQL(
+            "INSERT INTO clubs " +
+                "(id,dataVersion,importScope,sourceFileRef,name,country,state,level,stadium,capacity,reputation," +
+                "primaryColor,secondaryColor,coach,coachCountry,baseColor,legacyAid,legacySid,legacyTid,legacyVid,legacyId,legacyValid) " +
+                "VALUES ('target-club',1,NULL,'target-club','Target Club',0,0,1,'',0,0,'','','',0,0,0,0,0,0,0,1)"
+        )
         db.close()
 
         db = helper.runMigrationsAndValidate(
