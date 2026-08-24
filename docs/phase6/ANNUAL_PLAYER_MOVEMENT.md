@@ -29,6 +29,8 @@ Java e SMALI coincidem na seguinte sequência estrutural:
 12. adiciona o jogador ao destino por `destination.f(player)`;
 13. quando origem e destino são ambos `Q0`, também executa `S1(TRUE)` no jogador e `source.E1(false)`.
 
+O método legado não rejeita `A0()` negativo. As chamadas de código `1` são simplesmente condicionadas a `A0()>0`, enquanto a movimentação estrutural continua. A projeção moderna preserva esse comportamento e não adiciona uma validação que o APK não possuía.
+
 Classificação: `JAVA_CONFIRMED_BY_SMALI`.
 
 ## Projeção moderna
@@ -39,19 +41,20 @@ A projeção prova ainda que, no caller anual:
 
 - o cálculo percentual secundário do `T1` genérico é inalcançável porque `z2=false`;
 - `Y` permanece fora das mutações dos branches `z3/z4` porque ambos são `false`;
+- `K1(destination)` e `Q1()` são sempre chamados;
 - a movimentação de membership é efetiva: remove da origem quando ela existe e adiciona ao destino;
 - o efeito de código `1` só ocorre quando `A0()>0` e o respectivo clube é `Q0`.
 
 ## Por que a Fase 6 não grava esse plano diretamente no Room
 
-A persistência moderna atual possui `players` + `squad_memberships`, mas ainda não materializa, com equivalência comprovada, todos os campos dinâmicos de `best.o` usados por `T1`, incluindo as flags `X/Y/Z`, a representação de `A0()`, o estado produzido por `c(180L,true)` e as estruturas de ledger chamadas por `B(...,1)` / `D(...,1)`.
+A persistência moderna atual possui `players` + `squad_memberships`, mas ainda não materializa, com equivalência comprovada, todos os campos dinâmicos de `best.o` usados por `T1`, incluindo as flags `X/Y/Z`, a representação de `A0()`, o estado produzido por `c(180L,true)` e as estruturas chamadas por `B(...,1)` / `D(...,1)`.
 
 Aplicar somente a troca de `squad_memberships` e ignorar os demais efeitos criaria uma falsa paridade. Criar Room V3 agora para campos ainda não mapeados também seria uma migration artificial.
 
 Portanto:
 
 - a regra estrutural está executável e coberta por testes;
-- a mutação persistida completa fica bloqueada até o modelo moderno do jogador/finanças representar todos os efeitos necessários;
+- a mutação persistida completa fica bloqueada até o modelo moderno do jogador/efeitos associados representar todos os campos necessários;
 - Room permanece V2;
 - nenhum dado esportivo é inventado para preencher o que ainda não existe no modelo moderno.
 
