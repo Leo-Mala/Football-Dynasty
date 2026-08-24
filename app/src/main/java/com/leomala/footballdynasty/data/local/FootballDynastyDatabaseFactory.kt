@@ -105,7 +105,8 @@ object FootballDynastyMigrations {
                     `rosterKind` TEXT NOT NULL,
                     `sourceOrdinal` INTEGER NOT NULL,
                     PRIMARY KEY(`careerId`, `playerId`),
-                    FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION
                 )
                 """.trimIndent()
             )
