@@ -28,20 +28,34 @@ getByName("test").assets.directories.add("$projectDir/schemas")
 
 The Room schema remains available to migration tests; no test or gate was removed.
 
-## Required CI gate
+## Final certified CI evidence
 
-`.github/workflows/phase4r-validation.yml` executes:
+`Phase 4R Validation` run `32693529780` completed successfully for PR #3 merge ref built from head `2f8b6d253af521cd472128eae18254b38093d657` over base `e1b5c516507fb38012093fff838929d26a6b2459`.
 
-1. `./gradlew help --no-daemon`
-2. `./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace`
-3. `./gradlew :app:testDebugUnitTest --no-daemon --stacktrace`
-4. JUnit summary with zero failures/errors and required core benchmark evidence
-5. active Brasfoot 2026 fixture SHA-256 check
-6. `./gradlew :app:assembleDebug --no-daemon --stacktrace`
-7. Room V1/V2 integrity and no destructive migration fallback
+Validated gates:
 
-The workflow uses `concurrency.cancel-in-progress: true` and does not auto-commit generated artifacts or mutate the validation branch.
+1. `./gradlew help --no-daemon` — PASS
+2. `./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace` — PASS
+3. `./gradlew :app:testDebugUnitTest --no-daemon --stacktrace` — PASS
+4. JUnit summary — `tests=45 failures=0 errors=0 skipped=0`
+5. core performance evidence — `PHASE4_CORE_BENCHMARK commands=365 elapsedNanos=107533485 fingerprint=3a33ba602ed801f94fcfd5ea7ac69556a425b2e340558509c706719a3a743d34`
+6. active Brasfoot 2026 fixture SHA-256 — PASS (`trepenne_smr.ban`)
+7. `./gradlew :app:assembleDebug --no-daemon --stacktrace` — PASS
+8. Room V1/V2 schema integrity — PASS
+9. migration V1→V2 policy audit — PASS
+10. `fallbackToDestructiveMigration` absence — PASS
 
-## Merge policy
+The workflow uses `concurrency.cancel-in-progress: true`, does not weaken tests, and does not auto-mutate the branch.
 
-This ledger does not declare the PR merge-ready until the exact final head has a successful Android gate, the remaining domain/legacy impact documentation is complete, the base is re-audited, and no relevant review/conflict remains.
+## Final merge audit before documentation closure
+
+At the certified head:
+
+- PR #3 mergeability: true;
+- branch relation: Phase 4R was 19 commits ahead and 0 behind its base;
+- reviews: none pending;
+- review threads: none pending;
+- base remained `phase4/core-game-domain@e1b5c516507fb38012093fff838929d26a6b2459`;
+- no external sporting-data changes were introduced.
+
+Because this documentation commit changes the PR head after the certified run above, the exact documentation-closure head must receive the same Phase 4R Validation gate before merge. Merge remains prohibited until that exact final head is green.
