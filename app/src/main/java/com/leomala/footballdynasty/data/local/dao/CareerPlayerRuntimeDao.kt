@@ -27,6 +27,12 @@ interface CareerPlayerRuntimeDao {
     )
     suspend fun findRuntime(careerId: String, playerId: String): CareerPlayerRuntimeEntity?
 
+    @Query(
+        "SELECT * FROM career_procedural_players " +
+            "WHERE careerId = :careerId AND playerId = :playerId LIMIT 1"
+    )
+    suspend fun findProceduralPlayer(careerId: String, playerId: String): CareerProceduralPlayerEntity?
+
     @Query("SELECT * FROM career_player_runtime WHERE careerId = :careerId ORDER BY playerId")
     suspend fun runtimeForCareer(careerId: String): List<CareerPlayerRuntimeEntity>
 
