@@ -13,43 +13,72 @@
 
 Reconstruir por subsistema os efeitos anuais profundos que a Fase 5 catalogou estruturalmente, preservando determinismo, estado de RNG persistível, Room e integridade esportiva.
 
-Nenhum símbolo obfuscado recebe significado esportivo por inferência. Java decompilado e SMALI continuam sendo confrontados antes de uma regra ser considerada caracterizada.
+Nenhum símbolo obfuscado recebe significado esportivo por inferência. Java decompilado e SMALI são confrontados antes de uma regra ser considerada caracterizada.
 
-## Primeira frente — aleatoriedade de `best.a0`
+## Escopo implementado
 
-A auditoria inicial do SMALI oficial encontrou 10 instanciações diretas de `java.util.Random` em `best.a0`:
+A Fase 6 fecha, por regras Kotlin puras e testes de caracterização:
 
-- 1 em `public static a()`;
-- 1 em `public static i()`;
-- 8 em `private static j(best.c0, boolean, boolean)`.
-
-O método `a()` contém o gate comprovado `new Random().nextInt(100) > 30` antes de um efeito legado. A existência e posição do sorteio são confirmadas por Java + SMALI; o significado esportivo do efeito não será inventado.
+1. os 10 sites diretos de RNG de `best.a0` e os sites anuais transitivos de `best.f`;
+2. short-circuit e consumo correto de RNG nos branches recuperados;
+3. substituição de `Collections.shuffle` por shuffle determinístico com `RandomSource`;
+4. predicados `best.c0.M1/a1/Z0` e tabelas de thresholds comprovadas;
+5. seleção de posição/jogador e roteamento de `best.a0.j(...)`;
+6. caminhos e filtros `best.f` necessários ao ciclo anual;
+7. manutenção mínima de elenco `best.a0.f() -> c0.n() -> f.e()/h()`;
+8. rotina SMALI-only `best.a0.i()`;
+9. decisões determinísticas de orquestração em `best.a0.a/b/c`;
+10. plano estrutural da chamada anual `best.o.T1(destination, A0(), false, false, false)`.
 
 ## Política moderna de RNG
 
 - é proibido copiar `new Random()` para o domínio de temporada moderno;
-- sorteios reconstruídos devem receber `RandomSource` por dependência;
-- quando a sequência precise sobreviver a save/reopen, usar infraestrutura restaurável compatível com `StatefulJavaRandomSource`/`CareerRandomState`;
-- uma distribuição/limiar somente será reproduzida quando estiver comprovada;
-- chamadas independentes a `new Random()` no legado não serão falsamente tratadas como um único RNG global equivalente.
+- sorteios reconstruídos recebem `RandomSource` por dependência;
+- a sequência moderna pode sobreviver a save/reopen por `StatefulJavaRandomSource`/`CareerRandomState`;
+- bounds, thresholds, ordem e short-circuit só são reproduzidos quando comprovados;
+- chamadas independentes a `new Random()` no legado não são falsamente tratadas como equivalência bit-a-bit de seed.
 
-## Gates
+## Persistência
 
-1. catalogar todos os sites de RNG anuais relevantes por método, bound, condição e efeito observável;
-2. confirmar cada site crítico em SMALI;
-3. criar regras modernas pequenas e injetáveis somente para sorteios comprovados;
-4. testar repetibilidade e restauração do RNG;
-5. impedir introdução de RNG irreproduzível no domínio anual moderno;
-6. implementar efeitos anuais somente quando entradas, mutações e invariantes estiverem caracterizadas;
-7. preservar Room V2 salvo necessidade real de novo estado persistente;
-8. manter integralmente os gates Android e Room herdados;
-9. certificar o head exato antes de merge.
+Room permanece V2.
 
-## Não fazer
+As regras da fase são deriváveis e o estado RNG necessário já existe em `career_core_state`. Não foi demonstrada necessidade legítima de Room V3.
 
-- não inventar nomes/semântica para `best.a0` ou estruturas `konrent.*`;
-- não alterar dados esportivos;
-- não importar dados externos;
-- não usar `Math.random`, `ThreadLocalRandom` ou `Random()` solto no domínio reconstruído;
-- não criar Room V3 apenas para representar documentação ou estado derivável;
-- não enfraquecer testes ou integridade para obter CI verde.
+A aplicação persistida completa de `T1` fica para a próxima fase porque o modelo moderno ainda não representa, com equivalência comprovada, todos os seus campos dinâmicos e efeitos associados.
+
+## Boundary explícito
+
+O fallback anual `best.p.d(...) -> best.t.e(...)` é um gerador procedural complexo com múltiplas fontes de RNG e construção de atributos. Ele não é implementado parcialmente nesta fase, pois isso inventaria jogadores/atributos.
+
+A fronteira está documentada em `PROCEDURAL_FALLBACK_BOUNDARY.md` e define o próximo subsistema de reconstrução.
+
+## Gates de encerramento
+
+Antes do merge do PR #5, o mesmo head deve passar:
+
+- guard de RNG cru;
+- Gradle help;
+- KSP + Room V2;
+- suíte unitária integral;
+- caracterização de calendário e lifecycle;
+- RNG anual;
+- seleção anual;
+- squad floor;
+- `best.a0.i`;
+- orquestração `best.a0`;
+- seleção profunda `best.a0.j/best.f`;
+- plano anual `T1`;
+- benchmark existente;
+- fixture Brasfoot 2026 por SHA-256;
+- `assembleDebug`;
+- Room V1/V2 e ausência de destructive migration.
+
+## Revisão
+
+Codex está indisponível por limite mensal do proprietário e não será falsamente marcado como aprovado. A revisão de fechamento usa diff independente, Java↔SMALI, testes e GitHub Actions no head exato.
+
+## Próxima fase após merge
+
+**FASE 7 — MOVIMENTAÇÃO DE ELENCO E GERAÇÃO PROCEDURAL LEGADA DETERMINÍSTICA**.
+
+Ela só deve começar depois do merge certificado da Fase 6.
