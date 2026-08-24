@@ -232,24 +232,26 @@ object LegacyAnnualSelectionRules {
         else -> false
     }
 
-    /** Exact control decision at the top of legacy `best.f.n(boolean)`. */
+    /**
+     * Exact top-level branch of legacy `best.f.n(boolean)`.
+     *
+     * The ternary in Java/SMALI short-circuits `subjectO0 && currentQ0` to the alternate route
+     * before evaluating the `nextInt(100) <= 60` predicate. Therefore that branch consumes zero
+     * RNG draws. Only `!subjectO0 && subjectO > 30 && currentQ0` reaches the random predicate.
+     */
     fun bestFNRoute(
         random: RandomSource,
         subjectO: Int,
         subjectO0: Boolean,
         currentQ0: Boolean,
     ): BestFNRoute {
-        var primaryRoute = if (subjectO > 30 && currentQ0) {
-            LegacyAnnualRandomRules.bestFNGate(random)
-        } else {
-            true
-        }
-
         if (subjectO0 && currentQ0) {
-            primaryRoute = false
+            return BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G
         }
-
-        return if (primaryRoute) {
+        if (subjectO <= 30 || !currentQ0) {
+            return BestFNRoute.G_THEN_OPTIONAL_H
+        }
+        return if (LegacyAnnualRandomRules.bestFNGate(random)) {
             BestFNRoute.G_THEN_OPTIONAL_H
         } else {
             BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G
