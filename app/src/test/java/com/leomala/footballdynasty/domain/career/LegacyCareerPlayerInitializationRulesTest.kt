@@ -29,7 +29,7 @@ class LegacyCareerPlayerInitializationRulesTest {
                 targetO = 0,
                 targetP0 = 4,
                 targetF0 = 20,
-                playerLegacyE = 3,
+                playerStatus = 3,
                 playerStar = false,
                 playerWorldTop = false,
             ),
@@ -40,7 +40,7 @@ class LegacyCareerPlayerInitializationRulesTest {
     }
 
     @Test
-    fun `q1 legacy E one consumes its conditional draw before star draw`() {
+    fun `q1 status one consumes its conditional draw before star draw`() {
         val random = QueueRandomSource(1, 1, 2, 0)
         val result = LegacyCareerPlayerInitializationRules.initialize(
             random,
@@ -49,7 +49,7 @@ class LegacyCareerPlayerInitializationRulesTest {
                 targetO = 1,
                 targetP0 = 0,
                 targetF0 = 25,
-                playerLegacyE = 1,
+                playerStatus = 1,
                 playerStar = true,
                 playerWorldTop = false,
             ),
@@ -69,7 +69,7 @@ class LegacyCareerPlayerInitializationRulesTest {
                 targetO = 0,
                 targetP0 = 5,
                 targetF0 = 25,
-                playerLegacyE = 0,
+                playerStatus = 0,
                 playerStar = false,
                 playerWorldTop = true,
             ),
