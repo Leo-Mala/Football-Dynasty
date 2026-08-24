@@ -15,29 +15,25 @@ Total de `new-instance ... Ljava/util/Random;`: **10**.
 |---|---:|---|
 | `public static a()` | 1 | Java + SMALI confirmam `nextInt(100) > 30` |
 | `public static i()` | 1 | SMALI confirma `nextInt(100) > 25`; Java está truncado |
-| `private static j(best.c0, boolean, boolean)` | 8 | sites localizados; caracterização detalhada pendente |
+| `private static j(best.c0, boolean, boolean)` | 8 | SMALI confirma bound 100 e oito thresholds; Java está truncado |
 
-Linhas do SMALI do corpus extraído usadas no inventário inicial: 180, 1054, 1489, 1659, 1692, 1714, 1741, 1770, 1799 e 1820.
+Linhas do SMALI do corpus extraído usadas no inventário: 180, 1054, 1489, 1659, 1692, 1714, 1741, 1770, 1799 e 1820.
 
 Os números de linha são auxiliares de auditoria do corpus decompilado e não constituem API estável.
 
-## Sites certificados nesta etapa
+## Sites certificados
 
 ### `best.a0.a()`
 
-O trecho relevante executa um sorteio com bound 100 e aceita o branch apenas quando o valor sorteado é maior que 30.
+O trecho relevante executa:
+
+`new Random().nextInt(100) > 30`
 
 Projeção moderna segura:
 
 `LegacyAnnualRandomRules.bestA0AGate(RandomSource)`
 
-Essa projeção reproduz somente:
-
-- uma chamada `nextInt(100)`;
-- exatamente um draw lógico no `RandomSource`;
-- predicado `> 30`.
-
-Ela deliberadamente não executa nem nomeia o efeito esportivo obfuscado subsequente.
+Ela reproduz apenas uma chamada `nextInt(100)` e o predicado `> 30`; o efeito esportivo obfuscado subsequente não é nomeado nem executado aqui.
 
 ### `best.a0.i()`
 
@@ -47,33 +43,62 @@ O SMALI confirma que, dentro de filtros estruturais sobre itens de `E0()` / `Z()
 
 `new Random().nextInt(100) > 25`
 
-Quando o predicado passa, o objeto é adicionado a uma lista temporária para processamento posterior.
+Quando passa, o objeto entra numa lista temporária para processamento posterior.
 
 Projeção moderna segura:
 
 `LegacyAnnualRandomRules.bestA0IGate(RandomSource)`
 
-A projeção cobre apenas o sorteio comprovado e não atribui nome esportivo ao objeto ou ao processamento subsequente.
+### `best.a0.j(best.c0, boolean, boolean)`
+
+O Java também está integralmente truncado; a caracterização é `SMALI_REQUIRED`.
+
+Os oito sites de RNG usam o mesmo bound `100` e, em ordem no bytecode, os seguintes predicados:
+
+| Site | Predicado comprovado |
+|---|---|
+| `SITE_1` | `nextInt(100) > 10` |
+| `SITE_2` | `nextInt(100) > 90` |
+| `SITE_3` | `nextInt(100) > 30` |
+| `SITE_4` | `nextInt(100) > 30` |
+| `SITE_5` | `nextInt(100) > 35` |
+| `SITE_6` | `nextInt(100) > 45` |
+| `SITE_7` | `nextInt(100) > 75` |
+| `SITE_8` | `nextInt(100) > 95` |
+
+A projeção moderna usa `BestA0JRandomSite` com esses thresholds exatos e `LegacyAnnualRandomRules.bestA0JGate(RandomSource, site)`. Os sites são numerados deliberadamente porque o corpus ainda não prova nomes esportivos seguros para cada branch.
+
+### Alcance pelo ciclo anual
+
+`j(...)` não é código morto. O SMALI confirma:
+
+- `best.a0.b(c0, int, boolean)` chama `j(...)` em duas passagens;
+- `best.a0.g()` chama `b(...)`;
+- `best.a0.h()` chama `b(...)`;
+- `best.a0.d()` — já caracterizado na Fase 5 como parte do ciclo anual — executa `g()` e `h()`.
+
+Portanto os oito sites de `j(...)` são alcançáveis pelo caminho anual normal e permanecem dentro do escopo funcional da Fase 6.
 
 ## Diferença importante para o legado
 
-Cada `new Random()` legado cria estado próprio a partir do mecanismo padrão de seed da JVM. Não há evidência de que essas dez instâncias compartilhem uma seed global persistida.
+Cada `new Random()` legado cria estado próprio a partir do mecanismo padrão de seed da JVM. Não há evidência de que as dez instâncias compartilhem uma seed global persistida.
 
-Portanto seria incorreto afirmar que uma única sequência moderna é bit-a-bit equivalente a todos os sorteios do APK. O objetivo moderno é:
+Assim, seria incorreto afirmar que uma única sequência moderna é bit-a-bit equivalente ao APK. O objetivo moderno é:
 
-1. preservar a distribuição/condição comprovada por site;
+1. preservar bound e predicado comprovados por site;
 2. tornar a execução reproduzível;
-3. persistir o estado quando o sorteio fizer parte do estado de carreira;
-4. documentar explicitamente a diferença de estratégia de seed.
+3. persistir o estado quando o sorteio participar do estado da carreira;
+4. manter explícita a diferença de estratégia de seed;
+5. não inventar significado esportivo para branches ainda obfuscados.
 
 ## Próximas caracterizações
 
-Prioridade:
+A camada de **gates RNG** de `best.a0` está catalogada: 10/10 sites localizados e seus thresholds conhecidos. O trabalho seguinte é caracterizar os efeitos observáveis ao redor desses gates:
 
-1. `best.a0.j(c0, boolean, boolean)` — separar os oito sites por caminho de controle;
-2. determinar quais desses oito sites são alcançados pelo ciclo anual normal;
-3. identificar bounds, predicates e efeitos observáveis em cada branch;
-4. identificar se algum efeito é puramente derivado e não precisa ser persistido;
-5. criar regra moderna apenas quando draw + bound + condição + efeito observável estiverem suficientemente comprovados.
+1. separar as duas passagens de `b(...)` e seus parâmetros booleanos;
+2. mapear o objeto `best.f` criado ao final de `j(...)` e as mutações `n(false)` / `o(false)`;
+3. identificar quais mutações precisam ser representadas no domínio moderno e quais são estado derivado;
+4. implementar efeitos somente quando entradas, mutações e invariantes forem suficientemente comprovadas;
+5. manter toda aleatoriedade por `RandomSource`.
 
 Nenhum dado esportivo foi alterado nesta catalogação.
