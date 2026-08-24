@@ -1,97 +1,78 @@
 # PROCEDURAL FALLBACK BOUNDARY — Fase 6
 
-## Por que existe um boundary separado
+## Fonte oficial
 
-O caminho anual comprovado contém:
+- corpus: `Brasfoot.apk_Decompiler.com.zip`;
+- SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`;
+- package legado: `com.brasfoot.v2020`;
+- versionCode: `202632`.
 
-`best.a0.f()` → `best.c0.n()` → `best.f.e(...)`.
+## Por que existe este boundary
 
-Quando `f.e(...)` não encontra um jogador existente seguro para mover, o APK executa:
+A manutenção anual mínima de elenco chega a `best.f.e(...)`. Quando nenhum jogador doador seguro é encontrado, o legado não simplesmente ignora a deficiência: ele chama um gerador procedural e depois converte/adiciona o resultado.
 
-`best.p.d(target, position, null, 0, null, FALSE)` → `best.t.e(false, generated, target)`.
+O caminho comprovado é:
 
-Portanto a geração procedural é alcançável pelo ciclo anual, mas é um subsistema distinto da seleção/relocalização caracterizada na Fase 6. Ela cria estado novo e contém várias fontes adicionais de aleatoriedade.
+`best.a0.f()` → `best.c0.n()` → `best.f.e(...)` → ausência de doador → `best.p.d(...)` → `best.t.e(...)`.
 
-A Fase 6 não deve fingir que essa geração já foi migrada apenas porque os filtros que a antecedem foram reconstruídos.
+Esse fallback é alcançável pelo ciclo anual, mas não pode ser reconstruído de forma segura como um pequeno helper isolado.
 
-## Evidência de `best.p.d(...)`
+## `best.p.d(...)`
 
-O Java decompilado está truncado; o SMALI oficial foi inspecionado diretamente.
+A inspeção do Java e principalmente do SMALI mostra um gerador procedural amplo. Ele contém:
 
-A rotina cria/reutiliza um objeto `best.p` e contém os seguintes `Random.nextInt(...)` próprios:
+- múltiplas instanciações independentes de `java.util.Random`;
+- branches condicionais por parâmetros e estado legado;
+- tabelas/intervalos usados para construir atributos;
+- geração/seleção de identidade textual por rotinas auxiliares;
+- chamadas posteriores que continuam transformando o objeto (`D`, `e`, `h`, `g` e relacionadas);
+- vários campos cuja semântica nominal ainda precisa ser fechada antes de produzir um jogador moderno equivalente.
 
-1. `nextInt(100) + 1` — participa da escolha de um valor legado `n` por distribuição dependente de `c0.f0()/p0()`;
-2. `nextInt(4) + 16` — grava um valor legado `c` entre 16 e 19;
-3. `nextInt(100) + 1` — escolhe um valor legado `e`, salvo quando a posição foi explicitamente fornecida pelo caller;
-4. `nextInt(6)` — branch condicional de origem/país quando condições do clube e do objeto gerado são satisfeitas;
-5. `nextInt(200)` — branch condicional mais profundo no caso legado `j0()==29`;
-6. `nextInt(4) + 7` — branch condicional quando a origem gerada difere do `j0()` do clube;
-7. `nextInt(2)` — grava outro campo binário do objeto gerado.
+Portanto `best.p.d(...)` não é um “default player” nem um registro vazio. Copiar apenas idade/posição/overall ou preencher o restante arbitrariamente quebraria a equivalência e introduziria conteúdo esportivo inventado.
 
-Após essas decisões, `p.d(...)` chama:
+## `best.t.e(...)`
 
-- `D(c0)`;
-- `e(c0)`;
-- `h()`;
-- `g()`.
+O resultado procedural não é usado diretamente como um `Player` moderno. Ele passa por uma etapa de conversão/materialização em `best.t.e(...)`, que também precisa ser caracterizada junto do gerador para garantir que campos, flags e relações sejam preservados.
 
-`p.h()` acrescenta `nextInt(5)` e `p.g()` acrescenta `nextInt(100) + 1`.
+## Relação com `T1`
 
-Assim, uma geração completa possui pelo menos seis draws não condicionais no encadeamento `d + h + g`, além de draws condicionais cujo número depende do estado do clube e dos resultados anteriores.
+Quando o caminho anual encontra um jogador existente e um destino, a chamada comprovada é:
 
-## Evidência de `best.t.e(...)`
+`best.o.T1(destination, A0(), false, false, false)`.
 
-`best.t.e(false, p, c0)` converte o objeto `best.p` em `best.o`, copia vários campos, liga-o ao clube e acrescenta aleatoriedade adicional:
+A Fase 6 já caracteriza esse call shape em `LegacyAnnualPlayerMovementRules` e `ANNUAL_PLAYER_MOVEMENT.md`, mas não o grava parcialmente no Room porque o modelo moderno ainda não representa todos os campos dinâmicos afetados.
 
-1. `nextInt(5)` para ajuste de um valor derivado do nível/estado do clube e de `p.p()`;
-2. quando `p.v() >= 9`, `nextInt(10)` adicional;
-3. se `p.l()==true`, `nextInt(3)==1` pode ativar uma flag;
-4. caso contrário, `nextInt(200)==1` pode ativar a mesma flag;
-5. se esse branch não ativar, `nextInt(300)==1` pode ativar outra flag e também a primeira.
+O fallback procedural amplia essa necessidade: antes de aplicar de ponta a ponta o ciclo anual, a próxima fase precisa representar tanto a geração correta quanto os efeitos persistentes completos de movimentação.
 
-A rotina então adiciona o novo `best.o` ao clube e a uma coleção global distinta conforme o parâmetro booleano.
+## Decisão da Fase 6
 
-## Por que não foi materializado na Fase 6
+Classificação:
 
-A geração não é apenas um sorteio de posição. Ela depende de:
+`PROCEDURAL_GENERATOR_REQUIRES_DEDICATED_RECONSTRUCTION`
 
-- campos ainda não representados de forma completa no modelo moderno;
-- distribuições condicionais por estado do clube;
-- origem/país legado;
-- atributos derivados por `p.D(...)` e `p.e(...)`;
-- conversão `p -> o` em `t.e(...)`;
-- flags e atributos aleatórios adicionais;
-- múltiplos draws condicionais cuja ordem precisa ser persistível para save/reopen.
+Regras:
 
-Implementar somente parte disso criaria jogadores procedurais com atributos arbitrários e violaria a regra de não inventar conteúdo esportivo.
+- não criar jogador procedural com atributos arbitrários;
+- não substituir o gerador por dados externos;
+- não usar média/default para obter testes verdes;
+- não adicionar Room V3 antes de saber quais campos realmente precisam persistir;
+- não afirmar paridade funcional do fallback enquanto `best.p.d` + `best.t.e` não estiverem reconstruídos e testados.
 
-## Estado da Fase 6
-
-A Fase 6 fecha o que antecede esse boundary:
-
-- ordem anual;
-- thresholds e short-circuit de RNG;
-- seleção `best.a0.j`;
-- predicados `c0.Z0/a1/M1`;
-- seleção `best.f`;
-- mínimos de composição `c0.n`;
-- filtros de clube/jogador doador `f.e/h`;
-- filtros e fallback `best.a0.i`;
-- decisão de quando a geração procedural é necessária.
-
-Nenhuma chamada direta a `Random()` foi introduzida no domínio moderno.
-
-## Próxima fase recomendada
+## Próxima fase
 
 **FASE 7 — MOVIMENTAÇÃO DE ELENCO E GERAÇÃO PROCEDURAL LEGADA DETERMINÍSTICA**.
 
-Objetivo recomendado:
+Escopo mínimo recomendado:
 
-1. criar snapshots modernos mínimos para os campos realmente usados por `T1`, `p.d`, `p.D`, `p.e` e `t.e`;
-2. reconstruir `p.d(...)` integralmente pelo SMALI, inclusive ordem dos draws condicionais;
-3. rotear todos os draws por `RandomSource` persistível;
-4. reconstruir `t.e(...)` sem `Random()` implícito;
-5. materializar transferência/relocalização em repository transacional sem quebrar `squad_memberships`;
-6. gerar fallback somente a partir da lógica comprovada do corpus;
-7. testar determinismo, save/reopen, ausência de duplicidade e floors de elenco;
-8. manter Room V2 se os campos puderem ser derivados/representados sem schema novo; criar V3 somente se estado realmente persistente for necessário.
+1. mapear integralmente entradas/saídas de `best.p.d(...)`;
+2. catalogar todos os sites de RNG alcançáveis nesse gerador, com bounds, ordem e short-circuit;
+3. mapear campos produzidos por `p.D`, `p.e`, `p.h`, `p.g` e helpers necessários;
+4. caracterizar `best.t.e(...)` e a transformação final em `best.o`;
+5. fechar o estado dinâmico de `best.o` exigido por `T1`;
+6. decidir, com evidência, se Room V3 é necessário;
+7. se necessário, criar migration não destrutiva + schema + testes;
+8. implementar repository transacional para movimentação de membership + efeitos associados;
+9. testar determinismo, save/reopen e ausência de jogador inventado;
+10. continuar usando exclusivamente o corpus oficial como fonte factual.
+
+A Fase 6 pode encerrar sem fingir que este subsistema já existe: sua responsabilidade é fechar a fronteira determinística e documentar com precisão o que precisa ser reconstruído a seguir.
