@@ -82,8 +82,6 @@ class CareerPlayerRuntimeStoreTest {
         val before = CareerStateFactory.create("career-a", seed = 42L)
         careerStateRepository.save(before)
 
-        // Occupy the unique career/club/roster/ordinal tuple. The attempted generated player below
-        // reaches the final membership write only after runtime + procedural rows were written.
         store.saveProceduralPlayer(
             runtime("career-a", "blocker", overall = 60),
             procedural("career-a", "blocker", "Blocker"),
@@ -230,6 +228,7 @@ class CareerPlayerRuntimeStoreTest {
         assertEquals("reopen-club", loaded.membership?.clubId)
         fileDb.close()
         context.deleteDatabase(name)
+        Unit
     }
 
     private suspend fun createCareer(id: String) {
