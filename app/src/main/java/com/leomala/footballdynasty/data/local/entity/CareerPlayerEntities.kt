@@ -41,7 +41,12 @@ data class CareerPlayerRuntimeEntity(
     val legacyHash: Int,
     val legacyGeneratedO: Int,
     val legacyCreatedYear: Int,
-    val durationDays: Long,
+    val contractEndEpochMillis: Long,
+    val legacyPreviousMarketValue: Int,
+    val legacyQ: Boolean,
+    val legacyX: Boolean,
+    val legacyY: Boolean,
+    val legacyZ: Boolean,
 )
 
 /** Static facts for a player created inside a career through the legacy procedural generator. */
