@@ -5,7 +5,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Expected values are hard-coded from the proven Java behavior in legacy a.b/a.h. */
+/**
+ * Characterization values revalidated against the official Brasfoot 2026/27 baseline.
+ * `best.b.l()` rebuilds the standard calendar from `2026 + (season - 1)`.
+ */
 class LegacyCareerCalendarCharacterizationTest {
     @Test
     fun `legacy initial career calendar is 2026 and starts on first Sunday`() {
@@ -32,6 +35,20 @@ class LegacyCareerCalendarCharacterizationTest {
         assertEquals(2, next.calendar.startDayIndex)
         assertEquals(GameDate(2027, 1, 3), LegacyCalendarRules.dateAt(next.calendar))
         assertEquals(1L, next.transitionCount)
+    }
+
+    @Test
+    fun `standard Brasfoot 2026 calendar formula remains deterministic across leap year`() {
+        val season1 = CareerStateFactory.create("leap-year", seed = 11L)
+        val season2 = LegacyCalendarRules.transitionSeason(season1)
+        val season3 = LegacyCalendarRules.transitionSeason(season2)
+
+        assertEquals(2028, season3.season.year)
+        assertEquals(2028, season3.calendar.year)
+        assertEquals(366, season3.calendar.dayCount)
+        assertEquals(GameDate(2028, 1, 2), LegacyCalendarRules.dateAt(season3.calendar))
+        assertEquals(GameDate(2028, 12, 31), LegacyCalendarRules.datesForYear(2028).last())
+        assertEquals(2L, season3.transitionCount)
     }
 
     @Test
