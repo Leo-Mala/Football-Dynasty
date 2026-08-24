@@ -5,6 +5,8 @@ import com.leomala.footballdynasty.foundation.random.RandomSource
 /**
  * Exact RNG/value projection of legacy `best.o.q1()`, invoked for every active player by
  * `best.b.z1()` during new-career initialization.
+ *
+ * Legacy `best.o.E` is populated from `e.g.getStatus()` by the canonical player constructor.
  */
 object LegacyCareerPlayerInitializationRules {
     data class Input(
@@ -12,7 +14,7 @@ object LegacyCareerPlayerInitializationRules {
         val targetO: Int,
         val targetP0: Int,
         val targetF0: Int,
-        val playerLegacyE: Int,
+        val playerStatus: Int,
         val playerStar: Boolean,
         val playerWorldTop: Boolean,
     )
@@ -28,7 +30,7 @@ object LegacyCareerPlayerInitializationRules {
                 targetBand(input.targetR0, input.targetO, input.targetP0) +
                 random.nextInt(3)
 
-        if (input.playerLegacyE == 1) {
+        if (input.playerStatus == 1) {
             overall += 8 + random.nextInt(2)
         }
 
