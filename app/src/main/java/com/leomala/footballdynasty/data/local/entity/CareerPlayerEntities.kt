@@ -88,6 +88,13 @@ data class CareerProceduralPlayerEntity(
             onDelete = ForeignKey.CASCADE,
             onUpdate = ForeignKey.NO_ACTION,
         ),
+        ForeignKey(
+            entity = ClubEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["clubId"],
+            onDelete = ForeignKey.NO_ACTION,
+            onUpdate = ForeignKey.NO_ACTION,
+        ),
     ],
     indices = [
         Index(value = ["clubId"]),
