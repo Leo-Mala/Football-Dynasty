@@ -34,6 +34,9 @@ object LegacyAnnualPlayerMovementRules {
      * Produces the exact observable plan for annual callers. `sourceManaged`/`targetManaged` are
      * projections of legacy `Q0()`. Because the annual call passes z2=false, the generic T1
      * secondary percentage calculation is unreachable and remains exactly zero.
+     *
+     * The legacy method does not reject negative `amount`; it simply executes code-1 ledger calls
+     * only when `amount > 0`. The structural move still happens for zero/negative values.
      */
     fun annualT1Plan(
         sourceExists: Boolean,
@@ -41,8 +44,6 @@ object LegacyAnnualPlayerMovementRules {
         targetManaged: Boolean,
         amount: Int,
     ): AnnualT1Plan {
-        require(amount >= 0) { "legacy annual T1 amount cannot be negative" }
-
         val sourceLedgerAmount =
             amount.takeIf { sourceExists && sourceManaged && it > 0 }
         val targetLedgerAmount =
