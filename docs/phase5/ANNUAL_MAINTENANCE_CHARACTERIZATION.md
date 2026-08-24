@@ -6,7 +6,7 @@ Corpus oficial: `Brasfoot.apk_Decompiler.com.zip`.
 
 SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`.
 
-Esta caracterização compara diretamente `sources/best/b.java` com `smali/best/b.smali`. Onde o nome obfuscado não permite provar o significado esportivo, a documentação preserva o nome legado em vez de inventar semântica.
+Esta caracterização compara diretamente Java decompilado e SMALI do novo baseline. Onde o nome obfuscado não permite provar o significado esportivo, a documentação preserva o nome legado em vez de inventar semântica.
 
 ## `best.b.s()`
 
@@ -106,11 +106,20 @@ Este comportamento coincide com o contrato moderno já expresso em `LegacyCalend
 
 Classificação: `JAVA_CONFIRMED_BY_SMALI` e `MODERN_PARITY_PRESENT` para o predicado estrutural.
 
-## `best.c0.l1()`
+## `best.c0.l1()` → `best.m.z()`
 
-Java e SMALI confirmam que `l1()` apenas verifica o campo `Y`; se não for nulo, chama `Y.z()`.
+Java e SMALI confirmam que `best.c0.l1()` apenas verifica o campo `Y`; se ele existir, chama `Y.z()`.
 
-Classificação: `JAVA_CONFIRMED_BY_SMALI`. O efeito transitivo de `best.m.z()` ainda deve ser caracterizado antes de portar essa manutenção para o domínio moderno.
+A investigação transitiva de `best.m.z()` também está resolvida por Java + SMALI. O método é um reset puro, determinístico e sem I/O/aleatoriedade. Ele grava zero em dez campos numéricos do objeto `best.m`:
+
+- seis campos `int`;
+- quatro campos `long`;
+- nenhum campo textual/coleção é alterado nesse método;
+- nenhuma outra chamada é realizada.
+
+Classificação de `c0.l1()`: `JAVA_CONFIRMED_BY_SMALI`.
+
+Classificação de `m.z()`: `JAVA_CONFIRMED_BY_SMALI`, efeito estrutural `RESET_NUMERIC_COUNTERS_TO_ZERO`. Os nomes esportivos desses dez contadores não são inferidos.
 
 ## Orquestração moderna segura
 
@@ -127,13 +136,13 @@ Esse modelo é uma barreira contra reordenação acidental durante a reconstruç
 
 ## Estado de paridade
 
-Com esta etapa, a ordem de `best.b.d()` e as estruturas internas de `s()`, `D()`, `r()`, `o()`, `q()`, `y1()`, `Y3()`, `P0()` e `c0.l1()` estão confirmadas por Java + SMALI.
+Com esta etapa, a ordem de `best.b.d()` e as estruturas internas de `s()`, `D()`, `r()`, `o()`, `q()`, `y1()`, `Y3()`, `P0()`, `c0.l1()` e o reset transitivo `m.z()` estão confirmadas por Java + SMALI.
 
 Ainda não é correto declarar paridade completa dos efeitos anuais porque permanecem pendentes, entre outros:
 
-- efeito transitivo de `best.m.z()`;
 - semântica detalhada das coleções obfuscadas manipuladas pelas rotinas acima;
 - `w2()`, `n()`, `A1()`, `best.a.m()`, `a0.d()`, `a0.a()`, `D1()` e `components.y3.b()`;
+- decisão baseada em evidência sobre quais desses efeitos precisam existir no domínio moderno desta fase;
 - efeitos de carreira que precisem ser persistidos além do estado moderno já existente.
 
 Nenhum dado esportivo externo foi usado ou alterado.
