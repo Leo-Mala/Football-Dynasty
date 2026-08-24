@@ -99,6 +99,8 @@ jobs:
               'LegacyProceduralPlayerRulesTest': None,
               'LegacyProceduralNameRulesTest': None,
               'LegacyProceduralToPlayerRulesTest': None,
+              'LegacyCareerPlayerInitializationRulesTest': None,
+              'LegacyCountryAssetCodesTest': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -179,6 +181,8 @@ jobs:
           echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
           echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
           echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
+          echo "Brasfoot 2026 new-career q1 overall initialization: PASS"
+          echo "Brasfoot 2026 P0..P220 name-asset code map: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
