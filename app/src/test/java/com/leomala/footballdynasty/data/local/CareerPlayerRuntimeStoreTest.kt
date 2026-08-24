@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
+import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.data.repository.RoomCareerRepository
 import com.leomala.footballdynasty.data.repository.RoomCareerStateRepository
 import com.leomala.footballdynasty.domain.career.CareerStateFactory
@@ -37,6 +38,9 @@ class CareerPlayerRuntimeStoreTest {
         database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+        database.clubDao().upsertAll(
+            listOf("club-a", "club-b", "source-club", "target-club").map(::club)
+        )
         store = CareerPlayerRuntimeStore(database)
         createCareer("career-a")
         createCareer("career-b")
@@ -107,6 +111,21 @@ class CareerPlayerRuntimeStoreTest {
 
         assertNull(store.find("career-a", "rolled-back"))
         assertEquals(before, requireNotNull(careerStateRepository.findById("career-a")))
+    }
+
+    @Test
+    fun `membership rejects nonexistent target club without leaking runtime rows`() = runBlocking {
+        try {
+            store.saveProceduralPlayer(
+                runtime("career-a", "orphan-player", overall = 63),
+                procedural("career-a", "orphan-player", "Orphan"),
+                membership("career-a", "orphan-player", "missing-club", 0),
+            )
+            fail("Expected club foreign key failure")
+        } catch (_: SQLiteConstraintException) {
+            // Expected.
+        }
+        assertNull(store.find("career-a", "orphan-player"))
     }
 
     @Test
@@ -185,6 +204,7 @@ class CareerPlayerRuntimeStoreTest {
             .allowMainThreadQueries()
             .addMigrations(*FootballDynastyMigrations.ALL)
             .build()
+        fileDb.clubDao().upsertAll(listOf(club("reopen-club")))
         RoomCareerRepository(fileDb) { 100L }.save(
             Career(
                 id = "reopen-career",
@@ -222,6 +242,31 @@ class CareerPlayerRuntimeStoreTest {
             )
         )
     }
+
+    private fun club(id: String) = ClubEntity(
+        id = id,
+        dataVersion = 1,
+        importScope = null,
+        sourceFileRef = id,
+        name = id,
+        country = 0,
+        state = 0,
+        level = 1,
+        stadium = "",
+        capacity = 0,
+        reputation = 0,
+        primaryColor = "",
+        secondaryColor = "",
+        coach = "",
+        coachCountry = 0,
+        baseColor = 0,
+        legacyAid = 0,
+        legacySid = 0,
+        legacyTid = 0,
+        legacyVid = 0,
+        legacyId = 0,
+        legacyValid = true,
+    )
 
     private fun runtime(
         careerId: String,
