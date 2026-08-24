@@ -2,160 +2,133 @@
 
 ## Fonte
 
-Corpus oficial: `Brasfoot.apk_Decompiler.com.zip`.
+Corpus oficial: `Brasfoot.apk_Decompiler.com.zip`  
+SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`
 
-SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`.
+Este documento registra o fluxo de controle de `best.f` necessário ao ciclo anual, confrontando Java e SMALI e mantendo símbolos obfuscados quando seu nome esportivo não é comprovável.
 
-Arquivos confrontados:
+## Construtor
 
-- `sources/best/f.java`;
-- `smali/best/f.smali`;
-- `smali/best/a0.smali` para confirmar alcançabilidade anual.
+O construtor recebe o jogador/objeto sujeito, um valor estrutural, flags e `mode`.
 
-Nenhum significado esportivo é atribuído a campos obfuscados apenas pelo nome. A caracterização abaixo preserva os símbolos do legado e descreve somente controle, filtros, mutações e chamadas comprovados.
+### Mode 0
 
-## Alcançabilidade pelo ciclo anual
+O bytecode preserva a ordem de avaliação:
 
-`best.a0` cria `best.f` em caminhos do subsistema anual, chama `n(false)` ou `o(false)`, consulta `g()` e, quando o resultado existe, chama `best.o.T1(best.c0, A0(), false, false, false)`.
+1. testa `current.j0()==29`;
+2. testa `subject.O()>50`;
+3. somente então executa `new Random().nextInt(100)>10`;
+4. o resultado aleatório participa de um branch posterior com `subject.O0()`/`subject.W0()`.
 
-O SMALI confirma também um fallback: quando a primeira tentativa `n(false)` não produz `g()`, uma nova instância de `best.f` pode executar `o(false)` e aplicar o mesmo `T1(...)` se houver resultado.
+Isso significa que um branch estrutural pode ainda consumir RNG antes das flags posteriores serem consideradas. A projeção moderna mantém esse draw count.
 
-Classificação: `SMALI_CONFIRMED_ANNUAL_REACHABILITY`.
+### Mode 1
 
-## Construtor — consumo de RNG não equivalente entre modos 0 e 1
+`subject.O0()` ou `subject.W0()` podem tornar o branch verdadeiro antes da condição com RNG; nesse caso o sorteio é short-circuited. Caso contrário, o mesmo gate `j0()==29 && O()>50 && nextInt(100)>10` é alcançado.
 
-### Modo 0
+### Mode 2
 
-O bytecode calcula primeiro:
+O grupo primário é usado sem gate de construtor. A seleção posterior aplica o predicado comprovado `!M1() && p0()>=4`.
 
-`legacyJ0 == 29 && subjectO > 50 && nextInt(100) > 10`
+## `n(boolean)`
 
-Somente depois lê `O0()` e `W0()`. Portanto, quando `legacyJ0 == 29 && subjectO > 50`, um draw é consumido mesmo se `O0()` ou `W0()` posteriormente fizerem o branch resultar verdadeiro por outra condição.
+O topo do método contém a ternária:
 
-A expansão do grupo principal ocorre quando `legacyJ == 0` ou o branch calculado resulta verdadeiro.
+`(subject.O0() && current.Q0()) ? false : subject.O() <= 30 || !current.Q0() || new Random().nextInt(100) <= 60`
 
-### Modo 1
+Portanto:
 
-O branch é diferente: `O0() || W0()` torna o resultado verdadeiro antes de avaliar o predicado aleatório. Assim, nesses casos o RNG não é consumido. Apenas quando ambas as flags são falsas podem `legacyJ0 == 29`, `subjectO > 50` e `nextInt(100) > 10` ser avaliados.
+- `subject.O0() && current.Q0()` → rota alternativa, **0 draws**;
+- `subject.O() <= 30` → rota primária, **0 draws**;
+- `current.Q0()==false` → rota primária, **0 draws**;
+- apenas `!subject.O0() && subject.O()>30 && current.Q0()` alcança `nextInt(100)<=60` e consome **1 draw**.
 
-### Modo 2
+### Rota primária
 
-O conjunto principal `p()==0` é incorporado sem RNG nesse trecho.
+1. tenta `q(primary, flag)` quando primary existe;
+2. se ainda não encontrou destino e `current.p0()>2`, tenta `q(secondary, flag)`.
 
-Classificação: `JAVA_CONFIRMED_BY_SMALI`, incluindo a ordem de short-circuit e consumo de RNG.
+### Rota alternativa
 
-A projeção moderna correspondente é `LegacyAnnualRandomRules.bestFConstructorExpandsPrimaryGroup(...)`.
+1. se ainda sem destino e `subject.O0()`, tenta `q(allP0, flag)`;
+2. se ainda sem destino e `current.p0()>2`, tenta `q(secondary, flag)`;
+3. se ainda sem destino e primary existe, tenta `q(primary, flag)`.
 
-## `best.f.n(boolean)` — roteamento e draw condicional
+Ao final, se `f4186e` continua nulo, chama `p()`; caso contrário retorna a seleção de `q`.
 
-Java e SMALI confirmam a mesma ordem:
+## `o(boolean)`
 
-1. se `subjectO <= 30`, o caminho primário é escolhido sem RNG;
-2. se `currentQ0 == false`, o caminho primário também é escolhido sem RNG;
-3. somente quando `subjectO > 30 && currentQ0 == true` ocorre `nextInt(100) <= 60`;
-4. depois disso, `subjectO0 && currentQ0` força o caminho alternativo;
-5. portanto esse override pode ocorrer **depois** de um draw já consumido.
+Na versão oficial atual o corpo é estruturalmente simples:
 
-Caminho primário:
+`return p();`
 
-- tenta `g` por `q(...)` quando disponível;
-- se ainda não houver resultado e `currentP0 > 2`, tenta `h`;
-- se nada for escolhido, termina em `p()`.
+O parâmetro booleano não altera esse corpo.
 
-Caminho alternativo:
+## `q(group, boolean)`
 
-- se ainda não houver resultado e `subjectO0`, tenta `i`;
-- depois, quando `currentP0 > 2`, tenta `h`;
-- depois tenta `g` quando disponível;
-- se nada for escolhido, termina em `p()`.
+Para cada grupo, calcula inicialmente:
 
-A projeção moderna `bestFNRoute(...)` preserva a decisão e, principalmente, o número exato de draws produzido por essa ordem.
+- `min = current.O()-1`;
+- `max = current.O()+1`;
+- `current.O()==1` força `min=1`.
 
-Classificação: `JAVA_CONFIRMED_BY_SMALI`.
+Mode 1:
 
-## `best.f.q(...)` — intervalo e candidatos
+- se `current.J()!=0 || current.p0()<4 || subject.O()<40`, usa `1..2`;
+- caso contrário usa `1..1`.
 
-O intervalo inicial é:
+Se `subject.O()<=20`, o intervalo é sobrescrito para `0..group.A0()`.
 
-- `min = currentO - 1`;
-- `max = currentO + 1`;
-- se `currentO == 1`, `min = 1`.
+Candidatos precisam:
 
-No modo `1`:
+- estar no intervalo;
+- ser diferentes do current;
+- ter `Q0()==false`;
+- roster `<30`.
 
-- se `currentJ != 0 || currentP0 < 4 || subjectO < 40`, intervalo `1..2`;
-- caso contrário, intervalo `1..1`.
+Depois do shuffle:
 
-Para `subjectO <= 20`, o loop redefine o intervalo por grupo para `0..groupA0`.
+- mode 1 usa `a1(...)`;
+- mode 2 usa `!M1() && p0()>=4`;
+- demais modos usam `Z0(...)`.
 
-Um `best.c0` entra na lista temporária somente quando, ao mesmo tempo:
+O primeiro candidato aprovado é armazenado como destino e retornado.
 
-- `O()` está dentro do intervalo;
-- não é o `current`;
-- `Q0()` é falso;
-- `Z().size() < 30`.
+## `p()`
 
-Para cada candidato elegível o legado chama `D0(true)` antes de adicioná-lo à lista temporária. Depois a lista é embaralhada.
+Fallback global:
 
-Seleção após shuffle:
+1. varre `E0()`;
+2. mantém apenas `R0()==false`, `Q0()==false`, roster `<30`;
+3. embaralha a lista;
+4. escolhe o primeiro candidato que passa `Z0(...)`.
 
-- modo `1`: primeiro candidato que satisfaz `a1(subject, !currentQ0)`;
-- modo `2`: primeiro com `!M1()` e `p0() >= 4`;
-- demais modos: primeiro que satisfaz `Z0(subject, !currentQ0)`.
+## `e(...)` e `h(...)` no caminho anual
 
-Finalmente `f(selectedOrNull, legacyB)` grava o resultado inclusive quando nulo.
+`best.f.e(...)` é alcançado por `best.c0.n()` e, por isso, foi recuperado do SMALI. Ele monta pools de clubes doadores e usa `h(...)` para procurar um jogador seguro segundo posição, overall, flags e excedente mínimo do doador.
 
-A projeção moderna atualmente congela apenas o cálculo de intervalo e o filtro estrutural, sem transportar métodos obfuscados `a1/Z0/M1` para o domínio antes de caracterizá-los.
+Quando um jogador existente é encontrado, o legado executa `T1(target, A0(), false, false, false)`.
 
-Classificação: `JAVA_CONFIRMED_BY_SMALI`, efeito parcial implementado com barreira contra inferência.
+Quando não há doador, o caminho chega ao gerador procedural `best.p.d(...)`, que permanece uma fronteira separada porque exige reconstrução completa antes de produzir atributos modernos.
 
-## `best.f.p()` — fallback
+## `d(...)`
 
-`p()` constrói um pool a partir de `E0()` com os filtros:
+A busca de callers Java + bytecode não encontrou invocação de `best.f.d(best.o,best.c0,int)` fora de sua própria definição no corpus atual.
 
-- `R0() == false`;
-- `Q0() == false`;
-- `Z().size() < 30`.
+Classificação para Fase 6:
 
-O pool é embaralhado e a rotina retorna o primeiro item que satisfaz `Z0(subject, !currentQ0)`, gravando-o por `f(...)`. Se nenhum item satisfizer, retorna `null`.
+`DECOMPILED_STUB_NOT_REQUIRED_FOR_PHASE6_ANNUAL_PATH`.
 
-A projeção moderna congela o filtro do pool e o shuffle determinístico, mas não inventa a semântica de `Z0`.
+Isso não declara o método irrelevante para todo o APK; apenas impede expansão de escopo sem caller anual comprovado.
 
-Classificação: `JAVA_CONFIRMED_BY_SMALI`.
+## Implementação moderna
 
-## Efeito observável posterior em `best.a0`
+As decisões comprovadas estão divididas em:
 
-Quando `best.f.g()` retorna um objeto não nulo, o caller anual executa:
+- `LegacyAnnualRandomRules` — bounds/thresholds/shuffle;
+- `LegacyAnnualSelectionRules` — predicados, ranges, roteamento e short-circuit;
+- `LegacyAnnualSquadFloorRules` — manutenção mínima/donor selection;
+- `LegacyAnnualA0IRules` — facade do método SMALI-only `a0.i()`;
+- `LegacyAnnualPlayerMovementRules` — plano estrutural da chamada anual `T1`.
 
-`best.o.T1(selectedC0, best.o.A0(), false, false, false)`.
-
-Isso prova que a seleção de `best.f` não é apenas cálculo: ela alimenta uma mutação no objeto `best.o`. O significado nominal de `T1` deve ser fechado separadamente por seu corpo Java/SMALI antes de ser transportado como regra esportiva moderna.
-
-Classificação: `CALL_AND_ARGUMENTS_CONFIRMED`; `SPORTING_SEMANTICS_PENDING`.
-
-## Invariantes modernos adicionados
-
-`LegacyAnnualRandomRulesTest` agora protege:
-
-- diferença de consumo de RNG entre construtor modo 0 e modo 1;
-- ausência de draw quando os qualificadores do gate não são alcançados;
-- modo 2 sem RNG nesse trecho;
-- `n()` sem draw para `O <= 30` ou `Q0 == false`;
-- override `O0 && Q0` após draw quando o gate já foi alcançado;
-- limite exato `<= 60` versus `> 60`;
-- ranges de `q(...)`;
-- filtro de candidato de `q(...)`;
-- filtro de fallback de `p()`;
-- shuffle determinístico e restauração de estado RNG.
-
-## Fronteira restante
-
-Antes de afirmar paridade funcional profunda de `best.f`, ainda é necessário caracterizar:
-
-- `best.c0.Z0(...)`;
-- `best.c0.a1(...)`;
-- `best.c0.M1()` no contexto do modo 2;
-- `best.o.T1(...)` e as mutações transitivas relevantes;
-- os métodos `best.f.d(...)` e `best.f.e(...)`, cujo Java está truncado e exige SMALI caso sejam comprovadamente necessários no caminho anual.
-
-Até essa fronteira ser fechada, o domínio moderno preserva somente efeitos e decisões comprovados, sem atribuir nomes esportivos arbitrários.
+Nenhuma dessas regras usa RNG cru no domínio moderno.
