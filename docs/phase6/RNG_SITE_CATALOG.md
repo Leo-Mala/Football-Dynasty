@@ -17,43 +17,31 @@ Total de `new-instance ... Ljava/util/Random;`: **10**.
 | `public static i()` | 1 | SMALI confirma `nextInt(100) > 25`; Java está truncado |
 | `private static j(best.c0, boolean, boolean)` | 8 | SMALI confirma bound 100 e oito thresholds; Java está truncado |
 
-Linhas do SMALI do corpus extraído usadas no inventário: 180, 1054, 1489, 1659, 1692, 1714, 1741, 1770, 1799 e 1820.
-
-Os números de linha são auxiliares de auditoria do corpus decompilado e não constituem API estável.
+Linhas do SMALI do corpus extraído usadas no inventário original: 180, 1054, 1489, 1659, 1692, 1714, 1741, 1770, 1799 e 1820. Os números de linha são auxiliares de auditoria do corpus decompilado e não constituem API estável.
 
 ## Sites certificados
 
 ### `best.a0.a()`
 
-O trecho relevante executa:
+Trecho relevante:
 
 `new Random().nextInt(100) > 30`
 
-Projeção moderna segura:
-
-`LegacyAnnualRandomRules.bestA0AGate(RandomSource)`
-
-Ela reproduz apenas uma chamada `nextInt(100)` e o predicado `> 30`; o efeito esportivo obfuscado subsequente não é nomeado nem executado aqui.
+Projeção: `LegacyAnnualRandomRules.bestA0AGate(RandomSource)`.
 
 ### `best.a0.i()`
 
-O Java decompilado está substituído por `UnsupportedOperationException("Method not decompiled...")`; portanto este site é `SMALI_REQUIRED`.
-
-O SMALI confirma que, dentro de filtros estruturais sobre itens de `E0()` / `Z()`, um candidato que também satisfaz `O() > 50`, `W() < 31` e `O0()==true` executa:
+O Java está truncado; o site é `SMALI_REQUIRED`. O SMALI confirma que o draw só é alcançado depois de `O()>50`, `W()<31` e `O0()==true`:
 
 `new Random().nextInt(100) > 25`
 
-Quando passa, o objeto entra numa lista temporária para processamento posterior.
-
-Projeção moderna segura:
-
-`LegacyAnnualRandomRules.bestA0IGate(RandomSource)`
+Projeção: `LegacyAnnualA0IRules` + `LegacyAnnualSelectionRules.bestA0IPlayerEligible`.
 
 ### `best.a0.j(best.c0, boolean, boolean)`
 
-O Java também está integralmente truncado; a caracterização é `SMALI_REQUIRED`.
+O Java está integralmente truncado; a caracterização é `SMALI_REQUIRED`.
 
-Os oito sites de RNG usam o mesmo bound `100` e, em ordem no bytecode, os seguintes predicados:
+Os oito sites usam bound `100` e, em ordem no bytecode:
 
 | Site | Predicado comprovado |
 |---|---|
@@ -66,39 +54,44 @@ Os oito sites de RNG usam o mesmo bound `100` e, em ordem no bytecode, os seguin
 | `SITE_7` | `nextInt(100) > 75` |
 | `SITE_8` | `nextInt(100) > 95` |
 
-A projeção moderna usa `BestA0JRandomSite` com esses thresholds exatos e `LegacyAnnualRandomRules.bestA0JGate(RandomSource, site)`. Os sites são numerados deliberadamente porque o corpus ainda não prova nomes esportivos seguros para cada branch.
+A projeção usa `BestA0JRandomSite` e `bestA0JGate(RandomSource, site)`.
 
 ### Alcance pelo ciclo anual
 
-`j(...)` não é código morto. O SMALI confirma:
+`j(...)` não é código morto:
 
-- `best.a0.b(c0, int, boolean)` chama `j(...)` em duas passagens;
-- `best.a0.g()` chama `b(...)`;
-- `best.a0.h()` chama `b(...)`;
-- `best.a0.d()` — já caracterizado na Fase 5 como parte do ciclo anual — executa `g()` e `h()`.
+- `best.a0.b(c0,int,boolean)` chama `j(...)` em passagens high/low;
+- `g()` e `h()` chamam `b(...)`;
+- `best.a0.d()` faz parte do ciclo anual e executa `g()`/`h()`.
 
-Portanto os oito sites de `j(...)` são alcançáveis pelo caminho anual normal e permanecem dentro do escopo funcional da Fase 6.
+Logo os oito sites pertencem ao caminho anual normal.
+
+## RNG transitivo em `best.f`
+
+O caminho selecionado por `j(...)` constrói `best.f`, portanto também foram caracterizados:
+
+- gate de construtor `nextInt(100) > 10` nos branches alcançáveis;
+- gate `nextInt(100) <= 60` de `best.f.n()` apenas quando a ternária/OR não short-circuita;
+- `Collections.shuffle(...)` em `best.f.q()/p()` e caminhos relacionados.
+
+O branch `subject.O0() && current.Q0()` em `best.f.n()` seleciona a rota alternativa sem alcançar o RNG. Da mesma forma, `subject.O()<=30` e `current.Q0()==false` evitam o draw. Esse detalhe está congelado por teste de draw count.
 
 ## Diferença importante para o legado
 
-Cada `new Random()` legado cria estado próprio a partir do mecanismo padrão de seed da JVM. Não há evidência de que as dez instâncias compartilhem uma seed global persistida.
+Cada `new Random()` legado cria estado próprio a partir do mecanismo padrão da JVM. Não há evidência de seed global persistida compartilhada pelas instâncias. `Collections.shuffle(List)` também usa fonte implícita.
 
-Assim, seria incorreto afirmar que uma única sequência moderna é bit-a-bit equivalente ao APK. O objetivo moderno é:
+Assim, a reconstrução moderna não declara equivalência bit-a-bit de seed. Ela preserva:
 
-1. preservar bound e predicado comprovados por site;
-2. tornar a execução reproduzível;
-3. persistir o estado quando o sorteio participar do estado da carreira;
-4. manter explícita a diferença de estratégia de seed;
-5. não inventar significado esportivo para branches ainda obfuscados.
+1. bound e predicado por site;
+2. ordem e short-circuit comprovados;
+3. distribuição do shuffle;
+4. execução reproduzível;
+5. estado persistível quando o sorteio participa da carreira.
 
-## Próximas caracterizações
+## Estado final da Fase 6
 
-A camada de **gates RNG** de `best.a0` está catalogada: 10/10 sites localizados e seus thresholds conhecidos. O trabalho seguinte é caracterizar os efeitos observáveis ao redor desses gates:
+A camada de RNG do caminho anual está catalogada no escopo necessário desta fase. Os efeitos ao redor dos sorteios foram reconstruídos em regras separadas para seleção, manutenção mínima, `best.a0.i`, orquestração e plano anual `T1`.
 
-1. separar as duas passagens de `b(...)` e seus parâmetros booleanos;
-2. mapear o objeto `best.f` criado ao final de `j(...)` e as mutações `n(false)` / `o(false)`;
-3. identificar quais mutações precisam ser representadas no domínio moderno e quais são estado derivado;
-4. implementar efeitos somente quando entradas, mutações e invariantes forem suficientemente comprovadas;
-5. manter toda aleatoriedade por `RandomSource`.
+O gerador procedural `best.p.d(...)` possui RNG adicional próprio e foi isolado como subsistema da Fase 7. Ele não é parcialmente reproduzido aqui para evitar fabricação de atributos.
 
 Nenhum dado esportivo foi alterado nesta catalogação.
