@@ -32,4 +32,26 @@ object LegacyAnnualRandomRules {
     /** Every characterized best.a0.j random site uses `nextInt(100) > threshold`. */
     fun bestA0JGate(random: RandomSource, site: BestA0JRandomSite): Boolean =
         random.nextInt(100) > site.thresholdExclusive
+
+    /** Structural parity for the random predicate used by reachable best.f constructor branches. */
+    fun bestFConstructorGate(random: RandomSource): Boolean = random.nextInt(100) > 10
+
+    /** Structural parity for the direct random predicate in reachable best.f.n(): `<= 60`. */
+    fun bestFNGate(random: RandomSource): Boolean = random.nextInt(100) <= 60
+
+    /**
+     * Deterministic replacement for legacy `Collections.shuffle(...)` sites reached by the annual
+     * best.a0 -> best.f path. This uses the standard reverse Fisher-Yates shape with injected RNG.
+     * It preserves an unbiased shuffle while deliberately not claiming legacy default-seed parity.
+     */
+    fun <T> shuffleInPlace(values: MutableList<T>, random: RandomSource) {
+        for (index in values.lastIndex downTo 1) {
+            val other = random.nextInt(index + 1)
+            if (other != index) {
+                val tmp = values[index]
+                values[index] = values[other]
+                values[other] = tmp
+            }
+        }
+    }
 }
