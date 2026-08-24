@@ -8,21 +8,28 @@ import com.leomala.footballdynasty.foundation.random.RandomSource
  * are not yet proven.
  */
 object LegacyAnnualRandomRules {
-    /**
-     * Structural parity for the random predicate in legacy best.a0.a():
-     * `new Random().nextInt(100) > 30`.
-     *
-     * This reproduces only the proven draw/bound/predicate. It does not model or name the
-     * opaque side effect that follows the predicate in the legacy application.
-     */
+    /** Structural parity for legacy best.a0.a(): `nextInt(100) > 30`. */
     fun bestA0AGate(random: RandomSource): Boolean = random.nextInt(100) > 30
 
-    /**
-     * Structural parity for the candidate-selection predicate in legacy best.a0.i():
-     * `new Random().nextInt(100) > 25`.
-     *
-     * Preconditions and the later mutation/list processing remain outside this function until
-     * their full domain meaning is characterized. This boundary covers only the proven draw.
-     */
+    /** Structural parity for legacy best.a0.i(): `nextInt(100) > 25`. */
     fun bestA0IGate(random: RandomSource): Boolean = random.nextInt(100) > 25
+
+    /**
+     * The Java decompiler lost best.a0.j(c0, boolean, boolean), so these sites are intentionally
+     * numbered by SMALI occurrence instead of receiving invented sporting names.
+     */
+    enum class BestA0JRandomSite(val thresholdExclusive: Int) {
+        SITE_1(10),
+        SITE_2(90),
+        SITE_3(30),
+        SITE_4(30),
+        SITE_5(35),
+        SITE_6(45),
+        SITE_7(75),
+        SITE_8(95),
+    }
+
+    /** Every characterized best.a0.j random site uses `nextInt(100) > threshold`. */
+    fun bestA0JGate(random: RandomSource, site: BestA0JRandomSite): Boolean =
+        random.nextInt(100) > site.thresholdExclusive
 }
