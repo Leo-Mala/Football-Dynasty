@@ -49,11 +49,12 @@ object LegacyProceduralMaterializationRules {
             draftLegacyN = draft.legacyN,
             draftLegacyO = draft.legacyO,
         )
-        val flags = LegacyProceduralToPlayerRules.flags(random, draft.legacyB)
-        val finalHash =
-            LegacyProceduralToPlayerRules.finalLegacyNAfterFlags(draft.legacyN, flags.setO0)
         val side = if (draft.legacyG == 0) 0 else 1
-        val value = LegacyPlayerValueRules.calculate(
+
+        // In legacy best.t.e the player calls p()/o() before the final O0/M flag RNG block.
+        // Therefore initial A0 is calculated with both flags still false and with the original
+        // draft v()/hash. J1(8) can happen only afterwards and must not retroactively change A0.
+        val valueBeforeFinalFlags = LegacyPlayerValueRules.calculate(
             LegacyPlayerValueRules.Input(
                 countryGroup = target.countryGroup,
                 clubLevel = target.clubLevel,
@@ -61,17 +62,21 @@ object LegacyProceduralMaterializationRules {
                 status = DEFAULT_STATUS,
                 age = draft.legacyC,
                 overall = overall,
-                star = flags.setO0,
-                worldTop = flags.setM,
+                star = false,
+                worldTop = false,
                 legacyCreatedYear = target.currentYear,
                 currentYear = target.currentYear,
-                legacyHash = finalHash,
+                legacyHash = draft.legacyN,
             )
         )
 
+        val flags = LegacyProceduralToPlayerRules.flags(random, draft.legacyB)
+        val finalHash =
+            LegacyProceduralToPlayerRules.finalLegacyNAfterFlags(draft.legacyN, flags.setO0)
+
         return Materialized(
             name = draft.name,
-            age = value.normalizedAge,
+            age = valueBeforeFinalFlags.normalizedAge,
             country = draft.legacyD,
             position = draft.legacyE,
             status = DEFAULT_STATUS,
@@ -82,7 +87,7 @@ object LegacyProceduralMaterializationRules {
             worldTop = flags.setM,
             legacyHash = finalHash,
             overall = overall,
-            marketValue = value.marketValue,
+            marketValue = valueBeforeFinalFlags.marketValue,
             legacyGeneratedO = draft.legacyO,
             legacyCreatedYear = target.currentYear,
             durationDays = INITIAL_DURATION_DAYS,
