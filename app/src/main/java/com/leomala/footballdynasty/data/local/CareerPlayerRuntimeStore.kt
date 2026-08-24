@@ -32,6 +32,23 @@ class CareerPlayerRuntimeStore(
         database.careerPlayerRuntimeDao().upsertRuntime(entity)
     }
 
+    suspend fun saveCanonicalPlayer(
+        runtime: CareerPlayerRuntimeEntity,
+        membership: CareerSquadMembershipEntity,
+    ): PlayerSnapshot {
+        require(runtime.sourceType == SOURCE_CANONICAL) {
+            "Canonical runtime must use sourceType=$SOURCE_CANONICAL"
+        }
+        requireIdentity(runtime.careerId, runtime.playerId)
+        requireSameIdentity(runtime.careerId, runtime.playerId, membership.careerId, membership.playerId)
+        return database.withTransaction {
+            val dao = database.careerPlayerRuntimeDao()
+            dao.upsertRuntime(runtime)
+            dao.upsertMembership(membership)
+            PlayerSnapshot(runtime, procedural = null, membership = membership)
+        }
+    }
+
     suspend fun saveProceduralPlayer(
         runtime: CareerPlayerRuntimeEntity,
         procedural: CareerProceduralPlayerEntity,
