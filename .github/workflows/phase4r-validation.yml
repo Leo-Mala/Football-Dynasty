@@ -134,6 +134,7 @@ jobs:
               'LegacyProceduralMaterializationRulesTest': None,
               'CareerPlayerRuntimeMapperTest': None,
               'CareerPlayerRuntimeStoreTest': None,
+              'LegacyProceduralNameAssetLoaderTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
           }
@@ -166,9 +167,98 @@ jobs:
           for name, evidence in required.items():
               if evidence is None:
                   raise SystemExit(f'{name} evidence missing')
-              _, f, e, s = evidence
+              count, f, e, s = evidence
+              if int(count) <= 0:
+                  raise SystemExit(f'{name} did not execute any tests')
               if f != '0' or e != '0' or s != '0':
                   raise SystemExit(f'{name} is not fully green')
+          PY
+
+      - name: Verify official Brasfoot 2026 procedural name corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import re
+          from pathlib import Path
+
+          assets_root = Path('app/src/main/assets')
+          names_dir = assets_root / 'names'
+          surnames_dir = assets_root / 'surnames'
+          code_source = Path(
+              'app/src/main/java/com/leomala/footballdynasty/domain/career/LegacyCountryAssetCodes.kt'
+          ).read_text(encoding='utf-8')
+
+          if not names_dir.is_dir() or not surnames_dir.is_dir():
+              raise SystemExit(
+                  'Official Brasfoot 2026 procedural name corpus is missing: expected '
+                  'app/src/main/assets/names and app/src/main/assets/surnames'
+              )
+
+          try:
+              code_block = code_source.split('private val codes = arrayOf(', 1)[1].split('\n    )', 1)[0]
+          except IndexError as exc:
+              raise SystemExit('Could not parse LegacyCountryAssetCodes.codes') from exc
+          codes = re.findall(r'"([A-Z0-9]{3})"', code_block)
+          if len(codes) != 221 or len(set(codes)) != 221:
+              raise SystemExit(f'Legacy country asset code table is not exactly 221 unique entries: {len(codes)}')
+
+          names = sorted(names_dir.glob('*.txt'))
+          surnames = sorted(surnames_dir.glob('*.txt'))
+          expected_files = {f'{code}.txt' for code in codes}
+          if len(names) != 221 or {p.name for p in names} != expected_files:
+              raise SystemExit('names/*.txt must contain exactly one official file for every P0..P220 asset code')
+          if len(surnames) != 221 or {p.name for p in surnames} != expected_files:
+              raise SystemExit('surnames/*.txt must contain exactly one official file for every P0..P220 asset code')
+
+          files = sorted(names + surnames, key=lambda p: p.as_posix())
+          if len(files) != 442:
+              raise SystemExit(f'Expected 442 official name/surname assets, found {len(files)}')
+
+          physical_rows = []
+          semantic_rows = []
+          total_bytes = 0
+          for path in files:
+              raw = path.read_bytes()
+              total_bytes += len(raw)
+              relative = path.relative_to(assets_root).as_posix()
+              legacy_path = f'resources/assets/{relative}'
+              physical_rows.append(
+                  f'{legacy_path}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n'
+              )
+
+              try:
+                  text = raw.decode('utf-8')
+              except UnicodeDecodeError as exc:
+                  raise SystemExit(f'Official name asset is not valid UTF-8: {relative}') from exc
+              accepted = [
+                  line for line in text.splitlines()
+                  if line and '.' not in line and re.search(r'\d+', line) is None
+              ]
+              if not accepted:
+                  raise SystemExit(f'Legacy best.u.b filter produced an empty asset: {relative}')
+              inner = ''.join(f'{line}\n' for line in accepted).encode('utf-8')
+              semantic_rows.append(
+                  f'{legacy_path}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n'
+              )
+
+          if total_bytes != 495785:
+              raise SystemExit(f'Official name corpus byte count changed: {total_bytes} != 495785')
+
+          physical_hash = hashlib.sha256(''.join(physical_rows).encode('utf-8')).hexdigest()
+          semantic_hash = hashlib.sha256(''.join(semantic_rows).encode('utf-8')).hexdigest()
+          expected_physical = '4b8c6db9b6343221cb6e945aef7ba0d7dc081c4744e30bb1f9a0eba3c57e444b'
+          expected_semantic = 'd4cb2a6fd770a7bcdb850ee63b31d6442b66a3da70611f7a100e264b1f2c625f'
+          if physical_hash != expected_physical:
+              raise SystemExit(f'Official name corpus physical manifest mismatch: {physical_hash}')
+          if semantic_hash != expected_semantic:
+              raise SystemExit(f'Official name corpus semantic manifest mismatch: {semantic_hash}')
+
+          print('PHASE7_NAME_CORPUS_COUNT=442')
+          print(f'PHASE7_NAME_CORPUS_BYTES={total_bytes}')
+          print(f'PHASE7_NAME_CORPUS_PHYSICAL={physical_hash}')
+          print(f'PHASE7_NAME_CORPUS_SEMANTIC={semantic_hash}')
           PY
 
       - name: Verify active Brasfoot 2026 fixture integrity
@@ -281,6 +371,7 @@ jobs:
           echo "Brasfoot 2026 annual selection/movement regressions: PASS"
           echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
           echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
+          echo "Brasfoot 2026 official 442-file procedural name corpus: PASS"
           echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
           echo "Brasfoot 2026 q1/value/materialization regressions: PASS"
           echo "Brasfoot 2026 P0..P220 asset/group maps: PASS"
