@@ -71,6 +71,14 @@ jobs:
       - name: Generate Room schema V2
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
 
+      - name: Retain generated Room schemas
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase7-room-schemas-${{ github.sha }}
+          path: app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/*.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
