@@ -2,16 +2,14 @@ package com.leomala.footballdynasty.data.legacy
 
 import com.leomala.footballdynasty.foundation.random.RandomSource
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
+import java.io.IOException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LegacyProceduralNameAssetLoaderTest {
     @Test
-    fun `country index resolves exact virtual paths and legacy filter does not trim accepted lines`() {
+    fun `country index resolves exact asset paths and legacy filter does not trim accepted lines`() {
         val loader = loader(
             mapOf(
                 "names/BRA.txt" to "\nAna\nA. B\nPlayer1\n Ana \nBia\n",
@@ -26,9 +24,9 @@ class LegacyProceduralNameAssetLoaderTest {
     }
 
     @Test
-    fun `invalid legacy country has no fabricated fallback and does not open corpus`() {
+    fun `invalid legacy country has no fabricated fallback and does not open assets`() {
         var opens = 0
-        val loader = LegacyProceduralNameAssetLoader {
+        val loader = LegacyProceduralNameAssetLoader { _: String ->
             opens++
             ByteArrayInputStream(ByteArray(0))
         }
@@ -54,13 +52,13 @@ class LegacyProceduralNameAssetLoaderTest {
     }
 
     @Test
-    fun `valid legacy country fails hard when an official virtual path is absent`() {
+    fun `valid legacy country fails hard when an official asset path is absent`() {
         val loader = loader(mapOf("names/BRA.txt" to "Ana\nBia\n"))
 
         try {
             loader.load(29)
             throw AssertionError("Expected missing official surname asset to fail")
-        } catch (expected: java.io.IOException) {
+        } catch (expected: IOException) {
             assertEquals(
                 "Missing official procedural-name asset: surnames/BRA.txt",
                 expected.message,
@@ -68,19 +66,11 @@ class LegacyProceduralNameAssetLoaderTest {
         }
     }
 
-    private fun loader(entries: Map<String, String>): LegacyProceduralNameAssetLoader {
-        val corpus = ByteArrayOutputStream().use { bytes ->
-            ZipOutputStream(bytes).use { zip ->
-                entries.forEach { (path, content) ->
-                    zip.putNextEntry(ZipEntry(path))
-                    zip.write(content.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                }
-            }
-            bytes.toByteArray()
+    private fun loader(entries: Map<String, String>): LegacyProceduralNameAssetLoader =
+        LegacyProceduralNameAssetLoader { path: String ->
+            val content = entries[path] ?: throw IOException("not found: $path")
+            ByteArrayInputStream(content.toByteArray(Charsets.UTF_8))
         }
-        return LegacyProceduralNameAssetLoader { ByteArrayInputStream(corpus) }
-    }
 
     private class QueueRandomSource(vararg values: Int) : RandomSource {
         private val values = values.toMutableList()
