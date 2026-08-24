@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.domain.career
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,6 +18,7 @@ class LegacyAnnualPlayerMovementRulesTest {
         )
 
         assertFalse(plan.activityMainTeamDirty)
+        assertTrue(plan.relinkToTarget)
         assertTrue(plan.resetX)
         assertTrue(plan.resetZ)
         assertTrue(plan.leaveYUnchanged)
@@ -24,6 +26,7 @@ class LegacyAnnualPlayerMovementRulesTest {
         assertNull(plan.sourceBCode1Amount)
         assertNull(plan.targetDCode1Amount)
         assertEquals(180L, plan.legacyDurationArgument)
+        assertTrue(plan.callQ1)
         assertTrue(plan.clearSourceSpecialReferences)
         assertTrue(plan.removeFromSource)
         assertTrue(plan.addToTarget)
@@ -87,8 +90,10 @@ class LegacyAnnualPlayerMovementRulesTest {
 
         assertNull(plan.sourceBCode1Amount)
         assertNull(plan.targetDCode1Amount)
+        assertTrue(plan.relinkToTarget)
         assertTrue(plan.removeFromSource)
         assertTrue(plan.addToTarget)
+        assertTrue(plan.callQ1)
     }
 
     @Test
@@ -102,9 +107,23 @@ class LegacyAnnualPlayerMovementRulesTest {
 
         assertFalse(plan.removeFromSource)
         assertFalse(plan.clearSourceSpecialReferences)
+        assertTrue(plan.relinkToTarget)
         assertTrue(plan.addToTarget)
+        assertTrue(plan.callQ1)
         assertEquals(25, plan.targetDCode1Amount)
         assertFalse(plan.setS1True)
         assertFalse(plan.clearSourceE1)
+    }
+
+    @Test
+    fun `negative annual amount is rejected instead of inventing T1 behavior`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            LegacyAnnualPlayerMovementRules.annualT1Plan(
+                sourceExists = true,
+                sourceManaged = false,
+                targetManaged = false,
+                amount = -1,
+            )
+        }
     }
 }
