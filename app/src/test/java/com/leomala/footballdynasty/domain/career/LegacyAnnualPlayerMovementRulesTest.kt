@@ -3,7 +3,6 @@ package com.leomala.footballdynasty.domain.career
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -116,14 +115,21 @@ class LegacyAnnualPlayerMovementRulesTest {
     }
 
     @Test
-    fun `negative annual amount is rejected instead of inventing T1 behavior`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            LegacyAnnualPlayerMovementRules.annualT1Plan(
-                sourceExists = true,
-                sourceManaged = false,
-                targetManaged = false,
-                amount = -1,
-            )
-        }
+    fun `negative amount skips ledger calls but preserves legacy structural movement`() {
+        val plan = LegacyAnnualPlayerMovementRules.annualT1Plan(
+            sourceExists = true,
+            sourceManaged = true,
+            targetManaged = true,
+            amount = -1,
+        )
+
+        assertNull(plan.sourceBCode1Amount)
+        assertNull(plan.targetDCode1Amount)
+        assertTrue(plan.relinkToTarget)
+        assertTrue(plan.removeFromSource)
+        assertTrue(plan.addToTarget)
+        assertTrue(plan.callQ1)
+        assertTrue(plan.setS1True)
+        assertTrue(plan.clearSourceE1)
     }
 }
