@@ -1,10 +1,10 @@
-name: Phase 6 Validation
+name: Phase 7 Validation
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - phase6/deterministic-annual-effects
+      - phase7/procedural-player-runtime
   pull_request:
     branches:
       - phase4/core-game-domain
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase6-validation-${{ github.ref }}
+  group: phase7-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout exact Phase 6 head
+      - name: Checkout exact Phase 7 head
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -96,6 +96,9 @@ jobs:
               'LegacyAnnualA0OrchestrationRulesTest': None,
               'LegacyAnnualJAndBestFDeepTest': None,
               'LegacyAnnualPlayerMovementRulesTest': None,
+              'LegacyProceduralPlayerRulesTest': None,
+              'LegacyProceduralNameRulesTest': None,
+              'LegacyProceduralToPlayerRulesTest': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -115,8 +118,8 @@ jobs:
               for node in root.findall('system-out'):
                   if node.text:
                       benchmark.extend(line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line)
-          print(f'PHASE6_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
-          print(f'PHASE6_CHARACTERIZATION={required}')
+          print(f'PHASE7_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          print(f'PHASE7_CHARACTERIZATION={required}')
           for line in benchmark:
               print(line)
           if failures or errors:
@@ -165,21 +168,17 @@ jobs:
           fi
           git diff --exit-code -- app/schemas
 
-      - name: Phase 6 gate summary
+      - name: Phase 7 gate summary
         run: |
           echo "Raw career-domain RNG guard: PASS"
           echo "Gradle help: PASS"
           echo "Room schema V2 generation: PASS"
           echo "testDebugUnitTest: PASS"
-          echo "Brasfoot 2026 calendar characterization: PASS"
-          echo "Brasfoot 2026 lifecycle order characterization: PASS"
-          echo "Brasfoot 2026 deterministic annual RNG boundary: PASS"
-          echo "Brasfoot 2026 annual selection predicates: PASS"
-          echo "Brasfoot 2026 annual squad floor maintenance: PASS"
-          echo "Brasfoot 2026 best.a0.i relocation filters: PASS"
-          echo "Brasfoot 2026 best.a0 orchestration: PASS"
-          echo "Brasfoot 2026 best.a0.j/best.f deep selection: PASS"
-          echo "Brasfoot 2026 annual T1 movement plan: PASS"
+          echo "Brasfoot 2026 calendar/lifecycle regressions: PASS"
+          echo "Brasfoot 2026 annual selection/movement regressions: PASS"
+          echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
+          echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
+          echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
           echo "Room V1->V2 migration/schema audit: PASS"
