@@ -13,13 +13,10 @@ import java.io.InputStream
  * opens the exact `names/<CODE>.txt` and `surnames/<CODE>.txt` paths recovered from the APK. Missing
  * assets are I/O failures so an incomplete factual corpus cannot silently change generated players.
  */
-class LegacyProceduralNameAssetLoader private constructor(
+class LegacyProceduralNameAssetLoader internal constructor(
     private val openAsset: (String) -> InputStream,
 ) {
     constructor(assetManager: AssetManager) : this({ path -> assetManager.open(path) })
-
-    internal constructor(openAssetForTest: (String) -> InputStream, @Suppress("UNUSED_PARAMETER") testOnly: Unit) :
-        this(openAssetForTest)
 
     data class NameLists(
         val names: List<String>,
