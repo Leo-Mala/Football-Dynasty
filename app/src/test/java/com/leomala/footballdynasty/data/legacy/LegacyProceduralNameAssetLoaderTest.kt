@@ -30,7 +30,7 @@ class LegacyProceduralNameAssetLoaderTest {
 
         assertNull(loader.load(-1))
         assertNull(loader.load(221))
-        assertTrueEmpty(opened)
+        assertEquals(emptyList<String>(), opened)
     }
 
     @Test
@@ -52,16 +52,9 @@ class LegacyProceduralNameAssetLoaderTest {
     private fun loader(
         assets: Map<String, String>,
         opened: MutableList<String>,
-    ) = LegacyProceduralNameAssetLoader(
-        openAssetForTest = { path ->
-            opened += path
-            ByteArrayInputStream(requireNotNull(assets[path]) { "Missing fake asset $path" }.toByteArray(Charsets.UTF_8))
-        },
-        testOnly = Unit,
-    )
-
-    private fun assertTrueEmpty(values: List<String>) {
-        assertEquals(emptyList<String>(), values)
+    ) = LegacyProceduralNameAssetLoader { path ->
+        opened += path
+        ByteArrayInputStream(requireNotNull(assets[path]) { "Missing fake asset $path" }.toByteArray(Charsets.UTF_8))
     }
 
     private class QueueRandomSource(vararg values: Int) : RandomSource {
