@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - phase4r/brasfoot-2026-rebaseline
+  pull_request:
+    branches:
+      - phase4/core-game-domain
 
 permissions:
   contents: read
