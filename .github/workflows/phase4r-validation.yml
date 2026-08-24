@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase7-validation-${{ github.ref }}
+  group: phase7-validation-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -25,6 +25,18 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact Phase 7 head
+        id: exact_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA='${{ github.event.pull_request.head.sha || github.sha }}'
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          echo "sha=$ACTUAL_SHA" >> "$GITHUB_OUTPUT"
+          echo "PHASE7_CHECKOUT_HEAD=$ACTUAL_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -68,13 +80,22 @@ jobs:
       - name: Gradle help
         run: ./gradlew help --no-daemon
 
+      - name: Snapshot versioned Room schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA_DIR="app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase"
+          rm -rf /tmp/versioned-room-schemas
+          mkdir -p /tmp/versioned-room-schemas
+          cp "$SCHEMA_DIR"/*.json /tmp/versioned-room-schemas/
+
       - name: Generate Room schema V3
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
 
       - name: Retain generated Room schemas
         uses: actions/upload-artifact@v4
         with:
-          name: phase7-room-schemas-${{ github.sha }}
+          name: phase7-room-schemas-${{ steps.exact_head.outputs.sha }}
           path: app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/*.json
           if-no-files-found: error
           retention-days: 7
@@ -166,38 +187,95 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SCHEMA_DIR="app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase"
-          V1="$SCHEMA_DIR/1.json"
-          V2="$SCHEMA_DIR/2.json"
-          V3="$SCHEMA_DIR/3.json"
-          test -s "$V1"
-          test -s "$V2"
-          test -s "$V3"
-          grep -Eq '"version"[[:space:]]*:[[:space:]]*2' "$V2"
-          grep -Eq '"version"[[:space:]]*:[[:space:]]*3' "$V3"
-          grep -q '"tableName": "career_core_state"' "$V3"
-          grep -q '"tableName": "career_player_runtime"' "$V3"
-          grep -q '"tableName": "career_procedural_players"' "$V3"
-          grep -q '"tableName": "career_squad_memberships"' "$V3"
-          grep -q '"rngInternalState"' "$V3"
-          grep -q '"careerId"' "$V3"
-          git diff --exit-code origin/phase3/versioned-persistence -- "$V1"
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          schema_dir = Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
+          baseline_dir = Path('/tmp/versioned-room-schemas')
+          expected_files = {'1.json', '2.json', '3.json'}
+
+          generated_files = {p.name for p in schema_dir.glob('*.json')}
+          baseline_files = {p.name for p in baseline_dir.glob('*.json')}
+          if generated_files != expected_files:
+              raise SystemExit(f'Unexpected generated Room schema set: {sorted(generated_files)}')
+          if baseline_files != expected_files:
+              raise SystemExit(f'Unexpected versioned Room schema set: {sorted(baseline_files)}')
+
+          expected_identity = {
+              1: '37c2e4df984290903730a25553bdbed5',
+              2: 'fc4ed30d6548037a1226144e0c576c59',
+              3: 'a6d299fb67fcdcc51340cc62982e2d5a',
+          }
+
+          generated = {}
+          for version in (1, 2, 3):
+              name = f'{version}.json'
+              with (baseline_dir / name).open(encoding='utf-8') as fh:
+                  before = json.load(fh)
+              with (schema_dir / name).open(encoding='utf-8') as fh:
+                  after = json.load(fh)
+              if before != after:
+                  raise SystemExit(f'Generated Room schema {name} differs structurally from the versioned schema')
+              db = after.get('database', {})
+              if db.get('version') != version:
+                  raise SystemExit(f'Room schema {name} has unexpected database.version={db.get("version")}')
+              if db.get('identityHash') != expected_identity[version]:
+                  raise SystemExit(
+                      f'Room schema {name} identityHash changed: {db.get("identityHash")} '
+                      f'!= {expected_identity[version]}'
+                  )
+              generated[version] = after
+
+          phase3_v1 = json.loads(subprocess.check_output([
+              'git', 'show',
+              'origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json',
+          ], text=True))
+          if generated[1] != phase3_v1:
+              raise SystemExit('Room V1 schema changed semantically from phase3/versioned-persistence')
+
+          v3_entities = {
+              entity.get('tableName'): entity
+              for entity in generated[3].get('database', {}).get('entities', [])
+          }
+          required_tables = {
+              'career_core_state',
+              'career_player_runtime',
+              'career_procedural_players',
+              'career_squad_memberships',
+          }
+          missing = required_tables - set(v3_entities)
+          if missing:
+              raise SystemExit(f'Room V3 is missing required tables: {sorted(missing)}')
+
+          membership = v3_entities['career_squad_memberships']
+          club_fk = any(
+              fk.get('table') == 'clubs'
+              and fk.get('columns') == ['clubId']
+              and fk.get('referencedColumns') == ['id']
+              and fk.get('onDelete') == 'NO ACTION'
+              and fk.get('onUpdate') == 'NO ACTION'
+              for fk in membership.get('foreignKeys', [])
+          )
+          if not club_fk:
+              raise SystemExit('career_squad_memberships.clubId must reference clubs.id with NO ACTION')
+
+          print('ROOM_SCHEMA_SEMANTIC_COMPARE=PASS')
+          print(f'ROOM_V3_IDENTITY_HASH={expected_identity[3]}')
+          PY
           if grep -R --line-number 'fallbackToDestructiveMigration' app/src/main; then
             echo 'Destructive migration fallback is forbidden.'
-            exit 1
-          fi
-          SCHEMA_STATUS="$(git status --porcelain --untracked-files=all -- "$SCHEMA_DIR")"
-          if [ -n "$SCHEMA_STATUS" ]; then
-            echo 'Generated Room schemas differ from versioned schemas:'
-            printf '%s\n' "$SCHEMA_STATUS"
             exit 1
           fi
 
       - name: Phase 7 gate summary
         run: |
+          echo "Exact Phase 7 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
           echo "Raw career-domain RNG guard: PASS"
           echo "Gradle help: PASS"
           echo "Room schema V3 generation: PASS"
+          echo "Room V1/V2/V3 semantic regeneration comparison: PASS"
           echo "testDebugUnitTest: PASS"
           echo "Brasfoot 2026 calendar/lifecycle regressions: PASS"
           echo "Brasfoot 2026 annual selection/movement regressions: PASS"
@@ -210,4 +288,4 @@ jobs:
           echo "Room V1->V2 and V2->V3 migration tests: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
-          echo "Room V1/V2/V3 schema audit: PASS"
+          echo "Room V1/V2/V3 migration policy: PASS"
