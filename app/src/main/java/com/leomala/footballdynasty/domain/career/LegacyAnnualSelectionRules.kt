@@ -230,11 +230,9 @@ object LegacyAnnualSelectionRules {
             }
         }
 
-        if (subjectO <= 5) {
+        if (subjectO <= 20) {
             min = 0
             max = groupA0
-        } else if (subjectO <= 20) {
-            min = 0
         }
 
         return BestFQRange(minLegacyO = min, maxLegacyO = max)
