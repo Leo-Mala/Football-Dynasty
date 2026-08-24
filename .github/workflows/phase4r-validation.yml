@@ -110,9 +110,11 @@ jobs:
           python3 - <<'PY'
           import glob
           import xml.etree.ElementTree as ET
+
           files = glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           if not files:
               raise SystemExit('No JUnit XML files were generated')
+
           tests = failures = errors = skipped = 0
           benchmark = []
           required = {
@@ -135,9 +137,11 @@ jobs:
               'CareerPlayerRuntimeMapperTest': None,
               'CareerPlayerRuntimeStoreTest': None,
               'LegacyProceduralNameAssetLoaderTest': None,
+              'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
           }
+
           for path in files:
               root = ET.parse(path).getroot()
               tests += int(root.attrib.get('tests', 0))
@@ -155,11 +159,16 @@ jobs:
                       )
               for node in root.findall('system-out'):
                   if node.text:
-                      benchmark.extend(line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line)
+                      benchmark.extend(
+                          line for line in node.text.splitlines()
+                          if 'PHASE4_CORE_BENCHMARK' in line
+                      )
+
           print(f'PHASE7_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
           print(f'PHASE7_CHARACTERIZATION={required}')
           for line in benchmark:
               print(line)
+
           if failures or errors:
               raise SystemExit('JUnit XML reports failures/errors')
           if not benchmark:
@@ -180,21 +189,22 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import hashlib
+          import io
           import re
+          import zipfile
           from pathlib import Path
 
           assets_root = Path('app/src/main/assets')
-          names_dir = assets_root / 'names'
-          surnames_dir = assets_root / 'surnames'
+          parts = [assets_root / f'legacy_name_corpus.zip.part{i:02d}' for i in range(8)]
           code_source = Path(
               'app/src/main/java/com/leomala/footballdynasty/domain/career/LegacyCountryAssetCodes.kt'
           ).read_text(encoding='utf-8')
 
-          if not names_dir.is_dir() or not surnames_dir.is_dir():
-              raise SystemExit(
-                  'Official Brasfoot 2026 procedural name corpus is missing: expected '
-                  'app/src/main/assets/names and app/src/main/assets/surnames'
-              )
+          missing_parts = [part.name for part in parts if not part.is_file()]
+          if missing_parts:
+              raise SystemExit(f'Official Brasfoot 2026 procedural name corpus parts are missing: {missing_parts}')
+
+          corpus_bytes = b''.join(part.read_bytes() for part in parts)
 
           try:
               code_block = code_source.split('private val codes = arrayOf(', 1)[1].split('\n    )', 1)[0]
@@ -202,63 +212,74 @@ jobs:
               raise SystemExit('Could not parse LegacyCountryAssetCodes.codes') from exc
           codes = re.findall(r'"([A-Z0-9]{3})"', code_block)
           if len(codes) != 221 or len(set(codes)) != 221:
-              raise SystemExit(f'Legacy country asset code table is not exactly 221 unique entries: {len(codes)}')
+              raise SystemExit(
+                  f'Legacy country asset code table is not exactly 221 unique entries: {len(codes)}'
+              )
 
-          names = sorted(names_dir.glob('*.txt'))
-          surnames = sorted(surnames_dir.glob('*.txt'))
-          expected_files = {f'{code}.txt' for code in codes}
-          if len(names) != 221 or {p.name for p in names} != expected_files:
-              raise SystemExit('names/*.txt must contain exactly one official file for every P0..P220 asset code')
-          if len(surnames) != 221 or {p.name for p in surnames} != expected_files:
-              raise SystemExit('surnames/*.txt must contain exactly one official file for every P0..P220 asset code')
-
-          files = sorted(names + surnames, key=lambda p: p.as_posix())
-          if len(files) != 442:
-              raise SystemExit(f'Expected 442 official name/surname assets, found {len(files)}')
-
+          expected_entries = (
+              {f'names/{code}.txt' for code in codes}
+              | {f'surnames/{code}.txt' for code in codes}
+          )
           physical_rows = []
           semantic_rows = []
           total_bytes = 0
-          for path in files:
-              raw = path.read_bytes()
-              total_bytes += len(raw)
-              relative = path.relative_to(assets_root).as_posix()
-              legacy_path = f'resources/assets/{relative}'
-              physical_rows.append(
-                  f'{legacy_path}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n'
-              )
 
-              try:
-                  text = raw.decode('utf-8')
-              except UnicodeDecodeError as exc:
-                  raise SystemExit(f'Official name asset is not valid UTF-8: {relative}') from exc
-              accepted = [
-                  line for line in text.splitlines()
-                  if line and '.' not in line and re.search(r'\d+', line) is None
-              ]
-              if not accepted:
-                  raise SystemExit(f'Legacy best.u.b filter produced an empty asset: {relative}')
-              inner = ''.join(f'{line}\n' for line in accepted).encode('utf-8')
-              semantic_rows.append(
-                  f'{legacy_path}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n'
-              )
+          with zipfile.ZipFile(io.BytesIO(corpus_bytes)) as archive:
+              infos = [info for info in archive.infolist() if not info.is_dir()]
+              actual_entries = {info.filename for info in infos}
+              if len(infos) != 442 or actual_entries != expected_entries:
+                  missing = sorted(expected_entries - actual_entries)
+                  extra = sorted(actual_entries - expected_entries)
+                  raise SystemExit(
+                      f'Official name corpus entries mismatch: count={len(infos)} '
+                      f'missing={missing[:5]} extra={extra[:5]}'
+                  )
+
+              for path in sorted(expected_entries):
+                  raw = archive.read(path)
+                  total_bytes += len(raw)
+                  legacy_path = f'resources/assets/{path}'
+                  physical_rows.append(
+                      f'{legacy_path}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n'
+                  )
+
+                  # Android legacy best.u.b uses InputStreamReader without a custom decoder.
+                  # The official corpus has one malformed UTF-8 byte (names/CRN.txt); Java's
+                  # UTF-8 reader replaces malformed input, so reproduce that semantic boundary.
+                  text = raw.decode('utf-8', errors='replace')
+                  accepted = [
+                      line for line in text.splitlines()
+                      if line and '.' not in line and re.search(r'\d+', line) is None
+                  ]
+                  if not accepted:
+                      raise SystemExit(f'Legacy best.u.b filter produced an empty asset: {path}')
+                  inner = ''.join(f'{line}\n' for line in accepted).encode('utf-8')
+                  semantic_rows.append(
+                      f'{legacy_path}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n'
+                  )
 
           if total_bytes != 495785:
               raise SystemExit(f'Official name corpus byte count changed: {total_bytes} != 495785')
 
           physical_hash = hashlib.sha256(''.join(physical_rows).encode('utf-8')).hexdigest()
           semantic_hash = hashlib.sha256(''.join(semantic_rows).encode('utf-8')).hexdigest()
+          archive_hash = hashlib.sha256(corpus_bytes).hexdigest()
           expected_physical = '4b8c6db9b6343221cb6e945aef7ba0d7dc081c4744e30bb1f9a0eba3c57e444b'
           expected_semantic = 'd4cb2a6fd770a7bcdb850ee63b31d6442b66a3da70611f7a100e264b1f2c625f'
+          expected_archive = '298c689f9cdb8de394625b5fe2107d25cf20f55fb5e948d58c5e12f49cc615e8'
+
           if physical_hash != expected_physical:
               raise SystemExit(f'Official name corpus physical manifest mismatch: {physical_hash}')
           if semantic_hash != expected_semantic:
               raise SystemExit(f'Official name corpus semantic manifest mismatch: {semantic_hash}')
+          if archive_hash != expected_archive:
+              raise SystemExit(f'Official name corpus packaging fingerprint mismatch: {archive_hash}')
 
           print('PHASE7_NAME_CORPUS_COUNT=442')
           print(f'PHASE7_NAME_CORPUS_BYTES={total_bytes}')
           print(f'PHASE7_NAME_CORPUS_PHYSICAL={physical_hash}')
           print(f'PHASE7_NAME_CORPUS_SEMANTIC={semantic_hash}')
+          print(f'PHASE7_NAME_CORPUS_ARCHIVE={archive_hash}')
           PY
 
       - name: Verify active Brasfoot 2026 fixture integrity
@@ -282,7 +303,9 @@ jobs:
           import subprocess
           from pathlib import Path
 
-          schema_dir = Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
+          schema_dir = Path(
+              'app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase'
+          )
           baseline_dir = Path('/tmp/versioned-room-schemas')
           expected_files = {'1.json', '2.json', '3.json'}
 
@@ -307,10 +330,14 @@ jobs:
               with (schema_dir / name).open(encoding='utf-8') as fh:
                   after = json.load(fh)
               if before != after:
-                  raise SystemExit(f'Generated Room schema {name} differs structurally from the versioned schema')
+                  raise SystemExit(
+                      f'Generated Room schema {name} differs structurally from the versioned schema'
+                  )
               db = after.get('database', {})
               if db.get('version') != version:
-                  raise SystemExit(f'Room schema {name} has unexpected database.version={db.get("version")}')
+                  raise SystemExit(
+                      f'Room schema {name} has unexpected database.version={db.get("version")}'
+                  )
               if db.get('identityHash') != expected_identity[version]:
                   raise SystemExit(
                       f'Room schema {name} identityHash changed: {db.get("identityHash")} '
@@ -320,7 +347,8 @@ jobs:
 
           phase3_v1 = json.loads(subprocess.check_output([
               'git', 'show',
-              'origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json',
+              'origin/phase3/versioned-persistence:'
+              'app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json',
           ], text=True))
           if generated[1] != phase3_v1:
               raise SystemExit('Room V1 schema changed semantically from phase3/versioned-persistence')
@@ -349,11 +377,27 @@ jobs:
               for fk in membership.get('foreignKeys', [])
           )
           if not club_fk:
-              raise SystemExit('career_squad_memberships.clubId must reference clubs.id with NO ACTION')
+              raise SystemExit(
+                  'career_squad_memberships.clubId must reference clubs.id with NO ACTION'
+              )
+
+          db_source = Path(
+              'app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabase.kt'
+          ).read_text(encoding='utf-8')
+          migrations_source = Path(
+              'app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabaseFactory.kt'
+          ).read_text(encoding='utf-8')
+          if 'const val SCHEMA_VERSION: Int = 3' not in db_source:
+              raise SystemExit('FootballDynastyDatabase.SCHEMA_VERSION must remain 3')
+          if 'Migration(1, 2)' not in migrations_source or 'Migration(2, 3)' not in migrations_source:
+              raise SystemExit('Explicit Room V1->V2 and V2->V3 migrations are required')
+          if 'arrayOf(MIGRATION_1_2, MIGRATION_2_3)' not in migrations_source:
+              raise SystemExit('Migration registry must explicitly preserve 1->2 and 2->3')
 
           print('ROOM_SCHEMA_SEMANTIC_COMPARE=PASS')
           print(f'ROOM_V3_IDENTITY_HASH={expected_identity[3]}')
           PY
+
           if grep -R --line-number 'fallbackToDestructiveMigration' app/src/main; then
             echo 'Destructive migration fallback is forbidden.'
             exit 1
@@ -371,7 +415,7 @@ jobs:
           echo "Brasfoot 2026 annual selection/movement regressions: PASS"
           echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
           echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
-          echo "Brasfoot 2026 official 442-file procedural name corpus: PASS"
+          echo "Brasfoot 2026 official 442-file name corpus + runtime loader: PASS"
           echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
           echo "Brasfoot 2026 q1/value/materialization regressions: PASS"
           echo "Brasfoot 2026 P0..P220 asset/group maps: PASS"
