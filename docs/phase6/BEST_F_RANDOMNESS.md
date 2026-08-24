@@ -14,7 +14,7 @@ Java e SMALI de `best.f` confirmam:
 
 1. no construtor com modo `0`, sob condição envolvendo `j0()==29` e `O()>50`: `new Random().nextInt(100) > 10`;
 2. no construtor com modo `1`, no branch equivalente quando flags anteriores não tornam a condição verdadeira: `new Random().nextInt(100) > 10`;
-3. em `n(boolean)`, num branch condicionado por flags/valor do objeto: `new Random().nextInt(100) <= 60`.
+3. em `n(boolean)`, apenas quando `!subject.O0() && subject.O()>30 && current.Q0()`: `new Random().nextInt(100) <= 60`.
 
 Os dois sites do construtor representam o mesmo predicado em branches de modo distintos. A projeção moderna usa uma única regra estrutural:
 
@@ -22,7 +22,10 @@ Os dois sites do construtor representam o mesmo predicado em branches de modo di
 
 Para `n(boolean)`:
 
-- `LegacyAnnualRandomRules.bestFNGate(RandomSource)` → `nextInt(100) <= 60`.
+- `LegacyAnnualRandomRules.bestFNGate(RandomSource)` → `nextInt(100) <= 60`;
+- `subject.O0() && current.Q0()` seleciona a rota alternativa **sem sorteio** por short-circuit da ternária legado;
+- `subject.O() <= 30` ou `current.Q0()==false` selecionam a rota primária **sem sorteio**;
+- somente o branch restante consome o draw `<=60`.
 
 A projeção não atribui nomes esportivos às flags/objetos obfuscados.
 
@@ -48,6 +51,8 @@ Essa escolha preserva a distribuição uniforme do embaralhamento, permite teste
 
 - gates diretos consumindo o número esperado de draws;
 - os oito thresholds SMALI de `best.a0.j(...)`;
+- short-circuit de `best.f.n()` sem draw nos branches estruturais;
+- limite `60/61` do branch que realmente alcança o RNG;
 - shuffle preservando o conjunto de elementos;
 - shuffle consumindo `size - 1` draws na implementação moderna;
 - repetibilidade de gates + shuffle com seed idêntica;
@@ -57,4 +62,4 @@ Essa escolha preserva a distribuição uniforme do embaralhamento, permite teste
 
 A fronteira RNG explícita do caminho `best.a0 -> best.f` está caracterizada suficientemente para impedir reintrodução de `Random()`/`Collections.shuffle()` não determinísticos no domínio moderno.
 
-Ainda falta reconstruir com confiança os **efeitos de negócio** de `best.f` e demais subsistemas anuais. Esses efeitos só devem ser materializados quando entradas, mutações e invariantes estiverem comprovadas por Java/SMALI e testes de caracterização.
+Os efeitos estruturais anuais ao redor dessa fronteira estão detalhados em `ANNUAL_SUBSYSTEMS.md` e `ANNUAL_PLAYER_MOVEMENT.md`. A geração procedural profunda permanece isolada em `PROCEDURAL_FALLBACK_BOUNDARY.md` para reconstrução dedicada, sem fabricação de atributos.
