@@ -82,12 +82,6 @@ class CareerPlayerRuntimeStoreTest {
         val before = CareerStateFactory.create("career-a", seed = 42L)
         careerStateRepository.save(before)
 
-        store.saveProceduralPlayer(
-            runtime("career-a", "blocker", overall = 60),
-            procedural("career-a", "blocker", "Blocker"),
-            membership("career-a", "blocker", "club-a", 0),
-        )
-
         val advanced = before.copy(
             random = before.random.copy(
                 internalState = (before.random.internalState + 1L) and ((1L shl 48) - 1L),
@@ -100,11 +94,11 @@ class CareerPlayerRuntimeStoreTest {
                 state = advanced,
                 runtime = runtime("career-a", "rolled-back", overall = 72),
                 procedural = procedural("career-a", "rolled-back", "Rolled Back"),
-                membership = membership("career-a", "rolled-back", "club-a", 0),
+                membership = membership("career-a", "rolled-back", "missing-club", 0),
             )
-            fail("Expected unique membership constraint failure")
+            fail("Expected club foreign key failure after career state write")
         } catch (_: SQLiteConstraintException) {
-            // Expected: Room transaction must roll back runtime/procedural rows and career RNG state.
+            // Expected: the final membership FK must roll back runtime/procedural rows and RNG state.
         }
 
         assertNull(store.find("career-a", "rolled-back"))
