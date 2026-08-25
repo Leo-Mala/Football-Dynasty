@@ -1,6 +1,5 @@
 package com.leomala.footballdynasty.domain.match
 
-import com.leomala.footballdynasty.domain.career.LegacyAnnualRandomRules
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
 /** Structural parity for legacy `best.s.S/T/U/V/W` player selection. */
@@ -90,7 +89,7 @@ object LegacyMatchPlayerSelectionRules {
         val eligible = candidates
             .filter { it.legacyPositionIndex in range.minInclusive..range.maxInclusive }
             .toMutableList()
-        LegacyAnnualRandomRules.shuffleInPlace(eligible, random)
+        LegacyMatchRandomRules.shuffleInPlace(eligible, random)
         return eligible.firstOrNull()
     }
 }

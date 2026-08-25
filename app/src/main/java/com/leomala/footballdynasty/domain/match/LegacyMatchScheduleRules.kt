@@ -1,0 +1,69 @@
+package com.leomala.footballdynasty.domain.match
+
+import com.leomala.footballdynasty.foundation.random.RandomSource
+
+/** Structural parity for the schedule initialization performed by legacy `best.s.m()`. */
+object LegacyMatchScheduleRules {
+    data class Pools(
+        val coreMinutes: MutableList<Int>,
+        val earlyMinutes: MutableList<Int>,
+        val middleMinutes: MutableList<Int>,
+        val lateMinutes: MutableList<Int>,
+        val endMinutes: MutableList<Int>,
+    ) {
+        companion object {
+            fun initial(): Pools = Pools(
+                coreMinutes = (19..38).toMutableList(),
+                earlyMinutes = (5..15).toMutableList(),
+                middleMinutes = (16..35).toMutableList(),
+                lateMinutes = (36..42).toMutableList(),
+                endMinutes = (43..47).toMutableList(),
+            )
+        }
+    }
+
+    data class Schedule(
+        val core: List<List<Int>>,
+        val auxiliary: List<List<Int>>,
+    )
+
+    fun initialize(random: RandomSource, pools: Pools): Schedule {
+        LegacyMatchRandomRules.shuffleInPlace(pools.coreMinutes, random)
+        val bucketDraw = random.nextInt(100)
+
+        val core = Array(2) { IntArray(3) { -1 } }
+        core[0][0] = pools.coreMinutes[0]
+        core[0][1] = pools.coreMinutes[1]
+        core[1][0] = pools.coreMinutes[2]
+        core[1][1] = pools.coreMinutes[3]
+        if (random.nextInt(100) > 30) {
+            core[0][2] = pools.coreMinutes[4]
+        }
+        if (random.nextInt(100) > 30) {
+            core[1][2] = pools.coreMinutes[5]
+        }
+
+        val selectedPool = when {
+            bucketDraw > 90 -> pools.earlyMinutes
+            bucketDraw > 50 -> pools.middleMinutes
+            else -> pools.lateMinutes
+        }
+        LegacyMatchRandomRules.shuffleInPlace(selectedPool, random)
+        val auxiliary = Array(2) { IntArray(4) { -1 } }
+        auxiliary[0][0] = selectedPool[0]
+        auxiliary[0][1] = selectedPool[1]
+        auxiliary[1][0] = selectedPool[2]
+        auxiliary[1][1] = selectedPool[3]
+
+        LegacyMatchRandomRules.shuffleInPlace(pools.endMinutes, random)
+        if (random.nextInt(100) > 20) auxiliary[0][2] = pools.endMinutes[0]
+        if (random.nextInt(100) > 50) auxiliary[0][3] = pools.endMinutes[1]
+        if (random.nextInt(100) > 20) auxiliary[1][2] = pools.endMinutes[2]
+        if (random.nextInt(100) > 50) auxiliary[1][3] = pools.endMinutes[3]
+
+        return Schedule(
+            core = core.map { it.toList() },
+            auxiliary = auxiliary.map { it.toList() },
+        )
+    }
+}
