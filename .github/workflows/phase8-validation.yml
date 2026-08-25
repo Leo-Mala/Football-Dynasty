@@ -116,7 +116,14 @@ jobs:
           files = glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
           if not files:
               raise SystemExit('No JUnit XML files were generated')
-          required = {'LegacyMatchMinuteRulesTest': None, 'LegacyProceduralNameCorpusIntegrationTest': None, 'Migration1To2Test': None, 'Migration2To3Test': None}
+          required = {
+              'LegacyMatchMinuteRulesTest': None,
+              'LegacyMatchPlayerSelectionRulesTest': None,
+              'LegacyMatchScheduleRulesTest': None,
+              'LegacyProceduralNameCorpusIntegrationTest': None,
+              'Migration1To2Test': None,
+              'Migration2To3Test': None,
+          }
           tests = failures = errors = skipped = 0
           for path in files:
               root = ET.parse(path).getroot()
@@ -127,7 +134,12 @@ jobs:
               suite = root.attrib.get('name', '')
               for name in required:
                   if suite.endswith(name):
-                      required[name] = (int(root.attrib.get('tests', 0)), int(root.attrib.get('failures', 0)), int(root.attrib.get('errors', 0)), int(root.attrib.get('skipped', 0)))
+                      required[name] = (
+                          int(root.attrib.get('tests', 0)),
+                          int(root.attrib.get('failures', 0)),
+                          int(root.attrib.get('errors', 0)),
+                          int(root.attrib.get('skipped', 0)),
+                      )
           print(f'PHASE8_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
           print(f'PHASE8_CHARACTERIZATION={required}')
           if failures or errors:
@@ -164,6 +176,8 @@ jobs:
           echo "Exact Phase 8 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
           echo "Raw gameplay-domain RNG guard: PASS"
           echo "Legacy best.s.k direct RNG characterization: PASS"
+          echo "Legacy best.s.S/T/U/V/W selection characterization: PASS"
+          echo "Legacy best.s.m schedule initialization characterization: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
