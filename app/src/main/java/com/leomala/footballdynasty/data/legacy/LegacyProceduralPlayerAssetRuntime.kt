@@ -13,8 +13,8 @@ class LegacyProceduralPlayerAssetRuntime private constructor(
 ) {
     constructor(assetManager: AssetManager) : this(LegacyProceduralNameAssetLoader(assetManager))
 
-    internal constructor(openCorpus: () -> java.io.InputStream) :
-        this(LegacyProceduralNameAssetLoader(openCorpus))
+    internal constructor(openAsset: (String) -> java.io.InputStream) :
+        this(LegacyProceduralNameAssetLoader(openAsset))
 
     fun generateAnnualDraft(
         random: RandomSource,
