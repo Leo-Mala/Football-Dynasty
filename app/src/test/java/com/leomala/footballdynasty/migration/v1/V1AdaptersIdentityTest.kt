@@ -98,12 +98,13 @@ class V1AdaptersIdentityTest {
     }
 
     @Test
-    fun `database V2 preserves explicit migration registry from V1`() {
-        assertEquals(2, FootballDynastyDatabase.SCHEMA_VERSION)
-        assertEquals(1, FootballDynastyMigrations.ALL.size)
-        val migration = FootballDynastyMigrations.ALL.single()
-        assertEquals(1, migration.startVersion)
-        assertEquals(2, migration.endVersion)
+    fun `database V3 preserves explicit ordered migration registry from V1`() {
+        assertEquals(3, FootballDynastyDatabase.SCHEMA_VERSION)
+        assertEquals(2, FootballDynastyMigrations.ALL.size)
+        assertEquals(
+            listOf(1 to 2, 2 to 3),
+            FootballDynastyMigrations.ALL.map { it.startVersion to it.endVersion },
+        )
     }
 
     @Test

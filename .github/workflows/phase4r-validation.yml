@@ -1,10 +1,10 @@
-name: Phase 6 Validation
+name: Phase 7 Validation
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - phase6/deterministic-annual-effects
+      - phase7/procedural-player-runtime
   pull_request:
     branches:
       - phase4/core-game-domain
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase6-validation-${{ github.ref }}
+  group: phase7-validation-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -21,10 +21,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout exact Phase 6 head
+      - name: Checkout exact Phase 7 head
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact Phase 7 head
+        id: exact_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA='${{ github.event.pull_request.head.sha || github.sha }}'
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          echo "sha=$ACTUAL_SHA" >> "$GITHUB_OUTPUT"
+          echo "PHASE7_CHECKOUT_HEAD=$ACTUAL_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -68,8 +80,25 @@ jobs:
       - name: Gradle help
         run: ./gradlew help --no-daemon
 
-      - name: Generate Room schema V2
+      - name: Snapshot versioned Room schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA_DIR="app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase"
+          rm -rf /tmp/versioned-room-schemas
+          mkdir -p /tmp/versioned-room-schemas
+          cp "$SCHEMA_DIR"/*.json /tmp/versioned-room-schemas/
+
+      - name: Generate Room schema V3
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
+
+      - name: Retain generated Room schemas
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase7-room-schemas-${{ steps.exact_head.outputs.sha }}
+          path: app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/*.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
@@ -96,6 +125,19 @@ jobs:
               'LegacyAnnualA0OrchestrationRulesTest': None,
               'LegacyAnnualJAndBestFDeepTest': None,
               'LegacyAnnualPlayerMovementRulesTest': None,
+              'LegacyProceduralPlayerRulesTest': None,
+              'LegacyProceduralNameRulesTest': None,
+              'LegacyProceduralToPlayerRulesTest': None,
+              'LegacyCareerPlayerInitializationRulesTest': None,
+              'LegacyCountryAssetCodesTest': None,
+              'LegacyPlayerValueRulesTest': None,
+              'LegacyProceduralMaterializationRulesTest': None,
+              'CareerPlayerRuntimeMapperTest': None,
+              'CareerPlayerRuntimeStoreTest': None,
+              'LegacyProceduralNameAssetLoaderTest': None,
+              'LegacyProceduralNameCorpusIntegrationTest': None,
+              'Migration1To2Test': None,
+              'Migration2To3Test': None,
           }
           for path in files:
               root = ET.parse(path).getroot()
@@ -107,16 +149,14 @@ jobs:
               for name in required:
                   if suite.endswith(name):
                       required[name] = (
-                          root.attrib.get('tests', '0'),
-                          root.attrib.get('failures', '0'),
-                          root.attrib.get('errors', '0'),
-                          root.attrib.get('skipped', '0'),
+                          root.attrib.get('tests', '0'), root.attrib.get('failures', '0'),
+                          root.attrib.get('errors', '0'), root.attrib.get('skipped', '0'),
                       )
               for node in root.findall('system-out'):
                   if node.text:
                       benchmark.extend(line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line)
-          print(f'PHASE6_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
-          print(f'PHASE6_CHARACTERIZATION={required}')
+          print(f'PHASE7_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          print(f'PHASE7_CHARACTERIZATION={required}')
           for line in benchmark:
               print(line)
           if failures or errors:
@@ -126,9 +166,67 @@ jobs:
           for name, evidence in required.items():
               if evidence is None:
                   raise SystemExit(f'{name} evidence missing')
-              _, f, e, s = evidence
+              count, f, e, s = evidence
+              if int(count) <= 0:
+                  raise SystemExit(f'{name} did not execute any tests')
               if f != '0' or e != '0' or s != '0':
                   raise SystemExit(f'{name} is not fully green')
+          PY
+
+      - name: Verify official Brasfoot 2026 procedural name corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import re
+          from pathlib import Path
+          assets_root = Path('app/src/main/assets')
+          code_source = Path('app/src/main/java/com/leomala/footballdynasty/domain/career/LegacyCountryAssetCodes.kt').read_text(encoding='utf-8')
+          try:
+              code_block = code_source.split('private val codes = arrayOf(', 1)[1].split('\n    )', 1)[0]
+          except IndexError as exc:
+              raise SystemExit('Could not parse LegacyCountryAssetCodes.codes') from exc
+          codes = re.findall(r'"([A-Z0-9]{3})"', code_block)
+          if len(codes) != 221 or len(set(codes)) != 221:
+              raise SystemExit(f'Legacy country asset code table changed: {len(codes)}')
+          expected = ({f'names/{c}.txt' for c in codes} | {f'surnames/{c}.txt' for c in codes})
+          actual = {
+              str(p.relative_to(assets_root)).replace('\\', '/')
+              for root in (assets_root / 'names', assets_root / 'surnames')
+              for p in root.glob('*.txt')
+          }
+          if actual != expected or len(actual) != 442:
+              raise SystemExit(f'Official name corpus paths mismatch: missing={sorted(expected-actual)[:5]} extra={sorted(actual-expected)[:5]}')
+          physical_rows = []
+          semantic_rows = []
+          total_bytes = 0
+          for path in sorted(expected):
+              raw = (assets_root / path).read_bytes()
+              total_bytes += len(raw)
+              legacy_path = f'resources/assets/{path}'
+              physical_rows.append(f'{legacy_path}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n')
+              text = raw.decode('utf-8', errors='replace')
+              accepted = [line for line in text.splitlines() if line and '.' not in line and re.search(r'\d+', line) is None]
+              if not accepted:
+                  raise SystemExit(f'Legacy best.u.b filter produced an empty asset: {path}')
+              inner = ''.join(f'{line}\n' for line in accepted).encode('utf-8')
+              semantic_rows.append(f'{legacy_path}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n')
+          if total_bytes != 495785:
+              raise SystemExit(f'Official name corpus byte count changed: {total_bytes}')
+          physical = hashlib.sha256(''.join(physical_rows).encode()).hexdigest()
+          semantic = hashlib.sha256(''.join(semantic_rows).encode()).hexdigest()
+          if physical != '4b8c6db9b6343221cb6e945aef7ba0d7dc081c4744e30bb1f9a0eba3c57e444b':
+              raise SystemExit(f'Physical manifest mismatch: {physical}')
+          if semantic != 'd4cb2a6fd770a7bcdb850ee63b31d6442b66a3da70611f7a100e264b1f2c625f':
+              raise SystemExit(f'Semantic manifest mismatch: {semantic}')
+          forbidden = [p for p in assets_root.iterdir() if p.name.startswith('bootstrap') or p.name.startswith('legacy_name_corpus')]
+          if forbidden:
+              raise SystemExit(f'Temporary corpus transport remains in runtime assets: {[p.name for p in forbidden]}')
+          print('PHASE7_NAME_CORPUS_COUNT=442')
+          print(f'PHASE7_NAME_CORPUS_BYTES={total_bytes}')
+          print(f'PHASE7_NAME_CORPUS_PHYSICAL={physical}')
+          print(f'PHASE7_NAME_CORPUS_SEMANTIC={semantic}')
           PY
 
       - name: Verify active Brasfoot 2026 fixture integrity
@@ -136,9 +234,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 -d app/src/test/resources/legacy/trepenne_smr.ban.b64 > /tmp/trepenne_smr.ban
-          printf '%s  %s\n' \
-            'c664cc841b44e39423835795b00bb1c248862eb0a0e1c579831857d748fa9281' \
-            '/tmp/trepenne_smr.ban' | sha256sum --check --strict
+          printf '%s  %s\n' 'c664cc841b44e39423835795b00bb1c248862eb0a0e1c579831857d748fa9281' '/tmp/trepenne_smr.ban' | sha256sum --check --strict
 
       - name: Debug build
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
@@ -147,39 +243,87 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SCHEMA_DIR="app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase"
-          V1="$SCHEMA_DIR/1.json"
-          V2="$SCHEMA_DIR/2.json"
-          test -s "$V1"
-          test -s "$V2"
-          grep -Eq '"version"[[:space:]]*:[[:space:]]*2' "$V2"
-          grep -q '"tableName": "career_core_state"' "$V2"
-          grep -q '"seasonNumber"' "$V2"
-          grep -q '"rngInternalState"' "$V2"
-          grep -q '"managedClubId"' "$V2"
-          grep -q '"careerId"' "$V2"
-          git diff --exit-code origin/phase3/versioned-persistence -- "$V1"
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+          schema_dir = Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
+          baseline_dir = Path('/tmp/versioned-room-schemas')
+          expected_files = {'1.json', '2.json', '3.json'}
+          generated_files = {p.name for p in schema_dir.glob('*.json')}
+          baseline_files = {p.name for p in baseline_dir.glob('*.json')}
+          if generated_files != expected_files:
+              raise SystemExit(f'Unexpected generated Room schema set: {sorted(generated_files)}')
+          if baseline_files != expected_files:
+              raise SystemExit(f'Unexpected versioned Room schema set: {sorted(baseline_files)}')
+          expected_identity = {
+              1: '37c2e4df984290903730a25553bdbed5',
+              2: 'fc4ed30d6548037a1226144e0c576c59',
+              3: 'a6d299fb67fcdcc51340cc62982e2d5a',
+          }
+          generated = {}
+          for version in (1, 2, 3):
+              name = f'{version}.json'
+              before = json.loads((baseline_dir / name).read_text(encoding='utf-8'))
+              after = json.loads((schema_dir / name).read_text(encoding='utf-8'))
+              if before != after:
+                  raise SystemExit(f'Generated Room schema {name} differs structurally from versioned schema')
+              db = after.get('database', {})
+              if db.get('version') != version or db.get('identityHash') != expected_identity[version]:
+                  raise SystemExit(f'Room schema {name} identity/version changed')
+              generated[version] = after
+          phase3_v1 = json.loads(subprocess.check_output([
+              'git', 'show', 'origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json'
+          ], text=True))
+          if generated[1] != phase3_v1:
+              raise SystemExit('Room V1 schema changed semantically from phase3/versioned-persistence')
+          v3_entities = {e.get('tableName'): e for e in generated[3].get('database', {}).get('entities', [])}
+          required_tables = {'career_core_state','career_player_runtime','career_procedural_players','career_squad_memberships'}
+          missing = required_tables - set(v3_entities)
+          if missing:
+              raise SystemExit(f'Room V3 missing required tables: {sorted(missing)}')
+          membership = v3_entities['career_squad_memberships']
+          club_fk = any(
+              fk.get('table') == 'clubs' and fk.get('columns') == ['clubId']
+              and fk.get('referencedColumns') == ['id'] and fk.get('onDelete') == 'NO ACTION'
+              and fk.get('onUpdate') == 'NO ACTION' for fk in membership.get('foreignKeys', [])
+          )
+          if not club_fk:
+              raise SystemExit('career_squad_memberships.clubId must reference clubs.id with NO ACTION')
+          db_source = Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabase.kt').read_text()
+          migrations_source = Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabaseFactory.kt').read_text()
+          if 'const val SCHEMA_VERSION: Int = 3' not in db_source:
+              raise SystemExit('FootballDynastyDatabase.SCHEMA_VERSION must remain 3')
+          if 'Migration(1, 2)' not in migrations_source or 'Migration(2, 3)' not in migrations_source:
+              raise SystemExit('Explicit Room V1->V2 and V2->V3 migrations are required')
+          if 'arrayOf(MIGRATION_1_2, MIGRATION_2_3)' not in migrations_source:
+              raise SystemExit('Migration registry must explicitly preserve 1->2 and 2->3')
+          print('ROOM_SCHEMA_SEMANTIC_COMPARE=PASS')
+          print(f'ROOM_V3_IDENTITY_HASH={expected_identity[3]}')
+          PY
           if grep -R --line-number 'fallbackToDestructiveMigration' app/src/main; then
             echo 'Destructive migration fallback is forbidden.'
             exit 1
           fi
-          git diff --exit-code -- app/schemas
 
-      - name: Phase 6 gate summary
+      - name: Phase 7 gate summary
         run: |
+          echo "Exact Phase 7 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
           echo "Raw career-domain RNG guard: PASS"
           echo "Gradle help: PASS"
-          echo "Room schema V2 generation: PASS"
+          echo "Room schema V3 generation: PASS"
+          echo "Room V1/V2/V3 semantic regeneration comparison: PASS"
           echo "testDebugUnitTest: PASS"
-          echo "Brasfoot 2026 calendar characterization: PASS"
-          echo "Brasfoot 2026 lifecycle order characterization: PASS"
-          echo "Brasfoot 2026 deterministic annual RNG boundary: PASS"
-          echo "Brasfoot 2026 annual selection predicates: PASS"
-          echo "Brasfoot 2026 annual squad floor maintenance: PASS"
-          echo "Brasfoot 2026 best.a0.i relocation filters: PASS"
-          echo "Brasfoot 2026 best.a0 orchestration: PASS"
-          echo "Brasfoot 2026 best.a0.j/best.f deep selection: PASS"
-          echo "Brasfoot 2026 annual T1 movement plan: PASS"
+          echo "Brasfoot 2026 calendar/lifecycle regressions: PASS"
+          echo "Brasfoot 2026 annual selection/movement regressions: PASS"
+          echo "Brasfoot 2026 procedural p.d structural RNG: PASS"
+          echo "Brasfoot 2026 procedural best.u.c name RNG: PASS"
+          echo "Brasfoot 2026 official 442-file direct name corpus + runtime loader: PASS"
+          echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
+          echo "Brasfoot 2026 q1/value/materialization regressions: PASS"
+          echo "Brasfoot 2026 P0..P220 asset/group maps: PASS"
+          echo "Career-scoped runtime isolation/reopen/atomic rollback: PASS"
+          echo "Room V1->V2 and V2->V3 migration tests: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
-          echo "Room V1->V2 migration/schema audit: PASS"
+          echo "Room V1/V2/V3 migration policy: PASS"

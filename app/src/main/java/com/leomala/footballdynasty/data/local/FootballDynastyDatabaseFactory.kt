@@ -37,7 +37,91 @@ object FootballDynastyMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `career_player_runtime` (
+                    `careerId` TEXT NOT NULL,
+                    `playerId` TEXT NOT NULL,
+                    `sourceType` TEXT NOT NULL,
+                    `stateVersion` INTEGER NOT NULL,
+                    `age` INTEGER NOT NULL,
+                    `overall` INTEGER NOT NULL,
+                    `marketValue` INTEGER NOT NULL,
+                    `star` INTEGER NOT NULL,
+                    `worldTop` INTEGER NOT NULL,
+                    `legacyHash` INTEGER NOT NULL,
+                    `legacyGeneratedO` INTEGER NOT NULL,
+                    `legacyCreatedYear` INTEGER NOT NULL,
+                    `contractEndEpochMillis` INTEGER NOT NULL,
+                    `legacyPreviousMarketValue` INTEGER NOT NULL,
+                    `legacyQ` INTEGER NOT NULL,
+                    `legacyX` INTEGER NOT NULL,
+                    `legacyY` INTEGER NOT NULL,
+                    `legacyZ` INTEGER NOT NULL,
+                    PRIMARY KEY(`careerId`, `playerId`),
+                    FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_careerId` " +
+                    "ON `career_player_runtime` (`careerId`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_playerId` " +
+                    "ON `career_player_runtime` (`playerId`)"
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `career_procedural_players` (
+                    `careerId` TEXT NOT NULL,
+                    `playerId` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `country` INTEGER NOT NULL,
+                    `position` INTEGER NOT NULL,
+                    `status` INTEGER NOT NULL,
+                    `side` INTEGER NOT NULL,
+                    `cr1` INTEGER NOT NULL,
+                    `cr2` INTEGER NOT NULL,
+                    PRIMARY KEY(`careerId`, `playerId`),
+                    FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_procedural_players_playerId` " +
+                    "ON `career_procedural_players` (`playerId`)"
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `career_squad_memberships` (
+                    `careerId` TEXT NOT NULL,
+                    `playerId` TEXT NOT NULL,
+                    `clubId` TEXT NOT NULL,
+                    `rosterKind` TEXT NOT NULL,
+                    `sourceOrdinal` INTEGER NOT NULL,
+                    PRIMARY KEY(`careerId`, `playerId`),
+                    FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_squad_memberships_clubId` " +
+                    "ON `career_squad_memberships` (`clubId`)"
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_career_squad_memberships_careerId_clubId_rosterKind_sourceOrdinal` " +
+                    "ON `career_squad_memberships` (`careerId`, `clubId`, `rosterKind`, `sourceOrdinal`)"
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }
 
 object FootballDynastyDatabaseFactory {
