@@ -10,7 +10,7 @@ Source of truth: `Brasfoot.apk_Decompiler.com.zip`, SHA-256 `3eb5622ba9b5953a1bc
 
 The two added-time draws are now materialized as separate deterministic rules in `LegacyMatchScheduleRules`: first half `0..2` from bound `3`, second half `1..5` from bound `5` plus one. They deliberately remain separate because the per-minute simulation consumes RNG between those sites; pre-drawing both would change legacy draw order. Full Q0 minute-loop boundaries remain an evidence gate and are not inferred here.
 
-The proven Q0 landmark order is also materialized without inventing those minute boundaries: first-half added-time draw -> first-half simulation callback -> halftime transition callback -> second-half added-time draw -> second-half simulation callback. The callbacks intentionally own the still-unrecovered minute ranges. A characterization test consumes RNG inside the first-half callback and verifies that this draw remains between the legacy bound-3 and bound-5 draws.
+The proven Q0 landmark order is also materialized without inventing those minute boundaries: first-half added-time draw -> first-half simulation callback -> halftime transition callback -> second-half added-time draw -> second-half simulation callback. The callbacks intentionally own the still-unrecovered minute ranges. Characterization now verifies RNG consumed both by the first-half simulation and by the halftime-transition callback remains before the legacy bound-5 draw, preserving the exact interleaving implied by Q0 control flow.
 
 ## Direct per-minute RNG in `best.s.k`
 
