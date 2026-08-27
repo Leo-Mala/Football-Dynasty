@@ -66,16 +66,18 @@ Index `0` and index `1` route to their respective recovered counter mutations. W
 
 ## `K()` state advance
 
-`LegacyMatchR3AdvanceRules` represents the reachable direct control flow of `K()` without inventing labels for the obfuscated counters:
+`LegacyMatchR3AdvanceRules` represents the reachable branch behavior of `K()` without inventing labels for the obfuscated counters:
 
 1. resolve `J()` for the current side;
-2. when `J()` returns the current side, resolve `I()`;
-3. when that `I()` result is zero, increment the recovered current-side `W` counter and materialize the reachable goal-event branch; this path consumes no direct `nextInt(100)` in `K()`;
-4. otherwise consume one direct `nextInt(100)`; values `< 50` mutate the recovered opposite-side `Q0` counter and values `>= 50` mutate the recovered current-side `A0` counter;
+2. only when `J()` returns the current side, resolve `I()`;
+3. when that `I()` result is zero, select the recovered current-side `W` counter mutation and materialize the reachable goal-event branch; this path consumes no direct `nextInt(100)` in `K()`;
+4. otherwise consume one direct `nextInt(100)`; values `< 50` select the recovered opposite-side `Q0` counter mutation and values `>= 50` select the recovered current-side `A0` counter mutation;
 5. the same direct `nextInt(100)` split is used when `J()` did not return the current side;
-6. increment the recovered tick and toggle side `0 <-> 1` after the branch.
+6. the pure characterization requires one tick increment for the advance and side transition `0 <-> 1` as its resulting state.
 
-The RNG consumed internally by `J()`/`I()` remains separate from this direct `K()` bound-100 draw and retains its original order through the injected `RandomSource`.
+The injected callbacks/tests prove the `J -> I -> goal` short-circuit order and the direct bound-100 draw behavior. The current pure result exposes `incrementTick=true` and the next side, but it does **not** encode the exact relative write timing of the legacy tick field versus the internal `J/I` mutations. Until that ordering is rechecked against authoritative bytecode, this document does not claim more than the characterized observable result.
+
+The RNG consumed internally by `J()`/`I()` remains separate from the direct `K()` bound-100 draw and retains its recovered order through the injected `RandomSource`.
 
 ## `a(side)` recovered percentage state
 
@@ -91,6 +93,6 @@ The weight calculation preserves the legacy ordered `if/else if` trait branches 
 
 ## Current reconstruction boundary
 
-The items above are characterized and individually required by the Phase 8 CI gate. They should not be reimplemented through cleaner formulas that alter rounding, comparison, branch, counter, or RNG order.
+The items above are characterized and individually required by the Phase 8 CI gate. They should not be reimplemented through cleaner formulas that alter rounding, comparison, branch, counter, or RNG behavior.
 
-Still open for Phase 8 are the remaining proven interactions inside goal `b()/c()/f(...)` that are not yet represented by the current materialization rules, the user-facing meaning/integration of recovered match-stat counters where evidence is incomplete, event-driven player/club state application, production orchestration of the pure rules into the modern match runtime, and post-match side effects. New implementation must remain gated by Java↔SMALI reachability evidence; absence of that evidence is not permission to infer gameplay.
+Still open for Phase 8 are the remaining proven interactions inside goal `b()/c()/f(...)` that are not yet represented by the current materialization rules, the user-facing meaning/integration of recovered match-stat counters where evidence is incomplete, event-driven player/club state application, production orchestration of the pure rules into the modern match runtime, and post-match side effects. New implementation must remain gated by authoritative reachability/behavior evidence; absence of that evidence is not permission to infer gameplay.
