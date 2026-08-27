@@ -120,6 +120,7 @@ jobs:
               'LegacyMatchMinuteRulesTest': None,
               'LegacyMatchPlayerSelectionRulesTest': None,
               'LegacyMatchScheduleRulesTest': None,
+              'LegacyMatchTransitionRulesTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
@@ -178,6 +179,7 @@ jobs:
           echo "Legacy best.s.k direct RNG characterization: PASS"
           echo "Legacy best.s.S/T/U/V/W selection characterization: PASS"
           echo "Legacy best.s.m schedule initialization characterization: PASS"
+          echo "Legacy best.s.r/r0 transition characterization: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
