@@ -1,0 +1,194 @@
+name: Phase 8 Final Certification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase8/legacy-match-engine
+  pull_request:
+    branches:
+      - phase4/core-game-domain
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase8-final-certification-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Phase 8 final head
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact final head
+        id: exact_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED='${{ github.event.pull_request.head.sha || github.sha }}'
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "$EXPECTED"
+          echo "sha=$ACTUAL" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 37 packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --list --channel=3 > /tmp/sdk-packages.txt
+          PLATFORM_PACKAGE="$(awk '/^[[:space:]]*platforms;android-37([^0-9]|$)/ {print $1; exit}' /tmp/sdk-packages.txt)"
+          BUILD_TOOLS_PACKAGE="$(awk '/^[[:space:]]*build-tools;37\.[0-9]+\.[0-9]+/ {print $1}' /tmp/sdk-packages.txt | sort -V | tail -1)"
+          test -n "$PLATFORM_PACKAGE"
+          test -n "$BUILD_TOOLS_PACKAGE"
+          sdkmanager --channel=3 "$PLATFORM_PACKAGE" "$BUILD_TOOLS_PACKAGE"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Reject raw RNG and destructive migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for DIR in app/src/main/java/com/leomala/footballdynasty/domain/career app/src/main/java/com/leomala/footballdynasty/domain/match; do
+            ! grep -R -n -E '^[[:space:]]*import[[:space:]]+(java\.util\.Random|java\.util\.concurrent\.ThreadLocalRandom|kotlin\.random\.Random)' "$DIR"
+            ! grep -R -n -E 'Math\.random[[:space:]]*\(' "$DIR"
+          done
+          ! grep -R --line-number 'fallbackToDestructiveMigration' app/src/main
+
+      - name: Gradle help
+        run: ./gradlew help --no-daemon
+
+      - name: Generate and verify Room V3
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/3.json')
+          db=json.loads(p.read_text(encoding='utf-8'))['database']
+          expected='a6d299fb67fcdcc51340cc62982e2d5a'
+          if db.get('version') != 3 or db.get('identityHash') != expected:
+              raise SystemExit(f'Room V3 drift: {db.get("version")} {db.get("identityHash")}')
+          PY
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Verify complete Phase 8 evidence matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          required = [
+            'LegacyMatchAutomaticSimulationRulesTest',
+            'LegacyMatchAutomaticPostSimulationRulesTest',
+            'LegacyMatchAutomaticFlowRulesTest',
+            'LegacyMatchAutomaticResolutionRulesTest',
+            'LegacyMatchPostGateORulesTest',
+            'LegacyMatchMinuteRulesTest',
+            'LegacyMatchMinuteActionRulesTest',
+            'LegacyMatchPlayerSelectionRulesTest',
+            'LegacyMatchScheduleRulesTest',
+            'LegacyMatchTransitionRulesTest',
+            'LegacyMatchJRulesTest',
+            'LegacyMatchP0RulesTest',
+            'LegacyMatchGoalEventRulesTest',
+            'LegacyMatchGoalMaterializationRulesTest',
+            'LegacyMatchGoalPlayerSelectionRulesTest',
+            'LegacyMatchGoalSecondarySelectionRulesTest',
+            'LegacyMatchR3EventRoutingRulesTest',
+            'LegacyMatchR3MutationApplicationRulesTest',
+            'LegacyMatchR3AdvanceRulesTest',
+            'LegacyMatchR3ApplyARulesTest',
+            'LegacyMatchR3ChainIntegrationTest',
+            'LegacyMatchR3StepRulesTest',
+            'LegacyMatchR3DecisionRulesTest',
+            'LegacyMatchR3MetricRulesTest',
+            'LegacyMatchR3PlayerValueRulesTest',
+            'LegacyMatchWeightedChoiceRulesTest',
+            'LegacyMatchEventRecordTest',
+            'LegacyMatchEventTypeTest',
+            'LegacyMatchScoreRulesTest',
+            'LegacyMatchDisciplinaryRulesTest',
+            'LegacyMatchEventApplicationRulesTest',
+            'LegacyMatchInjuryRulesTest',
+            'LegacyMatchSubstitutionRulesTest',
+            'LegacyPlayerClubSeasonStatsRulesTest',
+            'LegacyMatchTransientRuntimeTest',
+            'LegacyMatchFinalIntegrationTest',
+            'LegacyProceduralNameCorpusIntegrationTest',
+            'Migration1To2Test',
+            'Migration2To3Test',
+          ]
+          evidence={name:None for name in required}
+          total=failures=errors=skipped=0
+          for path in glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml'):
+              root=ET.parse(path).getroot()
+              t=int(root.attrib.get('tests',0)); f=int(root.attrib.get('failures',0)); e=int(root.attrib.get('errors',0)); s=int(root.attrib.get('skipped',0))
+              total+=t; failures+=f; errors+=e; skipped+=s
+              suite=root.attrib.get('name','')
+              for name in required:
+                  if suite.endswith(name): evidence[name]=(t,f,e,s)
+          if failures or errors or skipped:
+              raise SystemExit(f'JUnit not fully green: tests={total} failures={failures} errors={errors} skipped={skipped}')
+          missing=[n for n,v in evidence.items() if v is None]
+          if missing: raise SystemExit(f'Missing Phase 8 evidence suites: {missing}')
+          bad={n:v for n,v in evidence.items() if v[0] <= 0 or any(v[1:])}
+          if bad: raise SystemExit(f'Non-green evidence suites: {bad}')
+          if evidence['LegacyMatchScheduleRulesTest'][0] < 11: raise SystemExit('Q0 schedule coverage below 11')
+          if evidence['LegacyMatchGoalSecondarySelectionRulesTest'][0] < 13: raise SystemExit('secondary selector coverage below 13')
+          if evidence['LegacyMatchTransientRuntimeTest'][0] < 8: raise SystemExit('transient runtime coverage below 8')
+          if evidence['LegacyMatchFinalIntegrationTest'][0] < 8: raise SystemExit('final integration coverage below 8')
+          print(f'PHASE8_FINAL_JUNIT tests={total} suites={len(required)}')
+          PY
+
+      - name: Verify official corpus fixtures remain unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find app/src/main/assets/names -maxdepth 1 -type f -name '*.txt' | wc -l)" -eq 221
+          test "$(find app/src/main/assets/surnames -maxdepth 1 -type f -name '*.txt' | wc -l)" -eq 221
+          test ! -e app/src/main/assets/bootstrap
+          test ! -e app/src/main/assets/bootstrap_v2
+          base64 -d app/src/test/resources/legacy/trepenne_smr.ban.b64 > /tmp/trepenne_smr.ban
+          printf '%s  %s\n' 'c664cc841b44e39423835795b00bb1c248862eb0a0e1c579831857d748fa9281' '/tmp/trepenne_smr.ban' | sha256sum --check --strict
+
+      - name: Reject temporary corpus artifacts in repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! find . -path './.git' -prune -o -type f \( -name 'Brasfoot.apk_Decompiler.com.zip' -o -name '*.smali' -o -name '*.class' -o -name '*.jar' \) -print | grep .
+
+      - name: Debug build
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Final gate summary
+        run: |
+          echo "PHASE8_FINAL_HEAD=${{ steps.exact_head.outputs.sha }}"
+          echo "Phase 8 full evidence matrix: PASS"
+          echo "Transient runtime + r3/runtime + accompanied boundary + modern result integration: PASS"
+          echo "Raw RNG/destructive migration guards: PASS"
+          echo "Room V3 identity: PASS"
+          echo "Official fixture integrity: PASS"
+          echo "Temporary corpus artifact guard: PASS"
+          echo "assembleDebug: PASS"
