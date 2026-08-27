@@ -40,7 +40,10 @@ object LegacyMatchMinuteRuntimeRules {
                     )
                 }
             },
-            refreshPlayerState = refreshPlayerState,
+            refreshPlayerState = {
+                LegacyMatchEnergyRules.refreshActivePlayers(state, legacyPeriod)
+                refreshPlayerState()
+            },
             applyLegacyC = { player ->
                 eventResult = LegacyMatchTransientRuntime.applyLegacyC(
                     state, club, player, legacyPeriod, legacyMinute, random,
