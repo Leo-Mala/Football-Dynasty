@@ -3,13 +3,17 @@ package com.leomala.footballdynasty.data.local
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.leomala.footballdynasty.data.local.entity.CareerPlayerClubSeasonStatEntity
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.data.local.entity.PlayerEntity
 import com.leomala.footballdynasty.data.repository.RoomCareerRepository
+import com.leomala.footballdynasty.data.repository.RoomCareerStateRepository
+import com.leomala.footballdynasty.domain.career.CareerStateFactory
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.career.SeasonState
 import com.leomala.footballdynasty.domain.model.Career
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -24,19 +28,55 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchPersistedRuntimeResolverTest {
     @Test
-    fun `persisted roster resolves players and derives proven match fields without transient guesses`() = runBlocking {
+    fun `persisted roster resolves players and hydrates proven career match state`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
             .build()
         RoomCareerRepository(database) { 10L }.save(Career("career-a", "Phase 9", null, null))
+        RoomCareerStateRepository(database) { 11L }.save(
+            CareerStateFactory.create("career-a", 123L).copy(season = SeasonState(9, 2026))
+        )
         database.clubDao().upsertAll(listOf(club("home", 101), club("away", 202)))
         database.playerDao().upsertAll(listOf(canonicalPlayer("canonical-home")))
 
         val dao = database.careerPlayerRuntimeDao()
-        dao.upsertRuntime(runtime("career-a", "canonical-home", CareerPlayerRuntimeStore.SOURCE_CANONICAL, 24, 88))
+        dao.upsertRuntime(
+            runtime(
+                "career-a",
+                "canonical-home",
+                CareerPlayerRuntimeStore.SOURCE_CANONICAL,
+                age = 24,
+                overall = 88,
+                energy = 47,
+                injuryUntilEpochDay = 222L,
+            )
+        )
         dao.upsertMembership(membership("career-a", "canonical-home", "home", 0))
-        dao.upsertRuntime(runtime("career-a", "procedural-away", CareerPlayerRuntimeStore.SOURCE_PROCEDURAL, 19, 73))
+        dao.upsertClubSeasonStat(
+            CareerPlayerClubSeasonStatEntity(
+                careerId = "career-a",
+                playerId = "canonical-home",
+                legacySeasonId = 9,
+                legacyClubId = 101,
+                legacyC = 1,
+                legacyD = 2,
+                legacyE = 3,
+                legacyF = 4,
+                legacyG = 5,
+                legacyH = 6,
+            )
+        )
+        dao.upsertRuntime(
+            runtime(
+                "career-a",
+                "procedural-away",
+                CareerPlayerRuntimeStore.SOURCE_PROCEDURAL,
+                age = 19,
+                overall = 73,
+                energy = 39,
+            )
+        )
         dao.upsertProceduralPlayer(
             CareerProceduralPlayerEntity(
                 careerId = "career-a",
@@ -56,6 +96,7 @@ class CareerMatchPersistedRuntimeResolverTest {
         val scheduled = ScheduledCareerMatch("m1", 3, 1, "home", "away")
         val roster = resolver.resolve("career-a", scheduled)
 
+        assertEquals(9, roster.currentSeasonId)
         assertEquals(101, roster.home.legacyClubId)
         assertEquals(202, roster.away.legacyClubId)
         assertEquals(listOf("canonical-home"), roster.home.players.map { it.playerId })
@@ -63,19 +104,21 @@ class CareerMatchPersistedRuntimeResolverTest {
         assertEquals("Canonical Home", roster.home.players.single().facts.name)
         assertEquals("Procedural Away", roster.away.players.single().facts.name)
         assertEquals(88, roster.home.players.single().overall)
+        assertEquals(47, roster.home.players.single().energy)
+        assertEquals(222L, roster.home.players.single().injuryUntilEpochDay)
+        assertEquals(6, roster.home.players.single().clubSeasonStats.single().legacyH)
 
         val state = resolver.hydratePhase8State(
             roster = roster,
             evidence = CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
-                currentSeasonId = 9,
                 home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                    active = listOf(transient("canonical-home", energy = 47, legacyG0 = 18)),
+                    active = listOf(transient("canonical-home", legacyG0 = 18)),
                     bench = emptyList(),
                     substitutionsRemaining = 3,
                     legacyModeFlag = false,
                 ),
                 away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                    active = listOf(transient("procedural-away", energy = 39, legacyG0 = 14)),
+                    active = listOf(transient("procedural-away", legacyG0 = 14)),
                     bench = emptyList(),
                     substitutionsRemaining = 3,
                     legacyModeFlag = true,
@@ -93,10 +136,12 @@ class CareerMatchPersistedRuntimeResolverTest {
         assertEquals(3, home.legacyL0)
         assertEquals(0, home.legacyF0)
         assertEquals(1, home.legacyR)
+        assertEquals(6, home.clubSeasonStats!!.single().legacyH)
         assertEquals(101, state.home.legacyClubId)
 
         val away = state.away.active.single()
         assertEquals(73, away.skill)
+        assertEquals(39, away.energy)
         assertEquals(4, away.legacyL0)
         assertEquals(1, away.legacyF0)
         assertEquals(1, away.legacyR)
@@ -114,14 +159,15 @@ class CareerMatchPersistedRuntimeResolverTest {
             .allowMainThreadQueries()
             .build()
         RoomCareerRepository(database) { 10L }.save(Career("career-b", "Phase 9", null, null))
+        RoomCareerStateRepository(database) { 11L }.save(CareerStateFactory.create("career-b", 321L))
         database.clubDao().upsertAll(listOf(club("home", 101), club("away", 202)))
         database.playerDao().upsertAll(
             listOf(canonicalPlayer("home-player"), canonicalPlayer("away-player"))
         )
         val dao = database.careerPlayerRuntimeDao()
-        dao.upsertRuntime(runtime("career-b", "home-player", CareerPlayerRuntimeStore.SOURCE_CANONICAL, 25, 80))
+        dao.upsertRuntime(runtime("career-b", "home-player", CareerPlayerRuntimeStore.SOURCE_CANONICAL, 25, 80, 50))
         dao.upsertMembership(membership("career-b", "home-player", "home", 0))
-        dao.upsertRuntime(runtime("career-b", "away-player", CareerPlayerRuntimeStore.SOURCE_CANONICAL, 26, 79))
+        dao.upsertRuntime(runtime("career-b", "away-player", CareerPlayerRuntimeStore.SOURCE_CANONICAL, 26, 79, 50))
         dao.upsertMembership(membership("career-b", "away-player", "away", 0))
 
         val resolver = CareerMatchPersistedRuntimeResolver(database)
@@ -134,15 +180,14 @@ class CareerMatchPersistedRuntimeResolverTest {
             resolver.hydratePhase8State(
                 roster,
                 CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
-                    currentSeasonId = 1,
                     home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                        active = listOf(transient("away-player", energy = 50, legacyG0 = 18)),
+                        active = listOf(transient("away-player", legacyG0 = 18)),
                         bench = emptyList(),
                         substitutionsRemaining = 3,
                         legacyModeFlag = false,
                     ),
                     away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                        active = listOf(transient("away-player", energy = 50, legacyG0 = 18)),
+                        active = listOf(transient("away-player", legacyG0 = 18)),
                         bench = emptyList(),
                         substitutionsRemaining = 3,
                         legacyModeFlag = false,
@@ -160,12 +205,10 @@ class CareerMatchPersistedRuntimeResolverTest {
 
     private fun transient(
         playerId: String,
-        energy: Int,
         legacyG0: Int,
     ) = CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence(
         playerId = playerId,
         legacyG0 = legacyG0,
-        energy = energy,
     )
 
     private fun runtime(
@@ -174,6 +217,8 @@ class CareerMatchPersistedRuntimeResolverTest {
         sourceType: String,
         age: Int,
         overall: Int,
+        energy: Int,
+        injuryUntilEpochDay: Long = 0L,
     ) = CareerPlayerRuntimeEntity(
         careerId = careerId,
         playerId = playerId,
@@ -193,6 +238,8 @@ class CareerMatchPersistedRuntimeResolverTest {
         legacyX = false,
         legacyY = false,
         legacyZ = false,
+        energy = energy,
+        injuryUntilEpochDay = injuryUntilEpochDay,
     )
 
     private fun membership(
