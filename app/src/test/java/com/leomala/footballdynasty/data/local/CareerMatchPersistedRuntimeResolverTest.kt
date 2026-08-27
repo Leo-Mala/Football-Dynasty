@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchPersistedRuntimeResolverTest {
     @Test
-    fun `persisted roster resolves canonical and procedural players and hydrates only explicit transient evidence`() = runBlocking {
+    fun `persisted roster resolves canonical and procedural players and hydrates proven overall plus explicit transient evidence`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
@@ -69,13 +69,13 @@ class CareerMatchPersistedRuntimeResolverTest {
             evidence = CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
                 currentSeasonId = 9,
                 home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                    active = listOf(transient("canonical-home", skill = 61, energy = 47, legacyG0 = 18)),
+                    active = listOf(transient("canonical-home", energy = 47, legacyG0 = 18)),
                     bench = emptyList(),
                     substitutionsRemaining = 3,
                     legacyModeFlag = false,
                 ),
                 away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                    active = listOf(transient("procedural-away", skill = 52, energy = 39, legacyG0 = 14)),
+                    active = listOf(transient("procedural-away", energy = 39, legacyG0 = 14)),
                     bench = emptyList(),
                     substitutionsRemaining = 3,
                     legacyModeFlag = true,
@@ -86,14 +86,13 @@ class CareerMatchPersistedRuntimeResolverTest {
         assertEquals(9, state.currentSeasonId)
         assertEquals("canonical-home", state.home.active.single().value.playerId)
         assertEquals(24, state.home.active.single().age)
-        assertEquals(61, state.home.active.single().skill)
+        assertEquals(88, state.home.active.single().skill)
         assertEquals(47, state.home.active.single().energy)
         assertEquals(18, state.home.active.single().legacyG0)
+        assertEquals(73, state.away.active.single().skill)
         assertEquals(101, state.home.legacyClubId)
         assertEquals(202, state.away.legacyClubId)
         assertTrue(state.away.legacyModeFlag)
-        // The explicit injury skill evidence is intentionally not inferred from persisted overall=88.
-        assertTrue(state.home.active.single().skill != roster.home.players.single().overall)
 
         database.close()
         Unit
@@ -128,13 +127,13 @@ class CareerMatchPersistedRuntimeResolverTest {
                 CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
                     currentSeasonId = 1,
                     home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                        active = listOf(transient("away-player", skill = 70, energy = 50, legacyG0 = 18)),
+                        active = listOf(transient("away-player", energy = 50, legacyG0 = 18)),
                         bench = emptyList(),
                         substitutionsRemaining = 3,
                         legacyModeFlag = false,
                     ),
                     away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-                        active = listOf(transient("away-player", skill = 70, energy = 50, legacyG0 = 18)),
+                        active = listOf(transient("away-player", energy = 50, legacyG0 = 18)),
                         bench = emptyList(),
                         substitutionsRemaining = 3,
                         legacyModeFlag = false,
@@ -152,7 +151,6 @@ class CareerMatchPersistedRuntimeResolverTest {
 
     private fun transient(
         playerId: String,
-        skill: Int,
         energy: Int,
         legacyG0: Int,
     ) = CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence(
@@ -162,7 +160,6 @@ class CareerMatchPersistedRuntimeResolverTest {
         legacyF0 = 1,
         legacyR = 0,
         energy = energy,
-        skill = skill,
     )
 
     private fun runtime(

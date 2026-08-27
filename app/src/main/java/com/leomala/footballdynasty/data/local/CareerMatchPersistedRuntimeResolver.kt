@@ -10,10 +10,10 @@ import com.leomala.footballdynasty.domain.match.LegacyPlayerClubSeasonStatsRules
  * runtime.
  *
  * Room is authoritative here only for facts that are actually persisted: career/club/player
- * identity, career-local squad ownership, age and overall plus the canonical/procedural static
- * player facts. Match-only legacy fields (`g0/l0/f0/R`, energy, the injury skill value and current
- * disciplinary/stat counters) are deliberately supplied by [TransientPlayerEvidence] instead of
- * being inferred from unrelated persisted columns.
+ * identity, career-local squad ownership, age and the legacy `best.o.j` value exposed by `O()` as
+ * career overall, plus the canonical/procedural static player facts. Match-only legacy fields
+ * (`g0/l0/f0/R`, energy and current disciplinary/stat counters) are deliberately supplied by
+ * [TransientPlayerEvidence] instead of being inferred from unrelated persisted columns.
  */
 class CareerMatchPersistedRuntimeResolver(
     private val database: FootballDynastyDatabase,
@@ -162,7 +162,6 @@ class CareerMatchPersistedRuntimeResolver(
         val legacyF0: Int,
         val legacyR: Int,
         val energy: Int,
-        val skill: Int,
         val legacyYellowCount: Int = 0,
         val legacyStatM: Int = 0,
         val legacyStatN: Int = 0,
@@ -185,8 +184,12 @@ class CareerMatchPersistedRuntimeResolver(
 
     /**
      * Builds the certified Phase 8 transient state without guessing any match-only legacy field.
-     * Persisted age and club/player identity are retained from [roster]; every non-persisted value is
-     * carried explicitly by [evidence]. Unselected squad members do not need evidence entries.
+     * Persisted age, overall and club/player identity are retained from [roster]; every genuinely
+     * non-persisted value is carried explicitly by [evidence]. Unselected squad members do not need
+     * evidence entries.
+     *
+     * The Phase 8 injury `skill` is initialized from persisted [PersistedPlayer.overall] because the
+     * official Java+SMALI proves both `best.o.O()` and `best.o.m(c0)` read/mutate the same field `j`.
      */
     fun hydratePhase8State(
         roster: PersistedMatchRoster,
@@ -214,7 +217,7 @@ class CareerMatchPersistedRuntimeResolver(
                     legacyR = seed.legacyR,
                     age = player.age,
                     energy = seed.energy,
-                    skill = seed.skill,
+                    skill = player.overall,
                     legacyYellowCount = seed.legacyYellowCount,
                     legacyStatM = seed.legacyStatM,
                     legacyStatN = seed.legacyStatN,
