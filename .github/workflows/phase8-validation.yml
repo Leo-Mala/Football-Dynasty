@@ -123,6 +123,7 @@ jobs:
               'LegacyMatchTransitionRulesTest': None,
               'LegacyMatchJRulesTest': None,
               'LegacyMatchP0RulesTest': None,
+              'LegacyMatchGoalEventRulesTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
@@ -193,6 +194,7 @@ jobs:
           echo "Legacy best.s.r/r0 transition characterization: PASS"
           echo "Legacy best.s.j second-half transition scheduling characterization: PASS"
           echo "Legacy best.s.P0 resolution-order characterization: PASS"
+          echo "Legacy components.r3 goal subtype characterization: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
