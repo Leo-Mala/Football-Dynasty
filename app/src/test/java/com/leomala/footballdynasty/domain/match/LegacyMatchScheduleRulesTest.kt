@@ -97,7 +97,7 @@ class LegacyMatchScheduleRulesTest {
         val random = ExactQueueRandomSource(2, 6, 4)
         val trace = mutableListOf<String>()
 
-        LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
+        val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
             random = random,
             simulateFirstHalf = { added ->
                 trace += "first:$added"
@@ -108,6 +108,7 @@ class LegacyMatchScheduleRulesTest {
         )
 
         assertEquals(listOf("first:2", "first-rng:6", "halftime:2:0", "second:5"), trace)
+        assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(2, 5), landmarks)
         assertEquals(listOf(3, 7, 5), random.bounds)
         assertEquals(3L, random.draws)
     }
@@ -117,7 +118,7 @@ class LegacyMatchScheduleRulesTest {
         val random = ExactQueueRandomSource(1, 8, 3)
         val trace = mutableListOf<String>()
 
-        LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
+        val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
             random = random,
             simulateFirstHalf = { added -> trace += "first:$added" },
             halftimeTransition = { half, minute ->
@@ -128,8 +129,25 @@ class LegacyMatchScheduleRulesTest {
         )
 
         assertEquals(listOf("first:1", "halftime:2:0", "halftime-rng:8", "second:4"), trace)
+        assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(1, 4), landmarks)
         assertEquals(listOf(3, 9, 5), random.bounds)
         assertEquals(3L, random.draws)
+    }
+
+    @Test
+    fun `Q0 flow result reuses callbacks draws without extra RNG`() {
+        val random = ExactQueueRandomSource(0, 4)
+
+        val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
+            random = random,
+            simulateFirstHalf = {},
+            halftimeTransition = { _, _ -> },
+            simulateSecondHalf = {},
+        )
+
+        assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(0, 5), landmarks)
+        assertEquals(listOf(3, 5), random.bounds)
+        assertEquals(2L, random.draws)
     }
 
     private class BoundAwareRandomSource(
