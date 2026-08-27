@@ -122,6 +122,7 @@ jobs:
               'LegacyMatchScheduleRulesTest': None,
               'LegacyMatchTransitionRulesTest': None,
               'LegacyMatchJRulesTest': None,
+              'LegacyMatchP0RulesTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
@@ -153,10 +154,10 @@ jobs:
               if count <= 0 or f or e or s:
                   raise SystemExit(f'{name} is not fully green: {evidence}')
           schedule = required['LegacyMatchScheduleRulesTest']
-          if schedule[0] < 9:
+          if schedule[0] < 11:
               raise SystemExit(
-                  'LegacyMatchScheduleRulesTest lost required Q0 characterization coverage: '
-                  f'expected at least 9 tests, got {schedule[0]}'
+                  'LegacyMatchScheduleRulesTest lost required corrected Q0 characterization coverage: '
+                  f'expected at least 11 tests, got {schedule[0]}'
               )
           print(f'PHASE8_Q0_SCHEDULE_CHARACTERIZATION={schedule[0]} tests')
           PY
@@ -187,10 +188,11 @@ jobs:
           echo "Legacy best.s.k direct RNG characterization: PASS"
           echo "Legacy best.s.S/T/U/V/W selection characterization: PASS"
           echo "Legacy best.s.m schedule initialization characterization: PASS"
-          echo "Legacy best.s.Q0 added-time/halftime ordering characterization: PASS"
-          echo "Phase 8 Q0 schedule characterization floor: PASS (>=9 tests)"
+          echo "Legacy best.s.Q0 pre-drawn added-time and 45+added loop characterization: PASS"
+          echo "Phase 8 Q0 schedule characterization floor: PASS (>=11 tests)"
           echo "Legacy best.s.r/r0 transition characterization: PASS"
           echo "Legacy best.s.j second-half transition scheduling characterization: PASS"
+          echo "Legacy best.s.P0 resolution-order characterization: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
