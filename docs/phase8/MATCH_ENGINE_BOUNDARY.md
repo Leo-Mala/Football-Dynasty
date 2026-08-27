@@ -6,11 +6,27 @@ Source of truth: `Brasfoot.apk_Decompiler.com.zip`, SHA-256 `3eb5622ba9b5953a1bc
 
 `ActivityJogo.v()` is incomplete in decompiled Java. SMALI proves it controls the per-half clock/UI and delegates normal match mutation to the `best.s` match object. `ActivityJogo.s()` switches to half 2 and calls `best.s.j(2, 0)`.
 
-`best.s.R0()` iterates queued matches and calls `best.s.Q0()`, which is a proven automatic-simulation entry point. SMALI shows `Q0()` drawing first-half added time with `nextInt(3)`, second-half added time with `nextInt(5)+1`, looping through both halves with `best.s.k(match, half, minute)`, and calling `j(2, 0)` at halftime.
+`best.s.R0()` iterates queued matches and calls `best.s.Q0()`, which is a proven automatic-simulation entry point. The Java decompiler stubs `Q0()`, so SMALI is authoritative.
 
-The two added-time draws are now materialized as separate deterministic rules in `LegacyMatchScheduleRules`: first half `0..2` from bound `3`, second half `1..5` from bound `5` plus one. They deliberately remain separate because the per-minute simulation consumes RNG between those sites; pre-drawing both would change legacy draw order. Full Q0 minute-loop boundaries remain an evidence gate and are not inferred here.
+## Exact `Q0()` automatic-flow evidence
 
-The proven Q0 landmark order is also materialized without inventing those minute boundaries: first-half added-time draw -> first-half simulation callback -> halftime transition callback -> second-half added-time draw -> second-half simulation callback. The halftime callback now receives the exact proven legacy arguments `(2, 0)`, matching `j(2, 0)` instead of hiding them behind a parameterless transition. The callbacks intentionally own the still-unrecovered minute ranges. Characterization verifies RNG consumed both by the first-half simulation and by the halftime-transition callback remains before the legacy bound-5 draw, preserving the exact interleaving implied by Q0 control flow.
+The SMALI proves this order:
+
+1. create and attach `components.r3`;
+2. apply the legacy pre-simulation conditions;
+3. when the simulation branch is entered, draw **both** added-time values consecutively before any minute loop:
+   - first half: `nextInt(3)` → `0..2`;
+   - second half: `nextInt(5) + 1` → `1..5`;
+4. simulate half 1 from minute index `0` while `minute < 45 + firstHalfAdded`;
+5. each minute calls `best.s.k(match, 1, minute)` and then reads `components.r3.K()`; a returned event is stamped with its minute and half before being appended to `J()`;
+6. call `j(2, 0)`;
+7. simulate half 2 from minute index `0` while `minute < 45 + secondHalfAdded`, with the same event-stamping pattern and half `2`;
+8. after simulation, the `Z && a0 && P0()` gate can call `o()`;
+9. the legacy per-club flags are cleared with `E1(false)` on both sides.
+
+An earlier branch characterization placed the second added-time draw after first-half simulation. Direct SMALI inspection disproved that ordering. `LegacyMatchScheduleRules` now preserves the actual pre-draw sequence `[bound 3, bound 5]` before any per-minute or halftime RNG is consumed.
+
+The minute-loop boundary is also no longer open evidence: each half executes exactly `45 + addedMinutes` calls to `best.s.k(...)`, using indexes `0 until (45 + addedMinutes)`.
 
 ## Direct per-minute RNG in `best.s.k`
 
@@ -37,10 +53,27 @@ Counter order is exact: if `O > 5`, primary doubles; an `else if O > 10` branch 
 
 Every seventh minute invokes player-state refresh before these event gates; the recovered helper contains no direct RNG.
 
-## Downstream RNG still open
+## `P0()` reachability and resolution order
 
-Direct triggers can reach selectors `S/T/U/V/W`. Their direct bounds are respectively 100, 500, 200 and 1000 before positional filtering; `W` uses `Collections.shuffle`. Additional incomplete Java methods (`j`, `r`, `r0`, `p`, `n0`, `P0`, `Q0`) require SMALI reconstruction.
+`P0()` is reachable from `Q0()`, `ActivityJogo` and `best.g0`; it is therefore a valid production reconstruction target.
 
-`j`, `r` and `r0` now have characterized modern structural rules on this branch; `Q0` has its added-time draws, exact halftime `j(2, 0)` arguments and proven landmark ordering materialized, but not its concrete minute-loop boundaries. The remaining Q0 loop boundaries and the still-open `p`, `n0` and `P0` paths must be recovered from SMALI before production semantics are extended.
+The method contains no RNG. Its exact decision order is now represented by `LegacyMatchP0Rules` with neutral side names:
 
-The first modern rule therefore returns neutral labels `LEGACY_C`, `LEGACY_D`, `LEGACY_TYPE_5` and `SECOND_HALF_J`; it does not assign unsupported sporting semantics.
+1. compare the first stored pair and count a result for either legacy side;
+2. when the second stored state is enabled, compare its pair and increment the corresponding count, while also computing two aggregate totals;
+3. resolve by result-count difference first;
+4. only if still unresolved, compare the aggregate totals;
+5. only if still unresolved and both legacy flags permit it, compare the retained second-state value against the first-state counterpart;
+6. `P0()` returns `true` only when all applicable criteria still leave the state unresolved.
+
+No sporting label is assigned to the third criterion until further evidence proves its exact user-facing meaning.
+
+## Reachability boundary for `p` / `n0`
+
+Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(Lbest/s;)I` has one caller, and that caller is `p` itself. Under `AGENTS.md`, method existence alone does not justify adding a gameplay path, so these methods remain evidence-only unless later reachability evidence appears.
+
+## Remaining downstream work
+
+`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries and halftime transition are characterized on this branch.
+
+The next reachable boundary is event production/materialization through `components.r3.K()` and `best.l`, followed by the proven score/player/club mutations and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
