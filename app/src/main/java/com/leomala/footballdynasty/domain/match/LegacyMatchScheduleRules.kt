@@ -82,19 +82,19 @@ object LegacyMatchScheduleRules {
      * Structural `Q0()` landmark order proven by SMALI without inventing minute-loop boundaries.
      *
      * The callbacks deliberately own the still-unrecovered minute ranges. This method only freezes the
-     * proven ordering: first added-time draw -> first-half simulation -> halftime transition -> second
-     * added-time draw -> second-half simulation. RNG consumed by either simulation callback therefore
-     * remains between the two added-time draws exactly where the legacy method consumes it.
+     * proven ordering: first added-time draw -> first-half simulation -> `j(2, 0)` halftime transition
+     * -> second added-time draw -> second-half simulation. RNG consumed by either simulation callback
+     * therefore remains between the two added-time draws exactly where the legacy method consumes it.
      */
     fun runAutomaticFlowLandmarks(
         random: RandomSource,
         simulateFirstHalf: (addedMinutes: Int) -> Unit,
-        halftimeTransition: () -> Unit,
+        halftimeTransition: (half: Int, minute: Int) -> Unit,
         simulateSecondHalf: (addedMinutes: Int) -> Unit,
     ) {
         val firstHalfAdded = drawAutomaticFirstHalfAddedMinutes(random)
         simulateFirstHalf(firstHalfAdded)
-        halftimeTransition()
+        halftimeTransition(2, 0)
         val secondHalfAdded = drawAutomaticSecondHalfAddedMinutes(random)
         simulateSecondHalf(secondHalfAdded)
     }
