@@ -85,7 +85,22 @@ At that site the event type is explicitly set to `1`. `best.l` rendering and the
 
 `LegacyMatchGoalEventRules` preserves this direct draw with `RandomSource`. A proven quirk is also retained: subtype `5` falls back to subtype `1` when the currently selected player's legacy `l0` value is zero; a null player does not trigger that fallback at this point.
 
-Downstream author/secondary-player replacement is still handled by additional `r3.f` helpers and remains a separate characterization boundary; the direct subtype rule does not invent those selections.
+Downstream materialization is no longer an entirely open boundary. `LegacyMatchGoalMaterializationRules`, `LegacyMatchGoalPlayerSelectionRules` and `LegacyMatchGoalSecondarySelectionRules` characterize the recovered primary/display-author distinction, normal secondary-player path, own-goal author path, designated penalty/free-kick/corner authors, late subtype fallbacks, the `r3.n()/j()` weighted author selectors, and the reachable truncated `r3.i(primary)` selector. Detailed `components.r3` evidence is consolidated in `R3_RECOVERED_CHAIN.md`.
+
+## Recovered `components.r3` decision chain
+
+The reachable chain feeding `K()` is represented by individually gated characterization suites:
+
+- `LegacyMatchWeightedChoiceRules`: shared `A/B` weighted-index helper using one `nextDouble()` and strict `target < cumulative`; if no bucket wins, it returns `weights.size`;
+- `LegacyMatchR3PlayerValueRules`: `g(best.o)` numeric transform with the recovered stepwise `Math.round` order and final `/10.0`;
+- `LegacyMatchR3MetricRules`: `y/u/z` aggregations, fixed `/5`, `/5`, `/3` divisors and their low-population fallbacks;
+- `LegacyMatchR3DecisionRules`: `J/I` modifiers, side bonus, clamps, strict weighted boundaries, mutation ordering, and the deliberately preserved unreachable `>=9 -> 12.0` divisor branch after `>=5 -> 11.0`;
+- `LegacyMatchR3AdvanceRules`: `K()` J/I short-circuit, no-direct-bound-100 goal route, direct `<50`/`>=50` counter split, tick-increment requirement and side-transition result;
+- `LegacyMatchR3ApplyARules`: `a(side)` two-side counter/percentage update using bytecode-proven float division before `Math.round`.
+
+The current pure `K()` characterization proves callback order `J -> I -> goal` on the goal branch and the direct RNG behavior. It exposes the required tick increment and resulting next side, but it does not encode the exact relative write timing of the legacy tick field versus the internal J/I state mutations. No stronger ordering claim is made here until authoritative bytecode for that detail is rechecked.
+
+The author selectors intentionally retain comparison quirks: `r3.n()`, `r3.j()` and `r3.i(primary)` place `target <= cumulative` outside parts of their eligibility checks, so exact-zero targets can return otherwise excluded/invalid first entries. This differs from the shared A/B helper's strict `<` comparison and is covered by tests rather than normalized away.
 
 ## Reachable injury application (`best.o.m`)
 
@@ -151,6 +166,8 @@ Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(
 
 ## Remaining downstream work
 
-`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition, direct goal-subtype draw, `best.l` event-type/score mapping, disciplinary routing, injury duration/RNG and substitution selection/mutation order are characterized on this branch.
+The branch now characterizes `j`, `r`, `r0`, `P0`, Q0 added-time order/minute boundaries, halftime transition, goal subtype/materialization, `r3.n/j/i`, A/B weighted selection, `g`, `y/u/z`, `J/I`, `K`, `a(side)`, `best.l` event/score mapping, disciplinary routing, injury, and substitution selection/mutation.
 
-The next reachable boundaries are the remaining author/secondary-player selections inside `components.r3`, the match stat counters, event-driven player/club state application, and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
+The remaining Phase 8 boundary is narrower than earlier documentation stated: authoritative evidence is still required for any reachable `components.r3.b()/c()` routing details not already represented by current goal materialization rules, for event-driven player/club state application that is not yet characterized, for production orchestration of the pure rules into the modern match runtime, and for required post-match side effects.
+
+The raw decompiled archive/SMALI corpus is an external reconstruction reference and is not committed in this repository. If a remaining Java method is incomplete and the authoritative bytecode is not available to the active task, the correct action is to record the boundary rather than infer gameplay from names or stale notes.
