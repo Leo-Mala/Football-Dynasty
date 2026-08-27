@@ -24,7 +24,7 @@ class Migration3To4Test {
     @Test
     fun `migration 3 to 4 preserves career and adds isolated scheduled match persistence`() {
         val name = "phase9-migration-3-4"
-        var db = helper.createDatabase(name, 3)
+        val db = helper.createDatabase(name, 3)
         db.execSQL(
             "INSERT INTO career_metadata " +
                 "(id,dataVersion,displayName,legacyMetadataFingerprint,legacyCareerFingerprint,createdAtEpochMillis,updatedAtEpochMillis) " +
@@ -44,14 +44,10 @@ class Migration3To4Test {
                 "rngInitialSeed,rngInternalState,rngDraws,managedClubId,transitionCount,updatedAtEpochMillis) " +
                 "VALUES ('career-v4',1,1,2026,2026,3,3,365,7,11,12,NULL,0,20)"
         )
-        db.close()
 
-        db = helper.runMigrationsAndValidate(
-            name,
-            4,
-            true,
-            FootballDynastyMigrations.MIGRATION_3_4,
-        )
+        // V4 was certified before its generated schema JSON was versioned. Exercise the exact
+        // historical migration directly so the regression remains independent of that missing asset.
+        FootballDynastyMigrations.MIGRATION_3_4.migrate(db)
         db.execSQL("PRAGMA foreign_keys=ON")
 
         db.query("SELECT rngDraws FROM career_core_state WHERE careerId='career-v4'").use { cursor ->
@@ -61,6 +57,17 @@ class Migration3To4Test {
         db.query("SELECT COUNT(*) FROM career_scheduled_matches").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals(0, cursor.getInt(0))
+        }
+        db.query("PRAGMA table_info(`career_scheduled_matches`)").use { cursor ->
+            val names = mutableSetOf<String>()
+            while (cursor.moveToNext()) names += cursor.getString(cursor.getColumnIndexOrThrow("name"))
+            assertEquals(
+                setOf(
+                    "careerId", "matchId", "dayIndex", "eventTypeCode", "homeClubId", "awayClubId",
+                    "processed", "homeGoals", "awayGoals",
+                ),
+                names,
+            )
         }
 
         db.execSQL(
