@@ -37,12 +37,12 @@ class LegacyMatchGoalEventRulesTest {
     }
 
     @Test
-    fun `corner subtype falls back to normal only for legacy l0 zero`() {
+    fun `initial corner draw is not changed by primary l0 because fallback happens later`() {
         val zero = LegacyMatchGoalEventRules.drawInitialGoalEvent(QueueRandomSource(990), 0)
         val nonZero = LegacyMatchGoalEventRules.drawInitialGoalEvent(QueueRandomSource(990), 2)
         val absent = LegacyMatchGoalEventRules.drawInitialGoalEvent(QueueRandomSource(990), null)
 
-        assertEquals(LegacyMatchGoalEventRules.GoalSubtype.NORMAL, zero.subtype)
+        assertEquals(LegacyMatchGoalEventRules.GoalSubtype.CORNER, zero.subtype)
         assertEquals(LegacyMatchGoalEventRules.GoalSubtype.CORNER, nonZero.subtype)
         assertEquals(LegacyMatchGoalEventRules.GoalSubtype.CORNER, absent.subtype)
     }
