@@ -52,7 +52,6 @@ class LegacyMatchScheduleRulesTest {
         val secondSchedule = LegacyMatchScheduleRules.initialize(second, pools)
 
         assertEquals(listOf(20, 21, -1), firstSchedule.core[0])
-        // A second legacy-style shuffle operates on the already-mutated static pool, not a hidden reset.
         org.junit.Assert.assertNotEquals(firstCoreOrder, pools.coreMinutes)
         org.junit.Assert.assertNotEquals(firstSchedule.core, secondSchedule.core)
     }
@@ -131,6 +130,27 @@ class LegacyMatchScheduleRulesTest {
         assertEquals(listOf("first:1", "halftime:2:0", "halftime-rng:8", "second:4"), trace)
         assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(1, 4), landmarks)
         assertEquals(listOf(3, 9, 5), random.bounds)
+        assertEquals(3L, random.draws)
+    }
+
+    @Test
+    fun `Q0 structural flow keeps second-half callback RNG after its added-time draw`() {
+        val random = ExactQueueRandomSource(1, 3, 10)
+        val trace = mutableListOf<String>()
+
+        val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
+            random = random,
+            simulateFirstHalf = { added -> trace += "first:$added" },
+            halftimeTransition = { half, minute -> trace += "halftime:$half:$minute" },
+            simulateSecondHalf = { added ->
+                trace += "second:$added"
+                trace += "second-rng:${random.nextInt(11)}"
+            },
+        )
+
+        assertEquals(listOf("first:1", "halftime:2:0", "second:4", "second-rng:10"), trace)
+        assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(1, 4), landmarks)
+        assertEquals(listOf(3, 5, 11), random.bounds)
         assertEquals(3L, random.draws)
     }
 
