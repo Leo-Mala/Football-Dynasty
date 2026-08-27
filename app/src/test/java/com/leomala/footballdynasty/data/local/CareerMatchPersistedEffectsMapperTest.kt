@@ -4,6 +4,7 @@ import com.leomala.footballdynasty.domain.career.GameDate
 import com.leomala.footballdynasty.domain.match.LegacyMatchEventRecord
 import com.leomala.footballdynasty.domain.match.LegacyMatchEventType
 import com.leomala.footballdynasty.domain.match.LegacyMatchTransientRuntime
+import com.leomala.footballdynasty.domain.match.LegacyPlayerClubSeasonStatsRules
 import com.leomala.footballdynasty.foundation.random.RandomSource
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -56,8 +57,20 @@ class CareerMatchPersistedEffectsMapperTest {
     }
 
     @Test
-    fun `injury removed player persists skill and deadline from scheduled match day`() {
-        val persisted = player("injured", age = 35, overall = 80, injuryUntilEpochDay = 500L)
+    fun `injury removed player persists runtime and proven legacy H club season counter`() {
+        val persisted = player(
+            id = "injured",
+            age = 35,
+            overall = 80,
+            injuryUntilEpochDay = 500L,
+            clubSeasonStats = listOf(
+                LegacyPlayerClubSeasonStatsRules.Entry(
+                    legacySeasonId = 1,
+                    legacyClubId = 101,
+                    legacyH = 4,
+                )
+            ),
+        )
         val injured = wrapper(persisted, energy = 60)
         val homeRoster = roster("home", 101, listOf(persisted))
         val awayRoster = roster("away", 202, emptyList())
@@ -84,17 +97,34 @@ class CareerMatchPersistedEffectsMapperTest {
         assertTrue(home.active.isEmpty())
 
         val matchDate = GameDate(2026, 2, 10)
-        val updates = CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(state, matchDate)
+        val runtimeUpdates = CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(state, matchDate)
+        val statUpdates = CareerMatchPersistedEffectsMapper.playerClubSeasonStatUpdates(state)
         val expectedDeadline = LocalDate.of(2026, 2, 10).toEpochDay() + 3L
 
         assertEquals(
             listOf(CareerMatchPlayerRuntimeUpdate("injured", 60, 75, expectedDeadline)),
-            updates,
+            runtimeUpdates,
+        )
+        assertEquals(
+            listOf(
+                CareerMatchPlayerClubSeasonStatUpdate(
+                    playerId = "injured",
+                    legacySeasonId = 1,
+                    legacyClubId = 101,
+                    legacyC = 0,
+                    legacyD = 0,
+                    legacyE = 0,
+                    legacyF = 0,
+                    legacyG = 0,
+                    legacyH = 5,
+                )
+            ),
+            statUpdates,
         )
     }
 
     @Test
-    fun `divergent duplicate wrappers fail instead of silently choosing runtime state`() {
+    fun `divergent duplicate wrappers fail instead of silently choosing persisted state`() {
         val persisted = player("same")
         val one = wrapper(persisted, energy = 80)
         val two = wrapper(persisted, energy = 79)
@@ -109,11 +139,18 @@ class CareerMatchPersistedEffectsMapperTest {
         )
         val state = LegacyMatchTransientRuntime.State(1, home, emptyClub(awayRoster))
 
-        val error = runCatching {
+        val runtimeError = runCatching {
             CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(state, GameDate(2026, 1, 4))
         }.exceptionOrNull()
+        assertTrue(runtimeError is IllegalArgumentException)
 
-        assertTrue(error is IllegalArgumentException)
+        one.energy = 79
+        one.clubSeasonStats = listOf(LegacyPlayerClubSeasonStatsRules.Entry(1, 101, legacyH = 1))
+        two.clubSeasonStats = listOf(LegacyPlayerClubSeasonStatsRules.Entry(1, 101, legacyH = 2))
+        val statError = runCatching {
+            CareerMatchPersistedEffectsMapper.playerClubSeasonStatUpdates(state)
+        }.exceptionOrNull()
+        assertTrue(statError is IllegalArgumentException)
     }
 
     private fun wrapper(
@@ -136,6 +173,7 @@ class CareerMatchPersistedEffectsMapperTest {
         age: Int = 25,
         overall: Int = 80,
         injuryUntilEpochDay: Long = 0L,
+        clubSeasonStats: List<LegacyPlayerClubSeasonStatsRules.Entry> = emptyList(),
     ) = CareerMatchPersistedRuntimeResolver.PersistedPlayer(
         playerId = id,
         sourceType = CareerPlayerRuntimeStore.SOURCE_CANONICAL,
@@ -155,7 +193,7 @@ class CareerMatchPersistedEffectsMapperTest {
             cr1 = 5,
             cr2 = 6,
         ),
-        clubSeasonStats = emptyList(),
+        clubSeasonStats = clubSeasonStats,
     )
 
     private fun roster(
