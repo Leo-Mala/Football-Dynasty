@@ -22,9 +22,9 @@ class Migration4To5Test {
     )
 
     @Test
-    fun `migration 4 to 5 preserves runtime and adds proven match persistence`() {
-        val name = "phase9-migration-4-5"
-        var db = helper.createDatabase(name, 4)
+    fun `explicit 3 to 4 to 5 chain preserves runtime and adds proven match persistence`() {
+        val name = "phase9-migration-3-5"
+        var db = helper.createDatabase(name, 3)
         db.execSQL(
             "INSERT INTO career_metadata " +
                 "(id,dataVersion,displayName,legacyMetadataFingerprint,legacyCareerFingerprint,createdAtEpochMillis,updatedAtEpochMillis) " +
@@ -38,10 +38,13 @@ class Migration4To5Test {
         )
         db.close()
 
+        // The V4 generated JSON was not committed when V4 was introduced. Validate the complete
+        // explicit migration chain against the current V5 schema instead of inventing a V4 asset.
         db = helper.runMigrationsAndValidate(
             name,
             5,
             true,
+            FootballDynastyMigrations.MIGRATION_3_4,
             FootballDynastyMigrations.MIGRATION_4_5,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
