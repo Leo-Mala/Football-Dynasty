@@ -130,6 +130,7 @@ jobs:
               'LegacyMatchR3AdvanceRulesTest': None,
               'LegacyMatchR3ApplyARulesTest': None,
               'LegacyMatchR3ChainIntegrationTest': None,
+              'LegacyMatchR3StepRulesTest': None,
               'LegacyMatchR3DecisionRulesTest': None,
               'LegacyMatchR3MetricRulesTest': None,
               'LegacyMatchR3PlayerValueRulesTest': None,
@@ -188,9 +189,16 @@ jobs:
                   'LegacyMatchR3ChainIntegrationTest lost required composed RNG-order coverage: '
                   f'expected at least 3 tests, got {chain[0]}'
               )
+          step = required['LegacyMatchR3StepRulesTest']
+          if step[0] < 3:
+              raise SystemExit(
+                  'LegacyMatchR3StepRulesTest lost required pure-step orchestration coverage: '
+                  f'expected at least 3 tests, got {step[0]}'
+              )
           print(f'PHASE8_Q0_SCHEDULE_CHARACTERIZATION={schedule[0]} tests')
           print(f'PHASE8_SECONDARY_SELECTOR_CHARACTERIZATION={secondary[0]} tests')
           print(f'PHASE8_R3_CHAIN_INTEGRATION={chain[0]} tests')
+          print(f'PHASE8_R3_STEP_ORCHESTRATION={step[0]} tests')
           PY
 
       - name: Verify official corpus remains materialized
@@ -233,6 +241,7 @@ jobs:
           echo "Legacy components.r3 y/u/z metric aggregation: PASS"
           echo "Legacy components.r3 J/I decision routing: PASS"
           echo "Legacy components.r3 J -> I -> K composed RNG order: PASS (>=3 tests)"
+          echo "Legacy components.r3 pure J/I/K step orchestration: PASS (>=3 tests)"
           echo "Legacy components.r3 K advance/short-circuit routing: PASS"
           echo "Legacy components.r3 a(side) percentage update: PASS"
           echo "Legacy best.l field/default mapping: PASS"
