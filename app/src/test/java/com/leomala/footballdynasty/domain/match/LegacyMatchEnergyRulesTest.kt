@@ -1,5 +1,6 @@
 package com.leomala.footballdynasty.domain.match
 
+import com.leomala.footballdynasty.foundation.random.RandomSource
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -63,6 +64,41 @@ class LegacyMatchEnergyRulesTest {
         assertEquals(50, bench.energy)
     }
 
+    @Test
+    fun `minute runtime wires refresh before action without consuming rng`() {
+        val home = player("home", g0 = 2, age = 25, energy = 50)
+        val state = state(
+            home,
+            player("home-two", g0 = 3, age = 20, energy = 50),
+            player("away", g0 = 4, age = 20, energy = 50),
+            player("bench", g0 = 5, age = 20, energy = 50),
+        )
+        var observerCalls = 0
+        val random = NoRandom()
+        val decision = LegacyMatchMinuteRules.Decision(
+            side = LegacyMatchMinuteRules.Side.HOME,
+            action = LegacyMatchMinuteRules.Action.NONE,
+            refreshPlayerState = true,
+            primaryBound = 70,
+            secondaryBound = 1200,
+            tertiaryBound = 2000,
+        )
+
+        LegacyMatchMinuteRuntimeRules.applyDecision(
+            state = state,
+            decision = decision,
+            counters = LegacyMatchMinuteActionRules.Counters(0, 0, 0),
+            legacyPeriod = 1,
+            legacyMinute = 7,
+            random = random,
+            refreshPlayerState = { observerCalls += 1 },
+        )
+
+        assertEquals(48, home.energy)
+        assertEquals(1, observerCalls)
+        assertEquals(0L, random.draws)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `unsupported period is rejected instead of inferred`() {
         val state = state(
@@ -112,4 +148,13 @@ class LegacyMatchEnergyRulesTest {
         energy = energy,
         skill = 80,
     )
+
+    private class NoRandom : RandomSource {
+        override var draws: Long = 0
+            private set
+
+        override fun nextInt(bound: Int): Int = error("Energy refresh must not consume RNG")
+        override fun nextBoolean(): Boolean = error("Energy refresh must not consume RNG")
+        override fun nextDouble(): Double = error("Energy refresh must not consume RNG")
+    }
 }
