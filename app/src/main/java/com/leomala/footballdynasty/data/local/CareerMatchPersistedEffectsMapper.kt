@@ -4,11 +4,11 @@ import com.leomala.footballdynasty.domain.career.GameDate
 import com.leomala.footballdynasty.domain.match.LegacyMatchTransientRuntime
 import java.time.LocalDate
 
-private typealias PersistedPlayer = CareerMatchPersistedRuntimeResolver.PersistedPlayer
-private typealias PersistedRoster = CareerMatchPersistedRuntimeResolver.PersistedClubRoster
-private typealias PersistedPlayerWrapper = LegacyMatchTransientRuntime.Player<PersistedPlayer>
-private typealias PersistedClub = LegacyMatchTransientRuntime.Club<PersistedRoster, PersistedPlayer>
-private typealias PersistedState = LegacyMatchTransientRuntime.State<PersistedRoster, PersistedPlayer>
+typealias PersistedPlayer = CareerMatchPersistedRuntimeResolver.PersistedPlayer
+typealias PersistedRoster = CareerMatchPersistedRuntimeResolver.PersistedClubRoster
+typealias PersistedPlayerWrapper = LegacyMatchTransientRuntime.Player<PersistedPlayer>
+typealias PersistedClub = LegacyMatchTransientRuntime.Club<PersistedRoster, PersistedPlayer>
+typealias PersistedState = LegacyMatchTransientRuntime.State<PersistedRoster, PersistedPlayer>
 
 data class CareerMatchPlayerClubSeasonStatUpdate(
     val playerId: String,
