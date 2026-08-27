@@ -12,6 +12,7 @@ import com.leomala.footballdynasty.data.local.entity.PlayerEntity
 import com.leomala.footballdynasty.data.repository.RoomCareerRepository
 import com.leomala.footballdynasty.data.repository.RoomCareerStateRepository
 import com.leomala.footballdynasty.domain.career.CareerStateFactory
+import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.career.SeasonState
 import com.leomala.footballdynasty.domain.model.Career
@@ -35,7 +36,10 @@ class CareerMatchPersistedRuntimeResolverTest {
             .build()
         RoomCareerRepository(database) { 10L }.save(Career("career-a", "Phase 9", null, null))
         RoomCareerStateRepository(database) { 11L }.save(
-            CareerStateFactory.create("career-a", 123L).copy(season = SeasonState(9, 2026))
+            CareerStateFactory.create("career-a", 123L).copy(
+                season = SeasonState(9, LegacyCalendarRules.seasonYear(9)),
+                calendar = LegacyCalendarRules.calendarForSeason(9),
+            )
         )
         database.clubDao().upsertAll(listOf(club("home", 101), club("away", 202)))
         database.playerDao().upsertAll(listOf(canonicalPlayer("canonical-home")))
