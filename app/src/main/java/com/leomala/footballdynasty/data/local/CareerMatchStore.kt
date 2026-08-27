@@ -9,17 +9,20 @@ import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.error.CareerIntegrityException
 
-data class CareerMatchPlayerEnergyUpdate(
+data class CareerMatchPlayerRuntimeUpdate(
     val playerId: String,
     val energy: Int,
+    val overall: Int,
+    val injuryUntilEpochDay: Long,
 )
 
 /**
  * Atomic Room boundary for Phase 9 scheduled-match + career RNG/calendar persistence.
  *
- * Player-energy updates are accepted only for career-local players owned by one of the two clubs in
- * the resolved scheduled match. Competition tables, standings and round-generation semantics remain
- * Phase 10 concerns.
+ * Player-runtime updates contain only already-proven persisted legacy match state: energy, the same
+ * skill/overall field mutated by injury, and the injury-until day. Updates are accepted only for
+ * career-local players owned by one of the two clubs in the resolved scheduled match. Competition
+ * tables, standings and round-generation semantics remain Phase 10 concerns.
  */
 class CareerMatchStore(
     private val database: FootballDynastyDatabase,
@@ -53,15 +56,15 @@ class CareerMatchStore(
         return entity.toMatch()
     }
 
-    /** Commits post-match career state, resolved score and proven player energy in one transaction. */
+    /** Commits post-match career state, score and proven player runtime effects in one transaction. */
     suspend fun commitMatch(
         result: CareerMatchRuntimeResult,
-        playerEnergyUpdates: List<CareerMatchPlayerEnergyUpdate> = emptyList(),
+        playerRuntimeUpdates: List<CareerMatchPlayerRuntimeUpdate> = emptyList(),
     ) {
         CareerIntegrityValidator.validate(result.state)
         validateSchedule(result.state, result.schedule)
         validateResolvedMatch(result)
-        validateEnergyUpdates(playerEnergyUpdates)
+        validatePlayerRuntimeUpdates(playerRuntimeUpdates)
 
         database.withTransaction {
             requireCareerOwner(result.state.id)
@@ -96,27 +99,33 @@ class CareerMatchStore(
                     awayGoals = result.match.awayGoals,
                 )
             )
-            persistEnergyUpdates(result, playerEnergyUpdates)
+            persistPlayerRuntimeUpdates(result, playerRuntimeUpdates)
         }
     }
 
-    private suspend fun persistEnergyUpdates(
+    private suspend fun persistPlayerRuntimeUpdates(
         result: CareerMatchRuntimeResult,
-        updates: List<CareerMatchPlayerEnergyUpdate>,
+        updates: List<CareerMatchPlayerRuntimeUpdate>,
     ) {
         val playerDao = database.careerPlayerRuntimeDao()
         val allowedClubIds = setOf(result.match.homeClubId, result.match.awayClubId)
         updates.forEach { update ->
             val runtime = requireNotNull(playerDao.findRuntime(result.state.id, update.playerId)) {
-                "Missing career player runtime for match energy update ${update.playerId}"
+                "Missing career player runtime for match update ${update.playerId}"
             }
             val membership = requireNotNull(playerDao.findMembership(result.state.id, update.playerId)) {
-                "Missing career squad membership for match energy update ${update.playerId}"
+                "Missing career squad membership for match update ${update.playerId}"
             }
             require(membership.clubId in allowedClubIds) {
                 "Player ${update.playerId} does not belong to resolved match clubs"
             }
-            playerDao.upsertRuntime(runtime.copy(energy = update.energy))
+            playerDao.upsertRuntime(
+                runtime.copy(
+                    energy = update.energy,
+                    overall = update.overall,
+                    injuryUntilEpochDay = update.injuryUntilEpochDay,
+                )
+            )
         }
     }
 
@@ -148,13 +157,17 @@ class CareerMatchStore(
         require(result.match.awayGoals != null && result.match.awayGoals >= 0)
     }
 
-    private fun validateEnergyUpdates(updates: List<CareerMatchPlayerEnergyUpdate>) {
+    private fun validatePlayerRuntimeUpdates(updates: List<CareerMatchPlayerRuntimeUpdate>) {
         require(updates.map { it.playerId }.distinct().size == updates.size) {
-            "Match energy player ids must be unique"
+            "Match player update ids must be unique"
         }
         updates.forEach { update ->
-            require(update.playerId.isNotBlank()) { "Match energy player id must not be blank" }
+            require(update.playerId.isNotBlank()) { "Match player id must not be blank" }
             require(update.energy >= 0) { "Match energy must not be negative for ${update.playerId}" }
+            require(update.overall >= 0) { "Match overall must not be negative for ${update.playerId}" }
+            require(update.injuryUntilEpochDay >= 0L) {
+                "Match injury deadline must not be negative for ${update.playerId}"
+            }
         }
     }
 
