@@ -22,7 +22,8 @@ class LegacyMatchAutomaticFlowRulesTest {
             resolveP0 = { trace += "P0"; true },
         )
 
-        assertEquals("K:2:44", trace[trace.lastIndex - 1])
+        // The minimum second-half added time is one minute, so 0..45 executes before P0.
+        assertEquals("K:2:45", trace[trace.lastIndex - 1])
         assertEquals("P0", trace.last())
         assertTrue(result.postSimulation.evaluatedP0)
         assertTrue(result.postSimulation.invokeLegacyO)
