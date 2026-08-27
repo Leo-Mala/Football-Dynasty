@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchEnergyPersistenceTest {
     @Test
-    fun `resolved match commits proven player runtime with score calendar and rng`() = runBlocking {
+    fun `resolved match commits proven player effects with score calendar and rng`() = runBlocking {
         val database = database()
         seedCareer(database, includeOtherClubPlayer = false)
         val initial = CareerStateFactory.create("career-energy", 12345L)
@@ -47,14 +47,30 @@ class CareerMatchEnergyPersistenceTest {
                     injuryUntilEpochDay = 123L,
                 )
             ),
+            playerClubSeasonStatUpdates = listOf(
+                CareerMatchPlayerClubSeasonStatUpdate(
+                    playerId = "home-player",
+                    legacySeasonId = 1,
+                    legacyClubId = 101,
+                    legacyC = 1,
+                    legacyD = 2,
+                    legacyE = 3,
+                    legacyF = 4,
+                    legacyG = 5,
+                    legacyH = 6,
+                )
+            ),
         )
 
-        val runtime = requireNotNull(
-            database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")
-        )
+        val dao = database.careerPlayerRuntimeDao()
+        val runtime = requireNotNull(dao.findRuntime("career-energy", "home-player"))
         assertEquals(42, runtime.energy)
         assertEquals(75, runtime.overall)
         assertEquals(123L, runtime.injuryUntilEpochDay)
+        val stats = dao.clubSeasonStatsForPlayer("career-energy", "home-player").single()
+        assertEquals(1, stats.legacySeasonId)
+        assertEquals(101, stats.legacyClubId)
+        assertEquals(6, stats.legacyH)
         assertEquals(resolved.match, store.findResult("career-energy", "m1"))
         assertEquals(
             resolved.state,
@@ -65,7 +81,7 @@ class CareerMatchEnergyPersistenceTest {
     }
 
     @Test
-    fun `invalid non match player rolls back prior player score calendar and rng writes`() = runBlocking {
+    fun `invalid non match effect rolls back player stats score calendar and rng writes`() = runBlocking {
         val database = database()
         seedCareer(database, includeOtherClubPlayer = true)
         val initial = CareerStateFactory.create("career-energy", 98765L)
@@ -81,18 +97,25 @@ class CareerMatchEnergyPersistenceTest {
                 resolved,
                 playerRuntimeUpdates = listOf(
                     CareerMatchPlayerRuntimeUpdate("home-player", 42, 75, 123L),
-                    CareerMatchPlayerRuntimeUpdate("other-player", 30, 70, 456L),
+                ),
+                playerClubSeasonStatUpdates = listOf(
+                    CareerMatchPlayerClubSeasonStatUpdate(
+                        "home-player", 1, 101, 0, 0, 0, 0, 0, 1,
+                    ),
+                    CareerMatchPlayerClubSeasonStatUpdate(
+                        "other-player", 1, 303, 0, 0, 0, 0, 0, 1,
+                    ),
                 ),
             )
         }.exceptionOrNull()
 
         assertTrue(error is IllegalArgumentException)
-        val runtime = requireNotNull(
-            database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")
-        )
+        val dao = database.careerPlayerRuntimeDao()
+        val runtime = requireNotNull(dao.findRuntime("career-energy", "home-player"))
         assertEquals(100, runtime.energy)
         assertEquals(80, runtime.overall)
         assertEquals(0L, runtime.injuryUntilEpochDay)
+        assertTrue(dao.clubSeasonStatsForPlayer("career-energy", "home-player").isEmpty())
         assertNull(store.findResult("career-energy", "m1"))
         assertEquals(initial, RoomCareerStateRepository(database).findById("career-energy"))
         database.close()
@@ -185,7 +208,11 @@ class CareerMatchEnergyPersistenceTest {
         legacySid = 0,
         legacyTid = 0,
         legacyVid = 0,
-        legacyId = id.hashCode(),
+        legacyId = when (id) {
+            "home" -> 101
+            "away" -> 202
+            else -> 303
+        },
         legacyValid = true,
     )
 }
