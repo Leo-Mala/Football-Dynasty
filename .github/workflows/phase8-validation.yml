@@ -119,6 +119,7 @@ jobs:
           required = {
               'LegacyMatchAutomaticSimulationRulesTest': None,
               'LegacyMatchAutomaticPostSimulationRulesTest': None,
+              'LegacyMatchAutomaticFlowRulesTest': None,
               'LegacyMatchMinuteRulesTest': None,
               'LegacyMatchPlayerSelectionRulesTest': None,
               'LegacyMatchScheduleRulesTest': None,
@@ -191,6 +192,12 @@ jobs:
                   'LegacyMatchAutomaticPostSimulationRulesTest lost required Q0 post-loop coverage: '
                   f'expected at least 4 tests, got {post[0]}'
               )
+          flow = required['LegacyMatchAutomaticFlowRulesTest']
+          if flow[0] < 3:
+              raise SystemExit(
+                  'LegacyMatchAutomaticFlowRulesTest lost required composed Q0 flow coverage: '
+                  f'expected at least 3 tests, got {flow[0]}'
+              )
           secondary = required['LegacyMatchGoalSecondarySelectionRulesTest']
           if secondary[0] < 13:
               raise SystemExit(
@@ -212,6 +219,7 @@ jobs:
           print(f'PHASE8_Q0_SCHEDULE_CHARACTERIZATION={schedule[0]} tests')
           print(f'PHASE8_Q0_AUTOMATIC_ORCHESTRATION={automatic[0]} tests')
           print(f'PHASE8_Q0_POST_LOOP_ROUTING={post[0]} tests')
+          print(f'PHASE8_Q0_COMPOSED_FLOW={flow[0]} tests')
           print(f'PHASE8_SECONDARY_SELECTOR_CHARACTERIZATION={secondary[0]} tests')
           print(f'PHASE8_R3_CHAIN_INTEGRATION={chain[0]} tests')
           print(f'PHASE8_R3_STEP_ORCHESTRATION={step[0]} tests')
@@ -246,6 +254,7 @@ jobs:
           echo "Legacy best.s.Q0 pre-drawn added-time and 45+added loop characterization: PASS"
           echo "Legacy best.s.Q0 automatic k -> K -> event stamp orchestration: PASS (>=3 tests)"
           echo "Legacy best.s.Q0 post-loop Z && a0 && P0 routing and flag-clear order: PASS (>=4 tests)"
+          echo "Legacy best.s.Q0 composed simulation -> post-loop flow: PASS (>=3 tests)"
           echo "Phase 8 Q0 schedule characterization floor: PASS (>=11 tests)"
           echo "Legacy best.s.r/r0 transition characterization: PASS"
           echo "Legacy best.s.j second-half transition scheduling characterization: PASS"
