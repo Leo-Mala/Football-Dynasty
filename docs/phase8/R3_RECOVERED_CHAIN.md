@@ -79,6 +79,8 @@ The injected callbacks/tests prove the `J -> I -> goal` short-circuit order and 
 
 The RNG consumed internally by `J()`/`I()` remains separate from the direct `K()` bound-100 draw and retains its recovered order through the injected `RandomSource`.
 
+`LegacyMatchR3ChainIntegrationTest` now composes the real `resolveJ()` and `resolveI()` rules with `advance()` on one shared `RandomSource`. Its required CI coverage locks three observable draw sequences: `J -> I -> goal` consumes two weighted `nextDouble()` draws and no direct bound-100 draw; `J -> I(nonzero)` consumes those two weighted draws before `nextInt(100)`; and a `J` mismatch consumes only the `J` weighted draw before the direct `nextInt(100)`, proving that `I` is short-circuited. This strengthens RNG-order regression coverage without claiming any still-unproven relative mutation timing.
+
 ## `a(side)` recovered percentage state
 
 `LegacyMatchR3ApplyARules` preserves the reachable update performed by `a(side)`: increment the chosen entry in the recovered two-element counter, recompute the two percentages from the new total, convert both operands to `float` before division, multiply by `100`, and use `Math.round(float)`. The float conversion is intentional parity with SMALI.
