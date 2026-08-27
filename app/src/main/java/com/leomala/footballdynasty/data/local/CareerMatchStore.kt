@@ -9,11 +9,17 @@ import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.error.CareerIntegrityException
 
+data class CareerMatchPlayerEnergyUpdate(
+    val playerId: String,
+    val energy: Int,
+)
+
 /**
  * Atomic Room boundary for Phase 9 scheduled-match + career RNG/calendar persistence.
  *
- * The table stores only already-proven scheduled event identity and the resolved modern score.
- * Competition tables, standings and round-generation semantics remain Phase 10 concerns.
+ * Player-energy updates are accepted only for career-local players owned by one of the two clubs in
+ * the resolved scheduled match. Competition tables, standings and round-generation semantics remain
+ * Phase 10 concerns.
  */
 class CareerMatchStore(
     private val database: FootballDynastyDatabase,
@@ -47,11 +53,15 @@ class CareerMatchStore(
         return entity.toMatch()
     }
 
-    /** Commits post-match career state and resolved score in one Room transaction. */
-    suspend fun commitMatch(result: CareerMatchRuntimeResult) {
+    /** Commits post-match career state, resolved score and proven player energy in one transaction. */
+    suspend fun commitMatch(
+        result: CareerMatchRuntimeResult,
+        playerEnergyUpdates: List<CareerMatchPlayerEnergyUpdate> = emptyList(),
+    ) {
         CareerIntegrityValidator.validate(result.state)
         validateSchedule(result.state, result.schedule)
         validateResolvedMatch(result)
+        validateEnergyUpdates(playerEnergyUpdates)
 
         database.withTransaction {
             requireCareerOwner(result.state.id)
@@ -86,6 +96,27 @@ class CareerMatchStore(
                     awayGoals = result.match.awayGoals,
                 )
             )
+            persistEnergyUpdates(result, playerEnergyUpdates)
+        }
+    }
+
+    private suspend fun persistEnergyUpdates(
+        result: CareerMatchRuntimeResult,
+        updates: List<CareerMatchPlayerEnergyUpdate>,
+    ) {
+        val playerDao = database.careerPlayerRuntimeDao()
+        val allowedClubIds = setOf(result.match.homeClubId, result.match.awayClubId)
+        updates.forEach { update ->
+            val runtime = requireNotNull(playerDao.findRuntime(result.state.id, update.playerId)) {
+                "Missing career player runtime for match energy update ${update.playerId}"
+            }
+            val membership = requireNotNull(playerDao.findMembership(result.state.id, update.playerId)) {
+                "Missing career squad membership for match energy update ${update.playerId}"
+            }
+            require(membership.clubId in allowedClubIds) {
+                "Player ${update.playerId} does not belong to resolved match clubs"
+            }
+            playerDao.upsertRuntime(runtime.copy(energy = update.energy))
         }
     }
 
@@ -115,6 +146,16 @@ class CareerMatchStore(
         require(result.match.awayClubId == scheduled.awayClubId)
         require(result.match.homeGoals != null && result.match.homeGoals >= 0)
         require(result.match.awayGoals != null && result.match.awayGoals >= 0)
+    }
+
+    private fun validateEnergyUpdates(updates: List<CareerMatchPlayerEnergyUpdate>) {
+        require(updates.map { it.playerId }.distinct().size == updates.size) {
+            "Match energy player ids must be unique"
+        }
+        updates.forEach { update ->
+            require(update.playerId.isNotBlank()) { "Match energy player id must not be blank" }
+            require(update.energy >= 0) { "Match energy must not be negative for ${update.playerId}" }
+        }
     }
 
     private fun requireImmutableIdentity(
