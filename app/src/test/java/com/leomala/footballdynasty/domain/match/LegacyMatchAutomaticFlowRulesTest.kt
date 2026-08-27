@@ -28,10 +28,10 @@ class LegacyMatchAutomaticFlowRulesTest {
         assertTrue(result.postSimulation.invokeLegacyO)
         assertEquals(
             listOf(
-                LegacyMatchAutomaticPostSimulationRules.OrderedAction.INVOKE_LEGACY_O,
-                LegacyMatchAutomaticPostSimulationRules.OrderedAction.CLEAR_BOTH_CLUB_FLAGS,
+                LegacyMatchAutomaticPostSimulationRules.Operation.INVOKE_LEGACY_O,
+                LegacyMatchAutomaticPostSimulationRules.Operation.CLEAR_BOTH_CLUB_FLAGS,
             ),
-            result.postSimulation.orderedActions,
+            result.postSimulation.operations,
         )
     }
 
@@ -54,8 +54,8 @@ class LegacyMatchAutomaticFlowRulesTest {
         assertFalse(result.postSimulation.invokeLegacyO)
         assertEquals(0, p0Calls)
         assertEquals(
-            listOf(LegacyMatchAutomaticPostSimulationRules.OrderedAction.CLEAR_BOTH_CLUB_FLAGS),
-            result.postSimulation.orderedActions,
+            listOf(LegacyMatchAutomaticPostSimulationRules.Operation.CLEAR_BOTH_CLUB_FLAGS),
+            result.postSimulation.operations,
         )
         assertEquals(listOf(3, 5), random.bounds)
         assertEquals(2L, random.draws)
