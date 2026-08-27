@@ -103,11 +103,11 @@ class LegacyMatchScheduleRulesTest {
                 trace += "first:$added"
                 trace += "first-rng:${random.nextInt(7)}"
             },
-            halftimeTransition = { trace += "halftime" },
+            halftimeTransition = { half, minute -> trace += "halftime:$half:$minute" },
             simulateSecondHalf = { added -> trace += "second:$added" },
         )
 
-        assertEquals(listOf("first:2", "first-rng:6", "halftime", "second:5"), trace)
+        assertEquals(listOf("first:2", "first-rng:6", "halftime:2:0", "second:5"), trace)
         assertEquals(listOf(3, 7, 5), random.bounds)
         assertEquals(3L, random.draws)
     }
@@ -120,13 +120,14 @@ class LegacyMatchScheduleRulesTest {
         LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
             random = random,
             simulateFirstHalf = { added -> trace += "first:$added" },
-            halftimeTransition = {
+            halftimeTransition = { half, minute ->
+                trace += "halftime:$half:$minute"
                 trace += "halftime-rng:${random.nextInt(9)}"
             },
             simulateSecondHalf = { added -> trace += "second:$added" },
         )
 
-        assertEquals(listOf("first:1", "halftime-rng:8", "second:4"), trace)
+        assertEquals(listOf("first:1", "halftime:2:0", "halftime-rng:8", "second:4"), trace)
         assertEquals(listOf(3, 9, 5), random.bounds)
         assertEquals(3L, random.draws)
     }
