@@ -89,7 +89,10 @@ class LegacyMatchGoalPlayerSelectionRulesTest {
     fun `empty primary list still consumes one nextDouble and returns null`() {
         val random = DoubleQueueRandomSource(0.25)
 
-        val selected = LegacyMatchGoalPlayerSelectionRules.selectPrimary(emptyList(), random)
+        val selected = LegacyMatchGoalPlayerSelectionRules.selectPrimary(
+            emptyList<LegacyMatchGoalPlayerSelectionRules.Player<String>>(),
+            random,
+        )
 
         assertNull(selected)
         assertEquals(1L, random.draws)
@@ -138,7 +141,10 @@ class LegacyMatchGoalPlayerSelectionRulesTest {
     fun `empty own goal list consumes one nextDouble and returns null`() {
         val random = DoubleQueueRandomSource(0.5)
 
-        val selected = LegacyMatchGoalPlayerSelectionRules.selectOwnGoalAuthor(emptyList(), random)
+        val selected = LegacyMatchGoalPlayerSelectionRules.selectOwnGoalAuthor(
+            emptyList<LegacyMatchGoalPlayerSelectionRules.Player<String>>(),
+            random,
+        )
 
         assertNull(selected)
         assertEquals(1L, random.draws)
