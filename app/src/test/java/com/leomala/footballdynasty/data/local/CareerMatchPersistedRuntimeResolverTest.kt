@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchPersistedRuntimeResolverTest {
     @Test
-    fun `persisted roster resolves canonical and procedural players and hydrates proven overall plus explicit transient evidence`() = runBlocking {
+    fun `persisted roster resolves players and derives proven match fields without transient guesses`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
@@ -45,7 +45,7 @@ class CareerMatchPersistedRuntimeResolverTest {
                 country = 7,
                 position = 4,
                 status = 2,
-                side = 1,
+                side = 2,
                 cr1 = 11,
                 cr2 = 12,
             )
@@ -83,14 +83,23 @@ class CareerMatchPersistedRuntimeResolverTest {
             ),
         )
 
+        val home = state.home.active.single()
         assertEquals(9, state.currentSeasonId)
-        assertEquals("canonical-home", state.home.active.single().value.playerId)
-        assertEquals(24, state.home.active.single().age)
-        assertEquals(88, state.home.active.single().skill)
-        assertEquals(47, state.home.active.single().energy)
-        assertEquals(18, state.home.active.single().legacyG0)
-        assertEquals(73, state.away.active.single().skill)
+        assertEquals("canonical-home", home.value.playerId)
+        assertEquals(24, home.age)
+        assertEquals(88, home.skill)
+        assertEquals(47, home.energy)
+        assertEquals(18, home.legacyG0)
+        assertEquals(3, home.legacyL0)
+        assertEquals(0, home.legacyF0)
+        assertEquals(1, home.legacyR)
         assertEquals(101, state.home.legacyClubId)
+
+        val away = state.away.active.single()
+        assertEquals(73, away.skill)
+        assertEquals(4, away.legacyL0)
+        assertEquals(1, away.legacyF0)
+        assertEquals(1, away.legacyR)
         assertEquals(202, state.away.legacyClubId)
         assertTrue(state.away.legacyModeFlag)
 
@@ -156,9 +165,6 @@ class CareerMatchPersistedRuntimeResolverTest {
     ) = CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence(
         playerId = playerId,
         legacyG0 = legacyG0,
-        legacyL0 = 1,
-        legacyF0 = 1,
-        legacyR = 0,
         energy = energy,
     )
 
