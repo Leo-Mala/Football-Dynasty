@@ -124,6 +124,9 @@ jobs:
               'LegacyMatchJRulesTest': None,
               'LegacyMatchP0RulesTest': None,
               'LegacyMatchGoalEventRulesTest': None,
+              'LegacyMatchEventRecordTest': None,
+              'LegacyMatchEventTypeTest': None,
+              'LegacyMatchScoreRulesTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
@@ -195,6 +198,9 @@ jobs:
           echo "Legacy best.s.j second-half transition scheduling characterization: PASS"
           echo "Legacy best.s.P0 resolution-order characterization: PASS"
           echo "Legacy components.r3 goal subtype characterization: PASS"
+          echo "Legacy best.l field/default mapping: PASS"
+          echo "Legacy best.l event type mapping: PASS"
+          echo "Legacy match score reconstruction: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
