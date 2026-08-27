@@ -10,12 +10,12 @@ import com.leomala.footballdynasty.domain.match.LegacyPlayerClubSeasonStatsRules
  * Evidence-preserving Phase 9 boundary between career persistence and the certified Phase 8 match
  * runtime.
  *
- * Room is authoritative here only for facts that are actually persisted: career/club/player
- * identity, career-local squad ownership, age and the legacy `best.o.j` value exposed by `O()` as
- * career overall, plus the canonical/procedural static player facts. Proven derived match inputs
- * (`l0`, normalized `f0`, and `R`) are reconstructed exactly from those persisted facts. Genuinely
- * match-only or not-yet-persisted state (`g0`, energy and current disciplinary/stat counters) is
- * supplied by [TransientPlayerEvidence] instead of being inferred.
+ * Room is authoritative here for the career/player state already proven serializable in the legacy
+ * graph: identity, squad ownership, age, overall (`best.o.j/O()`), energy (`best.o.L/N()`), injury
+ * deadline (`best.o.J/F()`), season id and player x club x season counters (`best.o.U` / `best.e`).
+ * `l0`, normalized `f0`, and `R` are reconstructed exactly from persisted facts. `g0` remains an
+ * explicit lineup-state input because its producer belongs to the later lineup/tactics boundary.
+ * The `n2` disciplinary counters remain transient match state as in the legacy class.
  */
 class CareerMatchPersistedRuntimeResolver(
     private val database: FootballDynastyDatabase,
@@ -35,10 +35,13 @@ class CareerMatchPersistedRuntimeResolver(
         val sourceType: String,
         val age: Int,
         val overall: Int,
+        val energy: Int,
+        val injuryUntilEpochDay: Long,
         val legacyHash: Int,
         val rosterKind: String,
         val sourceOrdinal: Int,
         val facts: StaticPlayerFacts,
+        val clubSeasonStats: List<LegacyPlayerClubSeasonStatsRules.Entry>,
     )
 
     data class PersistedClubRoster(
@@ -49,6 +52,7 @@ class CareerMatchPersistedRuntimeResolver(
 
     data class PersistedMatchRoster(
         val careerId: String,
+        val currentSeasonId: Int,
         val scheduled: ScheduledCareerMatch,
         val home: PersistedClubRoster,
         val away: PersistedClubRoster,
@@ -71,6 +75,9 @@ class CareerMatchPersistedRuntimeResolver(
             requireNotNull(database.careerMetadataDao().findById(careerId)) {
                 "Missing career metadata for $careerId"
             }
+            val core = requireNotNull(database.careerCoreStateDao().findById(careerId)) {
+                "Missing career core state for $careerId"
+            }
             val homeClub = requireNotNull(database.clubDao().findById(scheduled.homeClubId)) {
                 "Missing scheduled home club ${scheduled.homeClubId}"
             }
@@ -82,6 +89,7 @@ class CareerMatchPersistedRuntimeResolver(
             val runtimes = dao.runtimeForCareer(careerId).associateBy { it.playerId }
             val procedural = dao.proceduralPlayersForCareer(careerId).associateBy { it.playerId }
             val memberships = dao.membershipsForCareer(careerId)
+            val statsByPlayer = dao.clubSeasonStatsForCareer(careerId).groupBy { it.playerId }
 
             suspend fun resolveClub(clubId: String, legacyClubId: Int): PersistedClubRoster {
                 val orderedMemberships = memberships
@@ -139,10 +147,24 @@ class CareerMatchPersistedRuntimeResolver(
                         sourceType = runtime.sourceType,
                         age = runtime.age,
                         overall = runtime.overall,
+                        energy = runtime.energy,
+                        injuryUntilEpochDay = runtime.injuryUntilEpochDay,
                         legacyHash = runtime.legacyHash,
                         rosterKind = membership.rosterKind,
                         sourceOrdinal = membership.sourceOrdinal,
                         facts = facts,
+                        clubSeasonStats = statsByPlayer[membership.playerId].orEmpty().map { entry ->
+                            LegacyPlayerClubSeasonStatsRules.Entry(
+                                legacySeasonId = entry.legacySeasonId,
+                                legacyClubId = entry.legacyClubId,
+                                legacyC = entry.legacyC,
+                                legacyD = entry.legacyD,
+                                legacyE = entry.legacyE,
+                                legacyF = entry.legacyF,
+                                legacyG = entry.legacyG,
+                                legacyH = entry.legacyH,
+                            )
+                        },
                     )
                 }
                 return PersistedClubRoster(clubId, legacyClubId, players)
@@ -150,6 +172,7 @@ class CareerMatchPersistedRuntimeResolver(
 
             PersistedMatchRoster(
                 careerId = careerId,
+                currentSeasonId = core.seasonNumber,
                 scheduled = scheduled,
                 home = resolveClub(homeClub.id, homeClub.legacyId),
                 away = resolveClub(awayClub.id, awayClub.legacyId),
@@ -160,12 +183,10 @@ class CareerMatchPersistedRuntimeResolver(
     data class TransientPlayerEvidence(
         val playerId: String,
         val legacyG0: Int,
-        val energy: Int,
         val legacyYellowCount: Int = 0,
         val legacyStatM: Int = 0,
         val legacyStatN: Int = 0,
         val selectedOrUsed: Boolean = false,
-        val clubSeasonStats: List<LegacyPlayerClubSeasonStatsRules.Entry>? = emptyList(),
     )
 
     data class TransientClubEvidence(
@@ -176,19 +197,15 @@ class CareerMatchPersistedRuntimeResolver(
     )
 
     data class TransientMatchEvidence(
-        val currentSeasonId: Int,
         val home: TransientClubEvidence,
         val away: TransientClubEvidence,
     )
 
     /**
-     * Builds the certified Phase 8 transient state without guessing any legacy field.
-     * Persisted age, overall and static facts are retained from [roster]; `l0`, `f0` and `R` are
-     * derived by [LegacyMatchPersistedPlayerRules], and only genuinely unresolved/non-persisted
-     * inputs are carried by [evidence]. Unselected squad members do not need evidence entries.
-     *
-     * The Phase 8 injury `skill` is initialized from persisted [PersistedPlayer.overall] because the
-     * official Java+SMALI proves both `best.o.O()` and `best.o.m(c0)` read/mutate the same field `j`.
+     * Builds the certified Phase 8 transient state without guessing unresolved lineup state.
+     * Persisted age, overall, energy and `best.e` counters are retained from [roster]; `l0`, `f0`
+     * and `R` are derived by [LegacyMatchPersistedPlayerRules]. Only `g0` and transient `n2` state
+     * are carried by [evidence]. Unselected squad members do not need evidence entries.
      */
     fun hydratePhase8State(
         roster: PersistedMatchRoster,
@@ -220,13 +237,13 @@ class CareerMatchPersistedRuntimeResolver(
                         cr2 = facts.cr2,
                     ),
                     age = player.age,
-                    energy = seed.energy,
+                    energy = player.energy,
                     skill = player.overall,
                     legacyYellowCount = seed.legacyYellowCount,
                     legacyStatM = seed.legacyStatM,
                     legacyStatN = seed.legacyStatN,
                     selectedOrUsed = seed.selectedOrUsed,
-                    clubSeasonStats = seed.clubSeasonStats,
+                    clubSeasonStats = player.clubSeasonStats,
                 )
             }
 
@@ -241,7 +258,7 @@ class CareerMatchPersistedRuntimeResolver(
         }
 
         return LegacyMatchTransientRuntime.State(
-            currentSeasonId = evidence.currentSeasonId,
+            currentSeasonId = roster.currentSeasonId,
             home = hydrateClub(roster.home, evidence.home),
             away = hydrateClub(roster.away, evidence.away),
         )
