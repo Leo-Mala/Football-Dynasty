@@ -92,6 +92,26 @@ class LegacyMatchScheduleRulesTest {
         assertEquals(2L, random.draws)
     }
 
+    @Test
+    fun `Q0 structural flow keeps halftime and first-half RNG between added-time draws`() {
+        val random = ExactQueueRandomSource(2, 6, 4)
+        val trace = mutableListOf<String>()
+
+        LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
+            random = random,
+            simulateFirstHalf = { added ->
+                trace += "first:$added"
+                trace += "first-rng:${random.nextInt(7)}"
+            },
+            halftimeTransition = { trace += "halftime" },
+            simulateSecondHalf = { added -> trace += "second:$added" },
+        )
+
+        assertEquals(listOf("first:2", "first-rng:6", "halftime", "second:5"), trace)
+        assertEquals(listOf(3, 7, 5), random.bounds)
+        assertEquals(3L, random.draws)
+    }
+
     private class BoundAwareRandomSource(
         private val defaultValue: Int,
         private val valuesFor100: MutableList<Int> = mutableListOf(),
