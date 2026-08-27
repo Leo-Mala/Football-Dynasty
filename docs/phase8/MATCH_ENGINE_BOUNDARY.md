@@ -10,7 +10,7 @@ Source of truth: `Brasfoot.apk_Decompiler.com.zip`, SHA-256 `3eb5622ba9b5953a1bc
 
 The two added-time draws are now materialized as separate deterministic rules in `LegacyMatchScheduleRules`: first half `0..2` from bound `3`, second half `1..5` from bound `5` plus one. They deliberately remain separate because the per-minute simulation consumes RNG between those sites; pre-drawing both would change legacy draw order. Full Q0 minute-loop boundaries remain an evidence gate and are not inferred here.
 
-The proven Q0 landmark order is also materialized without inventing those minute boundaries: first-half added-time draw -> first-half simulation callback -> halftime transition callback -> second-half added-time draw -> second-half simulation callback. The callbacks intentionally own the still-unrecovered minute ranges. Characterization now verifies RNG consumed both by the first-half simulation and by the halftime-transition callback remains before the legacy bound-5 draw, preserving the exact interleaving implied by Q0 control flow.
+The proven Q0 landmark order is also materialized without inventing those minute boundaries: first-half added-time draw -> first-half simulation callback -> halftime transition callback -> second-half added-time draw -> second-half simulation callback. The halftime callback now receives the exact proven legacy arguments `(2, 0)`, matching `j(2, 0)` instead of hiding them behind a parameterless transition. The callbacks intentionally own the still-unrecovered minute ranges. Characterization verifies RNG consumed both by the first-half simulation and by the halftime-transition callback remains before the legacy bound-5 draw, preserving the exact interleaving implied by Q0 control flow.
 
 ## Direct per-minute RNG in `best.s.k`
 
@@ -41,6 +41,6 @@ Every seventh minute invokes player-state refresh before these event gates; the 
 
 Direct triggers can reach selectors `S/T/U/V/W`. Their direct bounds are respectively 100, 500, 200 and 1000 before positional filtering; `W` uses `Collections.shuffle`. Additional incomplete Java methods (`j`, `r`, `r0`, `p`, `n0`, `P0`, `Q0`) require SMALI reconstruction.
 
-`j`, `r` and `r0` now have characterized modern structural rules on this branch; `Q0` has its added-time draws and proven landmark ordering materialized, but not its concrete minute-loop boundaries. The remaining Q0 loop boundaries and the still-open `p`, `n0` and `P0` paths must be recovered from SMALI before production semantics are extended.
+`j`, `r` and `r0` now have characterized modern structural rules on this branch; `Q0` has its added-time draws, exact halftime `j(2, 0)` arguments and proven landmark ordering materialized, but not its concrete minute-loop boundaries. The remaining Q0 loop boundaries and the still-open `p`, `n0` and `P0` paths must be recovered from SMALI before production semantics are extended.
 
 The first modern rule therefore returns neutral labels `LEGACY_C`, `LEGACY_D`, `LEGACY_TYPE_5` and `SECOND_HALF_J`; it does not assign unsupported sporting semantics.
