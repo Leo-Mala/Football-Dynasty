@@ -87,12 +87,40 @@ At that site the event type is explicitly set to `1`. `best.l` rendering and the
 
 Downstream author/secondary-player replacement is still handled by additional `r3.f` helpers and remains a separate characterization boundary; the direct subtype rule does not invent those selections.
 
+## Reachable injury application (`best.o.m`)
+
+Event type `5` reaches the player injury routine through `best.s.a(...)`. Decompiled Java and SMALI agree on the observable control flow represented by `LegacyMatchInjuryRules`.
+
+The routine always consumes three RNG draws in this exact order:
+
+1. `nextInt(14)` for the base duration;
+2. `nextInt(20) + 5` for the older-age duration component;
+3. `nextInt(100)` for the rare severity extension.
+
+The bound-20 draw is consumed even when age `<= 20`, where its value does not participate in the duration. Energy modifies duration with strict thresholds: `<10 -> +5`, `<50 -> +1`, otherwise `+0`.
+
+Age buckets are preserved exactly:
+
+- `<=20`: base only;
+- `21..25`: energy modifier + base + 1;
+- `26..30`: energy modifier + base + 2;
+- `31..35`: energy modifier + base + 3;
+- `36..40`: energy modifier + base + older-age component;
+- `41..45`: the same older-age formula;
+- `>45`: energy modifier + base + 10 + older-age component.
+
+For age `>=35`, the legacy routine decreases the proven skill value by 5. The clamp is intentionally peculiar: only a result `<0` is replaced with `1`; exactly zero remains zero.
+
+The severity draw then adds `+70` only at value `1`; values `0`, `2`, `3` add `+40`; values `4..9` add `+20`; values `>=10` add nothing. The legacy injury-until timestamp is updated only when the final duration is positive. The pure modern rule exposes `durationDays`, updated skill, whether an injury-until value should be written, and event type `INJURY`; the timestamp write and surrounding match-state mutation remain an integration boundary rather than performing time/I/O work in the pure rule.
+
+The same caller also proves the next reachable state transition: after `player.m(club)`, the injured player can be removed from the active match list and, when legacy conditions allow, the substitution path `best.s.p1(...) -> best.s.o1(...)` is entered. That list/substitution mutation is the next reconstruction boundary.
+
 ## Reachability boundary for `p` / `n0`
 
 Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(Lbest/s;)I` has one caller, and that caller is `p` itself. Under `AGENTS.md`, method existence alone does not justify adding a gameplay path, so these methods remain evidence-only unless later reachability evidence appears.
 
 ## Remaining downstream work
 
-`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition and the direct goal-subtype draw are characterized on this branch.
+`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition, direct goal-subtype draw, `best.l` event-type/score mapping, disciplinary routing and the pure injury duration/RNG path are characterized on this branch.
 
-The next reachable boundary remains the rest of `components.r3.K()` / `best.l` materialization: event object field mapping, author/secondary-player selection, score/stat counters, disciplinary/injury/substitution events and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
+The next reachable boundary is injury/disciplinary removal and substitution through `best.s.p1(...)` / `best.s.o1(...)`, followed by the remaining proven author/secondary-player selections, match stat counters and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
