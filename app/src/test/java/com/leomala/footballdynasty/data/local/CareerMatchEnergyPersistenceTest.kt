@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchEnergyPersistenceTest {
     @Test
-    fun `resolved match commits player energy with score calendar and rng`() = runBlocking {
+    fun `resolved match commits proven player runtime with score calendar and rng`() = runBlocking {
         val database = database()
         seedCareer(database, includeOtherClubPlayer = false)
         val initial = CareerStateFactory.create("career-energy", 12345L)
@@ -39,10 +39,22 @@ class CareerMatchEnergyPersistenceTest {
         }
         store.commitMatch(
             resolved,
-            playerEnergyUpdates = listOf(CareerMatchPlayerEnergyUpdate("home-player", 42)),
+            playerRuntimeUpdates = listOf(
+                CareerMatchPlayerRuntimeUpdate(
+                    playerId = "home-player",
+                    energy = 42,
+                    overall = 75,
+                    injuryUntilEpochDay = 123L,
+                )
+            ),
         )
 
-        assertEquals(42, database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")?.energy)
+        val runtime = requireNotNull(
+            database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")
+        )
+        assertEquals(42, runtime.energy)
+        assertEquals(75, runtime.overall)
+        assertEquals(123L, runtime.injuryUntilEpochDay)
         assertEquals(resolved.match, store.findResult("career-energy", "m1"))
         assertEquals(
             resolved.state,
@@ -53,7 +65,7 @@ class CareerMatchEnergyPersistenceTest {
     }
 
     @Test
-    fun `invalid non match player rolls back prior energy score calendar and rng writes`() = runBlocking {
+    fun `invalid non match player rolls back prior player score calendar and rng writes`() = runBlocking {
         val database = database()
         seedCareer(database, includeOtherClubPlayer = true)
         val initial = CareerStateFactory.create("career-energy", 98765L)
@@ -67,15 +79,20 @@ class CareerMatchEnergyPersistenceTest {
         val error = runCatching {
             store.commitMatch(
                 resolved,
-                playerEnergyUpdates = listOf(
-                    CareerMatchPlayerEnergyUpdate("home-player", 42),
-                    CareerMatchPlayerEnergyUpdate("other-player", 30),
+                playerRuntimeUpdates = listOf(
+                    CareerMatchPlayerRuntimeUpdate("home-player", 42, 75, 123L),
+                    CareerMatchPlayerRuntimeUpdate("other-player", 30, 70, 456L),
                 ),
             )
         }.exceptionOrNull()
 
         assertTrue(error is IllegalArgumentException)
-        assertEquals(100, database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")?.energy)
+        val runtime = requireNotNull(
+            database.careerPlayerRuntimeDao().findRuntime("career-energy", "home-player")
+        )
+        assertEquals(100, runtime.energy)
+        assertEquals(80, runtime.overall)
+        assertEquals(0L, runtime.injuryUntilEpochDay)
         assertNull(store.findResult("career-energy", "m1"))
         assertEquals(initial, RoomCareerStateRepository(database).findById("career-energy"))
         database.close()
