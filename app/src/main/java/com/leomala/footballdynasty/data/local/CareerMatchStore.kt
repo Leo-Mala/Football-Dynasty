@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.data.local
 
 import androidx.room.withTransaction
+import com.leomala.footballdynasty.data.local.entity.CareerPlayerClubSeasonStatEntity
 import com.leomala.footballdynasty.data.local.entity.CareerScheduledMatchEntity
 import com.leomala.footballdynasty.domain.career.CareerIntegrityValidator
 import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeResult
@@ -19,10 +20,10 @@ data class CareerMatchPlayerRuntimeUpdate(
 /**
  * Atomic Room boundary for Phase 9 scheduled-match + career RNG/calendar persistence.
  *
- * Player-runtime updates contain only already-proven persisted legacy match state: energy, the same
- * skill/overall field mutated by injury, and the injury-until day. Updates are accepted only for
- * career-local players owned by one of the two clubs in the resolved scheduled match. Competition
- * tables, standings and round-generation semantics remain Phase 10 concerns.
+ * Player-runtime and player-club-season updates contain only already-proven persisted legacy match
+ * state. They are accepted only for career-local players owned by one of the two clubs in the
+ * resolved scheduled match. Competition tables, standings and round-generation semantics remain
+ * Phase 10 concerns.
  */
 class CareerMatchStore(
     private val database: FootballDynastyDatabase,
@@ -56,15 +57,17 @@ class CareerMatchStore(
         return entity.toMatch()
     }
 
-    /** Commits post-match career state, score and proven player runtime effects in one transaction. */
+    /** Commits post-match career state, score and proven player effects in one transaction. */
     suspend fun commitMatch(
         result: CareerMatchRuntimeResult,
         playerRuntimeUpdates: List<CareerMatchPlayerRuntimeUpdate> = emptyList(),
+        playerClubSeasonStatUpdates: List<CareerMatchPlayerClubSeasonStatUpdate> = emptyList(),
     ) {
         CareerIntegrityValidator.validate(result.state)
         validateSchedule(result.state, result.schedule)
         validateResolvedMatch(result)
         validatePlayerRuntimeUpdates(playerRuntimeUpdates)
+        validatePlayerClubSeasonStatUpdates(playerClubSeasonStatUpdates)
 
         database.withTransaction {
             requireCareerOwner(result.state.id)
@@ -100,6 +103,7 @@ class CareerMatchStore(
                 )
             )
             persistPlayerRuntimeUpdates(result, playerRuntimeUpdates)
+            persistPlayerClubSeasonStatUpdates(result, playerClubSeasonStatUpdates)
         }
     }
 
@@ -108,16 +112,10 @@ class CareerMatchStore(
         updates: List<CareerMatchPlayerRuntimeUpdate>,
     ) {
         val playerDao = database.careerPlayerRuntimeDao()
-        val allowedClubIds = setOf(result.match.homeClubId, result.match.awayClubId)
         updates.forEach { update ->
+            requireMatchPlayer(result, update.playerId)
             val runtime = requireNotNull(playerDao.findRuntime(result.state.id, update.playerId)) {
                 "Missing career player runtime for match update ${update.playerId}"
-            }
-            val membership = requireNotNull(playerDao.findMembership(result.state.id, update.playerId)) {
-                "Missing career squad membership for match update ${update.playerId}"
-            }
-            require(membership.clubId in allowedClubIds) {
-                "Player ${update.playerId} does not belong to resolved match clubs"
             }
             playerDao.upsertRuntime(
                 runtime.copy(
@@ -126,6 +124,45 @@ class CareerMatchStore(
                     injuryUntilEpochDay = update.injuryUntilEpochDay,
                 )
             )
+        }
+    }
+
+    private suspend fun persistPlayerClubSeasonStatUpdates(
+        result: CareerMatchRuntimeResult,
+        updates: List<CareerMatchPlayerClubSeasonStatUpdate>,
+    ) {
+        val playerDao = database.careerPlayerRuntimeDao()
+        updates.forEach { update ->
+            requireMatchPlayer(result, update.playerId)
+            requireNotNull(playerDao.findRuntime(result.state.id, update.playerId)) {
+                "Missing career player runtime for club-season update ${update.playerId}"
+            }
+            playerDao.upsertClubSeasonStat(
+                CareerPlayerClubSeasonStatEntity(
+                    careerId = result.state.id,
+                    playerId = update.playerId,
+                    legacySeasonId = update.legacySeasonId,
+                    legacyClubId = update.legacyClubId,
+                    legacyC = update.legacyC,
+                    legacyD = update.legacyD,
+                    legacyE = update.legacyE,
+                    legacyF = update.legacyF,
+                    legacyG = update.legacyG,
+                    legacyH = update.legacyH,
+                )
+            )
+        }
+    }
+
+    private suspend fun requireMatchPlayer(result: CareerMatchRuntimeResult, playerId: String) {
+        val membership = requireNotNull(
+            database.careerPlayerRuntimeDao().findMembership(result.state.id, playerId)
+        ) {
+            "Missing career squad membership for match update $playerId"
+        }
+        val allowedClubIds = setOf(result.match.homeClubId, result.match.awayClubId)
+        require(membership.clubId in allowedClubIds) {
+            "Player $playerId does not belong to resolved match clubs"
         }
     }
 
@@ -168,6 +205,22 @@ class CareerMatchStore(
             require(update.injuryUntilEpochDay >= 0L) {
                 "Match injury deadline must not be negative for ${update.playerId}"
             }
+        }
+    }
+
+    private fun validatePlayerClubSeasonStatUpdates(updates: List<CareerMatchPlayerClubSeasonStatUpdate>) {
+        val keys = updates.map { Triple(it.playerId, it.legacySeasonId, it.legacyClubId) }
+        require(keys.distinct().size == keys.size) { "Match club-season stat update keys must be unique" }
+        updates.forEach { update ->
+            require(update.playerId.isNotBlank()) { "Match club-season player id must not be blank" }
+            require(update.legacySeasonId >= 0) { "Legacy season id must not be negative" }
+            require(update.legacyClubId >= 0) { "Legacy club id must not be negative" }
+            require(
+                listOf(
+                    update.legacyC, update.legacyD, update.legacyE,
+                    update.legacyF, update.legacyG, update.legacyH,
+                ).all { it >= 0 }
+            ) { "Legacy player club-season counters must not be negative" }
         }
     }
 
