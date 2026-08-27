@@ -9,7 +9,7 @@ class LegacyFixedLeagueFixtureRulesTest {
     fun `best j g three-club matrix fingerprint is exact`() {
         val rounds = LegacyFixedLeagueFixtureRules.legacyGThreeClubs(ids(3))
         assertEquals(6, rounds.size)
-        assertEquals(1, rounds.single().size)
+        assertEquals(1, rounds.first().size)
         assertEquals(
             "9b1ce217354a02b719edf6d5c9fecda180e0464a3d79d8a35dca6f781e9d0b20",
             fingerprint(rounds),
