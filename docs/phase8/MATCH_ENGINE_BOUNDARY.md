@@ -68,12 +68,31 @@ The method contains no RNG. Its exact decision order is now represented by `Lega
 
 No sporting label is assigned to the third criterion until further evidence proves its exact user-facing meaning.
 
+## Reachable `best.l` goal materialization
+
+The automatic and accompanied match paths both reach `components.r3.K()`. Its successful event branch reaches `components.r3.b()/c()`, which creates `best.l` and calls `components.r3.f(...)`.
+
+At that site the event type is explicitly set to `1`. `best.l` rendering and the bundled strings prove type `1` is a goal event. The direct subtype RNG is exactly one `nextInt(1000)` draw:
+
+| Draw | Legacy subtype | Proven UI meaning |
+|---:|---:|---|
+| `0..899` | 1 | normal goal |
+| `900..949` | 3 | penalty goal |
+| `950..979` | 4 | free-kick goal |
+| `980..989` | 2 | own goal |
+| `990..994` | 5 | corner/olímpico goal |
+| `995..999` | 1 | normal goal |
+
+`LegacyMatchGoalEventRules` preserves this direct draw with `RandomSource`. A proven quirk is also retained: subtype `5` falls back to subtype `1` when the currently selected player's legacy `l0` value is zero; a null player does not trigger that fallback at this point.
+
+Downstream author/secondary-player replacement is still handled by additional `r3.f` helpers and remains a separate characterization boundary; the direct subtype rule does not invent those selections.
+
 ## Reachability boundary for `p` / `n0`
 
 Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(Lbest/s;)I` has one caller, and that caller is `p` itself. Under `AGENTS.md`, method existence alone does not justify adding a gameplay path, so these methods remain evidence-only unless later reachability evidence appears.
 
 ## Remaining downstream work
 
-`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries and halftime transition are characterized on this branch.
+`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition and the direct goal-subtype draw are characterized on this branch.
 
-The next reachable boundary is event production/materialization through `components.r3.K()` and `best.l`, followed by the proven score/player/club mutations and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
+The next reachable boundary remains the rest of `components.r3.K()` / `best.l` materialization: event object field mapping, author/secondary-player selection, score/stat counters, disciplinary/injury/substitution events and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
