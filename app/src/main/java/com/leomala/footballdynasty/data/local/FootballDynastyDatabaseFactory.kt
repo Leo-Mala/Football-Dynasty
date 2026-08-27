@@ -121,7 +121,43 @@ object FootballDynastyMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `career_scheduled_matches` (
+                    `careerId` TEXT NOT NULL,
+                    `matchId` TEXT NOT NULL,
+                    `dayIndex` INTEGER NOT NULL,
+                    `eventTypeCode` INTEGER NOT NULL,
+                    `homeClubId` TEXT NOT NULL,
+                    `awayClubId` TEXT NOT NULL,
+                    `processed` INTEGER NOT NULL,
+                    `homeGoals` INTEGER,
+                    `awayGoals` INTEGER,
+                    PRIMARY KEY(`careerId`, `matchId`),
+                    FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`homeClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION,
+                    FOREIGN KEY(`awayClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_careerId_dayIndex` " +
+                    "ON `career_scheduled_matches` (`careerId`, `dayIndex`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_homeClubId` " +
+                    "ON `career_scheduled_matches` (`homeClubId`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_awayClubId` " +
+                    "ON `career_scheduled_matches` (`awayClubId`)"
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }
 
 object FootballDynastyDatabaseFactory {
