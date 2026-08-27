@@ -26,8 +26,11 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchEnergyPersistenceTest {
     @Test
-    fun `resolved match commits proven player effects with score calendar and rng`() = runBlocking {
-        val database = database()
+    fun `resolved match proven player effects survive database reopen with score calendar and rng`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val name = "phase9-player-effects-reopen"
+        context.deleteDatabase(name)
+        var database = fileDatabase(context, name)
         seedCareer(database, includeOtherClubPlayer = false)
         val initial = CareerStateFactory.create("career-energy", 12345L)
         val schedule = schedule(initial.calendar.currentDayIndex)
@@ -61,7 +64,10 @@ class CareerMatchEnergyPersistenceTest {
                 )
             ),
         )
+        database.close()
 
+        database = fileDatabase(context, name)
+        val reopenedStore = CareerMatchStore(database)
         val dao = database.careerPlayerRuntimeDao()
         val runtime = requireNotNull(dao.findRuntime("career-energy", "home-player"))
         assertEquals(42, runtime.energy)
@@ -71,18 +77,20 @@ class CareerMatchEnergyPersistenceTest {
         assertEquals(1, stats.legacySeasonId)
         assertEquals(101, stats.legacyClubId)
         assertEquals(6, stats.legacyH)
-        assertEquals(resolved.match, store.findResult("career-energy", "m1"))
+        assertEquals(resolved.match, reopenedStore.findResult("career-energy", "m1"))
         assertEquals(
             resolved.state,
             RoomCareerStateRepository(database).findById("career-energy"),
         )
+
         database.close()
+        context.deleteDatabase(name)
         Unit
     }
 
     @Test
     fun `invalid non match effect rolls back player stats score calendar and rng writes`() = runBlocking {
-        val database = database()
+        val database = inMemoryDatabase()
         seedCareer(database, includeOtherClubPlayer = true)
         val initial = CareerStateFactory.create("career-energy", 98765L)
         val schedule = schedule(initial.calendar.currentDayIndex)
@@ -122,12 +130,18 @@ class CareerMatchEnergyPersistenceTest {
         Unit
     }
 
-    private fun database(): FootballDynastyDatabase {
+    private fun inMemoryDatabase(): FootballDynastyDatabase {
         val context = ApplicationProvider.getApplicationContext<Context>()
         return Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
             .build()
     }
+
+    private fun fileDatabase(context: Context, name: String): FootballDynastyDatabase =
+        Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
+            .allowMainThreadQueries()
+            .addMigrations(*FootballDynastyMigrations.ALL)
+            .build()
 
     private suspend fun seedCareer(
         database: FootballDynastyDatabase,
