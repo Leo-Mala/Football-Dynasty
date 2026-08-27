@@ -22,6 +22,8 @@ The branch has characterization coverage for:
 - direct per-minute RNG tree and exact bounds in `best.s.k(...)`;
 - `S/T/U/V/W` player selectors and explicit deterministic shuffle behavior;
 - `Q0()` added-time pre-draw order and exact minute-loop boundaries;
+- pure automatic `Q0()` orchestration through both half loops, including exact `k -> K -> event stamp/append` ordering and `j(2, 0)` halftime transition;
+- post-loop `Q0()` short-circuit routing for `Z && a0 && P0()`, with optional `o()` routing before the aggregate two-club flag clear and without inventing the internal effects of `o()`;
 - second-half / transition paths `j`, `r`, `r0`;
 - reachable `P0()` resolution ordering;
 - `best.l` event fields, event types and score reconstruction;
@@ -34,6 +36,7 @@ The branch has characterization coverage for:
 - metrics `components.r3.y/u/z`;
 - decision layer `components.r3.J/I`;
 - advance/short-circuit routing `components.r3.K`;
+- composed shared-RNG `J -> I -> K` ordering and reusable pure one-step orchestration;
 - percentage update `components.r3.a(side)` including the Java-vs-bytecode float-division correction;
 - injury duration/RNG and age/energy effects in `best.o.m`;
 - substitution selection and mutation ordering in `best.s.p1/o1`.
@@ -50,8 +53,8 @@ Corpus reachability work established that `best.s.p(Lbest/s;Z)[I` has no callers
 2. keep `MATCH_ENGINE_BOUNDARY.md` and `R3_RECOVERED_CHAIN.md` synchronized with behavior already represented by code/tests;
 3. use authoritative legacy evidence to close any remaining reachable `components.r3.b()/c()` routing details not already captured by goal materialization;
 4. characterize remaining event-driven player/club state effects only when their callers and ordering are proven;
-5. characterize required post-match side effects for automatic and accompanied paths;
-6. integrate the proven pure-engine result into calendar/career flow only after the needed engine boundary is closed;
+5. characterize the internal effects of automatic-path `o()` and any remaining required post-match side effects for automatic/accompanied paths only from authoritative evidence;
+6. integrate the proven pure-engine plans into a modern match runtime and then calendar/career flow only after the required mutation/application boundaries are closed;
 7. alter Room only if a newly proven persistent state cannot be represented by the current schema;
 8. freeze a FINAL_HEAD and run final exact-head audit before making the PR ready/mergeable for Phase 8 completion.
 
