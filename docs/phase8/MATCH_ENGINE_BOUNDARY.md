@@ -113,7 +113,37 @@ For age `>=35`, the legacy routine decreases the proven skill value by 5. The cl
 
 The severity draw then adds `+70` only at value `1`; values `0`, `2`, `3` add `+40`; values `4..9` add `+20`; values `>=10` add nothing. The legacy injury-until timestamp is updated only when the final duration is positive. The pure modern rule exposes `durationDays`, updated skill, whether an injury-until value should be written, and event type `INJURY`; the timestamp write and surrounding match-state mutation remain an integration boundary rather than performing time/I/O work in the pure rule.
 
-The same caller also proves the next reachable state transition: after `player.m(club)`, the injured player can be removed from the active match list and, when legacy conditions allow, the substitution path `best.s.p1(...) -> best.s.o1(...)` is entered. That list/substitution mutation is the next reconstruction boundary.
+The same caller also proves the next reachable state transition: after `player.m(club)`, the injured player can be removed from the active match list and, when legacy conditions allow, the substitution path `best.s.p1(...) -> best.s.o1(...)` is entered.
+
+## Reachable substitution selection and mutation (`best.s.p1` / `best.s.o1`)
+
+`LegacyMatchSubstitutionRules` now represents the proven selection and mutation plan without introducing a new substitution mechanic.
+
+When `p1` is asked to select the outgoing player automatically, it calls legacy `W(...)` in this exact fallback order:
+
+1. active players with `g0` in `18..25`;
+2. only if none, `14..17`;
+3. only if still none **and the original event player has `g0 == 1`**, `2..25`.
+
+Each `W` call filters, shuffles the eligible copy and returns its first item; the modern reconstruction reuses the explicit `RandomSource` shuffle. If automatic selection is disabled, the original event player itself is the outgoing player and no `W` RNG is consumed.
+
+The incoming player is not selected from the outgoing player's position. `p1` deliberately passes the **original event player's** `g0` and `l0` into `components.y3.e(...)`. That helper contains no RNG: it performs an ordered first-match scan using the legacy `j0.Z1` and `j0.c2` tables and the candidate `l0/f0/R` fields. Its intermediate values are intentionally mutable across the nested scan loops, matching bytecode rather than replacing the search with a simplified position lookup.
+
+When the final compatibility flag is enabled, `p1` aborts if the chosen outgoing player has nonzero `l0` while the selected incoming player has `l0 == 0`.
+
+`o1` then performs the valid-side mutation in this order:
+
+1. decrement that side's remaining substitution counter;
+2. set incoming `g0` to outgoing `g0`;
+3. if the original player's `g0 > 0`, overwrite incoming `g0` with that original value;
+4. remove outgoing from the active list;
+5. add incoming to the active list;
+6. add incoming to the side's used/replacement list;
+7. mark incoming with the legacy selected/used flag;
+8. remove incoming from the bench list;
+9. emit event type `6` (`SUBSTITUTION`) with outgoing and incoming players.
+
+A final integer argument passed by `p1` as `-1` or `5` is present in the `o1` signature but is never read by the bytecode. It remains explicitly documented as a dead legacy parameter rather than being assigned invented semantics.
 
 ## Reachability boundary for `p` / `n0`
 
@@ -121,6 +151,6 @@ Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(
 
 ## Remaining downstream work
 
-`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition, direct goal-subtype draw, `best.l` event-type/score mapping, disciplinary routing and the pure injury duration/RNG path are characterized on this branch.
+`j`, `r`, `r0`, `P0`, the Q0 added-time order, Q0 minute boundaries, halftime transition, direct goal-subtype draw, `best.l` event-type/score mapping, disciplinary routing, injury duration/RNG and substitution selection/mutation order are characterized on this branch.
 
-The next reachable boundary is injury/disciplinary removal and substitution through `best.s.p1(...)` / `best.s.o1(...)`, followed by the remaining proven author/secondary-player selections, match stat counters and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
+The next reachable boundaries are the remaining author/secondary-player selections inside `components.r3`, the match stat counters, event-driven player/club state application, and post-match side effects. Neutral names remain mandatory wherever the sporting semantics are not yet proven.
