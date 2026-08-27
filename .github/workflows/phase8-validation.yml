@@ -129,6 +129,7 @@ jobs:
               'LegacyMatchScoreRulesTest': None,
               'LegacyMatchDisciplinaryRulesTest': None,
               'LegacyMatchInjuryRulesTest': None,
+              'LegacyMatchSubstitutionRulesTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
               'Migration1To2Test': None,
               'Migration2To3Test': None,
@@ -205,6 +206,7 @@ jobs:
           echo "Legacy match score reconstruction: PASS"
           echo "Legacy best.s.c/d disciplinary routing: PASS"
           echo "Legacy best.o.m injury duration/RNG characterization: PASS"
+          echo "Legacy best.s.p1/o1 substitution selection/mutation characterization: PASS"
           echo "Phase 7 corpus/runtime regressions: PASS"
           echo "Room V3 migration policy: PASS"
           echo "Active Brasfoot 2026 fixture integrity: PASS"
