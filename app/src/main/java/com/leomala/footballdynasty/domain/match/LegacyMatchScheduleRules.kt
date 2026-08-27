@@ -27,6 +27,11 @@ object LegacyMatchScheduleRules {
         val auxiliary: List<List<Int>>,
     )
 
+    data class AutomaticFlowLandmarks(
+        val firstHalfAddedMinutes: Int,
+        val secondHalfAddedMinutes: Int,
+    )
+
     fun initialize(random: RandomSource, pools: Pools): Schedule {
         LegacyMatchRandomRules.shuffleInPlace(pools.coreMinutes, random)
         val bucketDraw = random.nextInt(100)
@@ -85,17 +90,24 @@ object LegacyMatchScheduleRules {
      * proven ordering: first added-time draw -> first-half simulation -> `j(2, 0)` halftime transition
      * -> second added-time draw -> second-half simulation. RNG consumed by either simulation callback
      * therefore remains between the two added-time draws exactly where the legacy method consumes it.
+     *
+     * The returned landmark values expose only the two already-proven added-time draws. They do not
+     * infer loop limits or event semantics and allow later engine integration without re-drawing RNG.
      */
     fun runAutomaticFlowLandmarks(
         random: RandomSource,
         simulateFirstHalf: (addedMinutes: Int) -> Unit,
         halftimeTransition: (half: Int, minute: Int) -> Unit,
         simulateSecondHalf: (addedMinutes: Int) -> Unit,
-    ) {
+    ): AutomaticFlowLandmarks {
         val firstHalfAdded = drawAutomaticFirstHalfAddedMinutes(random)
         simulateFirstHalf(firstHalfAdded)
         halftimeTransition(2, 0)
         val secondHalfAdded = drawAutomaticSecondHalfAddedMinutes(random)
         simulateSecondHalf(secondHalfAdded)
+        return AutomaticFlowLandmarks(
+            firstHalfAddedMinutes = firstHalfAdded,
+            secondHalfAddedMinutes = secondHalfAdded,
+        )
     }
 }
