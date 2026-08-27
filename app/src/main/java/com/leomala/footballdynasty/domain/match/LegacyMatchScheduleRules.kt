@@ -2,7 +2,7 @@ package com.leomala.footballdynasty.domain.match
 
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
-/** Structural parity for the schedule initialization performed by legacy `best.s.m()`. */
+/** Structural parity for legacy match scheduling recovered from `best.s.m()` and `best.s.Q0()`. */
 object LegacyMatchScheduleRules {
     data class Pools(
         val coreMinutes: MutableList<Int>,
@@ -66,4 +66,15 @@ object LegacyMatchScheduleRules {
             auxiliary = auxiliary.map { it.toList() },
         )
     }
+
+    /**
+     * Recovered `best.s.Q0()` first-half added-time draw.
+     *
+     * This remains separate from the second-half draw intentionally: Q0 performs minute simulation
+     * between them, so drawing both values up front would change the legacy RNG consumption order.
+     */
+    fun drawAutomaticFirstHalfAddedMinutes(random: RandomSource): Int = random.nextInt(3)
+
+    /** Recovered `best.s.Q0()` second-half added-time draw: the legacy range is 1..5 inclusive. */
+    fun drawAutomaticSecondHalfAddedMinutes(random: RandomSource): Int = random.nextInt(5) + 1
 }

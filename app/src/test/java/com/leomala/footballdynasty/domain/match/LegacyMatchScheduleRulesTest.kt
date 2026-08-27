@@ -57,6 +57,41 @@ class LegacyMatchScheduleRulesTest {
         org.junit.Assert.assertNotEquals(firstSchedule.core, secondSchedule.core)
     }
 
+    @Test
+    fun `Q0 first-half added time keeps exact zero-to-two range and bound`() {
+        val random = ExactQueueRandomSource(2)
+
+        val added = LegacyMatchScheduleRules.drawAutomaticFirstHalfAddedMinutes(random)
+
+        assertEquals(2, added)
+        assertEquals(listOf(3), random.bounds)
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `Q0 second-half added time keeps exact one-to-five range and bound`() {
+        val random = ExactQueueRandomSource(4)
+
+        val added = LegacyMatchScheduleRules.drawAutomaticSecondHalfAddedMinutes(random)
+
+        assertEquals(5, added)
+        assertEquals(listOf(5), random.bounds)
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `Q0 added-time helpers do not hide or combine the two RNG draws`() {
+        val random = ExactQueueRandomSource(0, 0)
+
+        val firstHalf = LegacyMatchScheduleRules.drawAutomaticFirstHalfAddedMinutes(random)
+        val secondHalf = LegacyMatchScheduleRules.drawAutomaticSecondHalfAddedMinutes(random)
+
+        assertEquals(0, firstHalf)
+        assertEquals(1, secondHalf)
+        assertEquals(listOf(3, 5), random.bounds)
+        assertEquals(2L, random.draws)
+    }
+
     private class BoundAwareRandomSource(
         private val defaultValue: Int,
         private val valuesFor100: MutableList<Int> = mutableListOf(),
@@ -67,6 +102,25 @@ class LegacyMatchScheduleRulesTest {
 
         override fun nextInt(bound: Int): Int {
             val value = if (bound == 100 && valuesFor100.isNotEmpty()) valuesFor100.removeAt(0) else defaultValue
+            require(value in 0 until bound) { "value=$value bound=$bound" }
+            bounds += bound
+            draws++
+            return value
+        }
+
+        override fun nextBoolean(): Boolean = error("not used")
+        override fun nextDouble(): Double = error("not used")
+    }
+
+    private class ExactQueueRandomSource(vararg values: Int) : RandomSource {
+        private val queue = values.toMutableList()
+        val bounds = mutableListOf<Int>()
+        override var draws: Long = 0
+            private set
+
+        override fun nextInt(bound: Int): Int {
+            check(queue.isNotEmpty()) { "No queued RNG value for bound=$bound" }
+            val value = queue.removeAt(0)
             require(value in 0 until bound) { "value=$value bound=$bound" }
             bounds += bound
             draws++

@@ -8,6 +8,8 @@ Source of truth: `Brasfoot.apk_Decompiler.com.zip`, SHA-256 `3eb5622ba9b5953a1bc
 
 `best.s.R0()` iterates queued matches and calls `best.s.Q0()`, which is a proven automatic-simulation entry point. SMALI shows `Q0()` drawing first-half added time with `nextInt(3)`, second-half added time with `nextInt(5)+1`, looping through both halves with `best.s.k(match, half, minute)`, and calling `j(2, 0)` at halftime.
 
+The two added-time draws are now materialized as separate deterministic rules in `LegacyMatchScheduleRules`: first half `0..2` from bound `3`, second half `1..5` from bound `5` plus one. They deliberately remain separate because the per-minute simulation consumes RNG between those sites; pre-drawing both would change legacy draw order. Full Q0 minute-loop boundaries remain an evidence gate and are not inferred here.
+
 ## Direct per-minute RNG in `best.s.k`
 
 The proven direct chain is:
@@ -36,5 +38,7 @@ Every seventh minute invokes player-state refresh before these event gates; the 
 ## Downstream RNG still open
 
 Direct triggers can reach selectors `S/T/U/V/W`. Their direct bounds are respectively 100, 500, 200 and 1000 before positional filtering; `W` uses `Collections.shuffle`. Additional incomplete Java methods (`j`, `r`, `r0`, `p`, `n0`, `P0`, `Q0`) require SMALI reconstruction.
+
+`j`, `r` and `r0` now have characterized modern structural rules on this branch; `Q0` has only its added-time draw fragment materialized so far. The remaining Q0 loop boundaries and the still-open `p`, `n0` and `P0` paths must be recovered from SMALI before production semantics are extended.
 
 The first modern rule therefore returns neutral labels `LEGACY_C`, `LEGACY_D`, `LEGACY_TYPE_5` and `SECOND_HALF_J`; it does not assign unsupported sporting semantics.
