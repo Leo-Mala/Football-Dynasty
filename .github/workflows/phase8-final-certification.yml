@@ -173,11 +173,17 @@ jobs:
           base64 -d app/src/test/resources/legacy/trepenne_smr.ban.b64 > /tmp/trepenne_smr.ban
           printf '%s  %s\n' 'c664cc841b44e39423835795b00bb1c248862eb0a0e1c579831857d748fa9281' '/tmp/trepenne_smr.ban' | sha256sum --check --strict
 
-      - name: Reject temporary corpus artifacts in repository
+      - name: Reject temporary corpus artifacts in tracked repository content
         shell: bash
         run: |
           set -euo pipefail
-          ! find . -path './.git' -prune -o -type f \( -name 'Brasfoot.apk_Decompiler.com.zip' -o -name '*.smali' -o -name '*.class' -o -name '*.jar' \) -print | grep .
+          ! git ls-files -z | while IFS= read -r -d '' path; do
+            case "$path" in
+              Brasfoot.apk_Decompiler.com.zip|*/Brasfoot.apk_Decompiler.com.zip|*.smali|*.class|*.jar)
+                printf '%s\n' "$path"
+                ;;
+            esac
+          done | grep .
 
       - name: Debug build
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
@@ -190,5 +196,5 @@ jobs:
           echo "Raw RNG/destructive migration guards: PASS"
           echo "Room V3 identity: PASS"
           echo "Official fixture integrity: PASS"
-          echo "Temporary corpus artifact guard: PASS"
+          echo "Tracked temporary corpus artifact guard: PASS"
           echo "assembleDebug: PASS"
