@@ -79,7 +79,7 @@ class LegacyMatchScheduleRulesTest {
     }
 
     @Test
-    fun `Q0 added-time helpers do not hide or combine the two RNG draws`() {
+    fun `Q0 added-time helpers preserve consecutive bound-three then bound-five draws`() {
         val random = ExactQueueRandomSource(0, 0)
 
         val firstHalf = LegacyMatchScheduleRules.drawAutomaticFirstHalfAddedMinutes(random)
@@ -92,8 +92,8 @@ class LegacyMatchScheduleRulesTest {
     }
 
     @Test
-    fun `Q0 structural flow keeps first-half RNG between added-time draws`() {
-        val random = ExactQueueRandomSource(2, 6, 4)
+    fun `Q0 structural flow pre-draws both added times before first-half RNG`() {
+        val random = ExactQueueRandomSource(2, 4, 6)
         val trace = mutableListOf<String>()
 
         val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
@@ -108,13 +108,13 @@ class LegacyMatchScheduleRulesTest {
 
         assertEquals(listOf("first:2", "first-rng:6", "halftime:2:0", "second:5"), trace)
         assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(2, 5), landmarks)
-        assertEquals(listOf(3, 7, 5), random.bounds)
+        assertEquals(listOf(3, 5, 7), random.bounds)
         assertEquals(3L, random.draws)
     }
 
     @Test
-    fun `Q0 structural flow keeps halftime transition RNG before second-half added-time draw`() {
-        val random = ExactQueueRandomSource(1, 8, 3)
+    fun `Q0 halftime RNG occurs after both added-time draws`() {
+        val random = ExactQueueRandomSource(1, 3, 8)
         val trace = mutableListOf<String>()
 
         val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
@@ -129,12 +129,12 @@ class LegacyMatchScheduleRulesTest {
 
         assertEquals(listOf("first:1", "halftime:2:0", "halftime-rng:8", "second:4"), trace)
         assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(1, 4), landmarks)
-        assertEquals(listOf(3, 9, 5), random.bounds)
+        assertEquals(listOf(3, 5, 9), random.bounds)
         assertEquals(3L, random.draws)
     }
 
     @Test
-    fun `Q0 structural flow keeps second-half callback RNG after its added-time draw`() {
+    fun `Q0 second-half callback RNG remains after both added-time draws`() {
         val random = ExactQueueRandomSource(1, 3, 10)
         val trace = mutableListOf<String>()
 
@@ -155,7 +155,7 @@ class LegacyMatchScheduleRulesTest {
     }
 
     @Test
-    fun `Q0 flow result reuses callbacks draws without extra RNG`() {
+    fun `Q0 flow result reuses pre-drawn values without extra RNG`() {
         val random = ExactQueueRandomSource(0, 4)
 
         val landmarks = LegacyMatchScheduleRules.runAutomaticFlowLandmarks(
@@ -168,6 +168,15 @@ class LegacyMatchScheduleRulesTest {
         assertEquals(LegacyMatchScheduleRules.AutomaticFlowLandmarks(0, 5), landmarks)
         assertEquals(listOf(3, 5), random.bounds)
         assertEquals(2L, random.draws)
+    }
+
+    @Test
+    fun `Q0 half minute loop is zero through forty-four plus added time`() {
+        assertEquals(0..44, LegacyMatchScheduleRules.automaticHalfMinutes(0))
+        assertEquals(0..46, LegacyMatchScheduleRules.automaticHalfMinutes(2))
+        assertEquals(0..49, LegacyMatchScheduleRules.automaticHalfMinutes(5))
+        assertEquals(45, LegacyMatchScheduleRules.automaticHalfMinutes(0).count())
+        assertEquals(50, LegacyMatchScheduleRules.automaticHalfMinutes(5).count())
     }
 
     private class BoundAwareRandomSource(

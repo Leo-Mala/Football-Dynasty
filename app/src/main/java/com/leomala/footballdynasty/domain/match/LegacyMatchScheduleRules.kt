@@ -72,27 +72,30 @@ object LegacyMatchScheduleRules {
         )
     }
 
-    /**
-     * Recovered `best.s.Q0()` first-half added-time draw.
-     *
-     * This remains separate from the second-half draw intentionally: Q0 performs minute simulation
-     * between them, so drawing both values up front would change the legacy RNG consumption order.
-     */
+    /** Recovered `best.s.Q0()` first-half added-time draw: legacy range 0..2 inclusive. */
     fun drawAutomaticFirstHalfAddedMinutes(random: RandomSource): Int = random.nextInt(3)
 
-    /** Recovered `best.s.Q0()` second-half added-time draw: the legacy range is 1..5 inclusive. */
+    /** Recovered `best.s.Q0()` second-half added-time draw: legacy range 1..5 inclusive. */
     fun drawAutomaticSecondHalfAddedMinutes(random: RandomSource): Int = random.nextInt(5) + 1
 
     /**
-     * Structural `Q0()` landmark order proven by SMALI without inventing minute-loop boundaries.
+     * Exact minute indexes used by each automatic `Q0()` half.
      *
-     * The callbacks deliberately own the still-unrecovered minute ranges. This method only freezes the
-     * proven ordering: first added-time draw -> first-half simulation -> `j(2, 0)` halftime transition
-     * -> second added-time draw -> second-half simulation. RNG consumed by either simulation callback
-     * therefore remains between the two added-time draws exactly where the legacy method consumes it.
+     * SMALI compares `minute < 45 + addedMinutes`, so each half starts at zero and executes
+     * exactly `45 + addedMinutes` calls to `best.s.k(...)`.
+     */
+    fun automaticHalfMinutes(addedMinutes: Int): IntRange {
+        require(addedMinutes >= 0) { "Legacy added minutes must be non-negative: $addedMinutes" }
+        return 0 until (45 + addedMinutes)
+    }
+
+    /**
+     * Structural `Q0()` ordering proven directly by SMALI.
      *
-     * The returned landmark values expose only the two already-proven added-time draws. They do not
-     * infer loop limits or event semantics and allow later engine integration without re-drawing RNG.
+     * Both added-time values are drawn consecutively before the first minute loop. Only then does
+     * Q0 simulate half one, call `j(2, 0)`, and simulate half two. This ordering matters because
+     * moving the second draw after first-half simulation changes RNG consumption and therefore the
+     * deterministic modern replay surface.
      */
     fun runAutomaticFlowLandmarks(
         random: RandomSource,
@@ -101,9 +104,9 @@ object LegacyMatchScheduleRules {
         simulateSecondHalf: (addedMinutes: Int) -> Unit,
     ): AutomaticFlowLandmarks {
         val firstHalfAdded = drawAutomaticFirstHalfAddedMinutes(random)
+        val secondHalfAdded = drawAutomaticSecondHalfAddedMinutes(random)
         simulateFirstHalf(firstHalfAdded)
         halftimeTransition(2, 0)
-        val secondHalfAdded = drawAutomaticSecondHalfAddedMinutes(random)
         simulateSecondHalf(secondHalfAdded)
         return AutomaticFlowLandmarks(
             firstHalfAddedMinutes = firstHalfAdded,
