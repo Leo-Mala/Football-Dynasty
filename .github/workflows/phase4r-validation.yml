@@ -138,6 +138,7 @@ jobs:
               'CareerMatchPersistedRuntimeResolverTest': None,
               'CareerMatchEnergyPersistenceTest': None,
               'CareerMatchPersistedEffectsMapperTest': None,
+              'CareerMatchExecutionCoordinatorTest': None,
               'LegacyMatchEnergyRulesTest': None,
               'LegacyProceduralNameAssetLoaderTest': None,
               'LegacyProceduralNameCorpusIntegrationTest': None,
