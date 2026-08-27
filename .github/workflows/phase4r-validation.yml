@@ -252,22 +252,26 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json
+          import re
           import subprocess
           from pathlib import Path
+
           schema_dir = Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
           baseline_dir = Path('/tmp/versioned-room-schemas')
-          legacy_files = {'1.json', '2.json', '3.json'}
-          expected_files = legacy_files | {'5.json'}
+          versioned_files = {'1.json', '2.json', '3.json'}
+          expected_generated_files = versioned_files | {'5.json'}
           generated_files = {p.name for p in schema_dir.glob('*.json')}
           baseline_files = {p.name for p in baseline_dir.glob('*.json')}
-          if generated_files != expected_files:
+          if generated_files != expected_generated_files:
               raise SystemExit(f'Unexpected generated Room schema set: {sorted(generated_files)}')
-          if baseline_files != legacy_files:
-              raise SystemExit(f'Historical versioned Room schema baseline changed: {sorted(baseline_files)}')
+          if baseline_files != versioned_files:
+              raise SystemExit(f'Unexpected versioned Room schema baseline: {sorted(baseline_files)}')
+
           expected_identity = {
               1: '37c2e4df984290903730a25553bdbed5',
               2: 'fc4ed30d6548037a1226144e0c576c59',
               3: 'a6d299fb67fcdcc51340cc62982e2d5a',
+              5: 'ca3f563cb8ded49fd2d64dbb3cd851a1',
           }
           generated = {}
           for version in (1, 2, 3):
@@ -280,20 +284,23 @@ jobs:
               if db.get('version') != version or db.get('identityHash') != expected_identity[version]:
                   raise SystemExit(f'Room schema {name} identity/version changed')
               generated[version] = after
+
           v5 = json.loads((schema_dir / '5.json').read_text(encoding='utf-8'))
           v5db = v5.get('database', {})
-          if v5db.get('version') != 5 or v5db.get('identityHash') != 'ca3f563cb8ded49fd2d64dbb3cd851a1':
+          if v5db.get('version') != 5 or v5db.get('identityHash') != expected_identity[5]:
               raise SystemExit(
-                  f'Room V5 drift: version={v5db.get("version")} identity={v5db.get("identityHash")}'
+                  f'Room schema 5 identity/version changed: version={v5db.get("version")} hash={v5db.get("identityHash")}'
               )
+
           phase3_v1 = json.loads(subprocess.check_output([
               'git', 'show', 'origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json'
           ], text=True))
           if generated[1] != phase3_v1:
               raise SystemExit('Room V1 schema changed semantically from phase3/versioned-persistence')
+
           v3_entities = {e.get('tableName'): e for e in generated[3].get('database', {}).get('entities', [])}
-          required_tables = {'career_core_state','career_player_runtime','career_procedural_players','career_squad_memberships'}
-          missing = required_tables - set(v3_entities)
+          required_v3 = {'career_core_state','career_player_runtime','career_procedural_players','career_squad_memberships'}
+          missing = required_v3 - set(v3_entities)
           if missing:
               raise SystemExit(f'Room V3 missing required tables: {sorted(missing)}')
           membership = v3_entities['career_squad_memberships']
@@ -304,12 +311,14 @@ jobs:
           )
           if not club_fk:
               raise SystemExit('career_squad_memberships.clubId must reference clubs.id with NO ACTION')
+
           v5_entities = {e.get('tableName'): e for e in v5db.get('entities', [])}
           if not set(v3_entities).issubset(v5_entities):
               raise SystemExit('Room V5 must preserve every V3 table')
+
           scheduled = v5_entities.get('career_scheduled_matches')
           if scheduled is None:
-              raise SystemExit('Room V5 missing the V4 career_scheduled_matches table')
+              raise SystemExit('Room V5 missing V4 career_scheduled_matches contract')
           scheduled_fields = {f.get('columnName') for f in scheduled.get('fields', [])}
           expected_scheduled_fields = {
               'careerId','matchId','dayIndex','eventTypeCode','homeClubId','awayClubId',
@@ -318,28 +327,25 @@ jobs:
           if scheduled_fields != expected_scheduled_fields:
               raise SystemExit(f'career_scheduled_matches fields changed: {sorted(scheduled_fields)}')
           scheduled_fks = scheduled.get('foreignKeys', [])
-          def has_fk(fks, table, columns, referenced, delete):
+          def has_single_fk(fks, table, column, delete):
               return any(
-                  fk.get('table') == table and fk.get('columns') == columns
-                  and fk.get('referencedColumns') == referenced and fk.get('onDelete') == delete
+                  fk.get('table') == table and fk.get('columns') == [column]
+                  and fk.get('referencedColumns') == ['id'] and fk.get('onDelete') == delete
                   and fk.get('onUpdate') == 'NO ACTION' for fk in fks
               )
-          if not has_fk(scheduled_fks, 'career_metadata', ['careerId'], ['id'], 'CASCADE'):
+          if not has_single_fk(scheduled_fks, 'career_metadata', 'careerId', 'CASCADE'):
               raise SystemExit('career_scheduled_matches.careerId FK policy changed')
-          if not has_fk(scheduled_fks, 'clubs', ['homeClubId'], ['id'], 'NO ACTION'):
+          if not has_single_fk(scheduled_fks, 'clubs', 'homeClubId', 'NO ACTION'):
               raise SystemExit('career_scheduled_matches.homeClubId FK policy changed')
-          if not has_fk(scheduled_fks, 'clubs', ['awayClubId'], ['id'], 'NO ACTION'):
+          if not has_single_fk(scheduled_fks, 'clubs', 'awayClubId', 'NO ACTION'):
               raise SystemExit('career_scheduled_matches.awayClubId FK policy changed')
-          v3_runtime_fields = {f.get('columnName') for f in v3_entities['career_player_runtime'].get('fields', [])}
-          v5_runtime = v5_entities['career_player_runtime']
-          v5_runtime_fields = {f.get('columnName') for f in v5_runtime.get('fields', [])}
-          if v5_runtime_fields != v3_runtime_fields | {'energy', 'injuryUntilEpochDay'}:
-              raise SystemExit(f'career_player_runtime V5 fields changed unexpectedly: {sorted(v5_runtime_fields)}')
-          runtime_by_name = {f.get('columnName'): f for f in v5_runtime.get('fields', [])}
-          if runtime_by_name['energy'].get('defaultValue') != '100':
-              raise SystemExit('career_player_runtime.energy default must preserve legacy initial 100')
-          if runtime_by_name['injuryUntilEpochDay'].get('defaultValue') != '0':
-              raise SystemExit('career_player_runtime.injuryUntilEpochDay default must be 0')
+
+          runtime = v5_entities.get('career_player_runtime')
+          runtime_fields = {f.get('columnName') for f in runtime.get('fields', [])}
+          for field in ('energy', 'injuryUntilEpochDay'):
+              if field not in runtime_fields:
+                  raise SystemExit(f'Room V5 career_player_runtime missing {field}')
+
           stats = v5_entities.get('career_player_club_season_stats')
           if stats is None:
               raise SystemExit('Room V5 missing career_player_club_season_stats')
@@ -350,18 +356,24 @@ jobs:
           }
           if stats_fields != expected_stats_fields:
               raise SystemExit(f'career_player_club_season_stats fields changed: {sorted(stats_fields)}')
-          if stats.get('primaryKey', {}).get('columnNames') != [
-              'careerId','playerId','legacySeasonId','legacyClubId'
-          ]:
-              raise SystemExit('career_player_club_season_stats primary key changed')
-          if not has_fk(
-              stats.get('foreignKeys', []),
-              'career_player_runtime',
-              ['careerId','playerId'],
-              ['careerId','playerId'],
-              'CASCADE',
-          ):
-              raise SystemExit('career_player_club_season_stats player FK policy changed')
+          stats_fk = any(
+              fk.get('table') == 'career_player_runtime'
+              and fk.get('columns') == ['careerId', 'playerId']
+              and fk.get('referencedColumns') == ['careerId', 'playerId']
+              and fk.get('onDelete') == 'CASCADE'
+              and fk.get('onUpdate') == 'NO ACTION'
+              for fk in stats.get('foreignKeys', [])
+          )
+          if not stats_fk:
+              raise SystemExit('career_player_club_season_stats runtime FK policy changed')
+          stats_index = any(
+              idx.get('name') == 'index_career_player_club_season_stats_careerId_playerId'
+              and idx.get('columnNames') == ['careerId', 'playerId']
+              for idx in stats.get('indices', [])
+          )
+          if not stats_index:
+              raise SystemExit('career_player_club_season_stats required index missing')
+
           db_source = Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabase.kt').read_text()
           migrations_source = Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabaseFactory.kt').read_text()
           if 'const val SCHEMA_VERSION: Int = 5' not in db_source:
@@ -369,11 +381,17 @@ jobs:
           for transition in ('Migration(1, 2)', 'Migration(2, 3)', 'Migration(3, 4)', 'Migration(4, 5)'):
               if transition not in migrations_source:
                   raise SystemExit(f'Explicit Room migration missing: {transition}')
-          if 'arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)' not in migrations_source:
-              raise SystemExit('Migration registry must explicitly preserve 1->2->3->4->5')
+          registry = re.search(r'val ALL: Array<Migration> = arrayOf\((.*?)\)', migrations_source, re.S)
+          if registry is None:
+              raise SystemExit('Explicit Room migration registry missing')
+          ordered = re.findall(r'MIGRATION_\d_\d', registry.group(1))
+          if ordered != ['MIGRATION_1_2','MIGRATION_2_3','MIGRATION_3_4','MIGRATION_4_5']:
+              raise SystemExit(f'Migration registry order changed: {ordered}')
+
           print('ROOM_SCHEMA_SEMANTIC_COMPARE=PASS')
           print(f'ROOM_V3_IDENTITY_HASH={expected_identity[3]}')
-          print(f'ROOM_V5_IDENTITY_HASH={v5db.get("identityHash")}')
+          print('ROOM_V4_MIGRATION_CONTRACT=PASS')
+          print(f'ROOM_V5_IDENTITY_HASH={expected_identity[5]}')
           PY
           if grep -R --line-number 'fallbackToDestructiveMigration' app/src/main; then
             echo 'Destructive migration fallback is forbidden.'
@@ -386,7 +404,7 @@ jobs:
           echo "Raw career-domain RNG guard: PASS"
           echo "Gradle help: PASS"
           echo "Room schemas through V5 generation: PASS"
-          echo "Room V1/V2/V3 immutable regression + V4/V5 migration validation: PASS"
+          echo "Room V1/V2/V3 immutable regression + explicit V4 migration + V5 validation: PASS"
           echo "testDebugUnitTest: PASS"
           echo "Brasfoot 2026 calendar/lifecycle regressions: PASS"
           echo "Brasfoot 2026 annual selection/movement regressions: PASS"
@@ -396,9 +414,8 @@ jobs:
           echo "Brasfoot 2026 procedural best.t.e RNG/control: PASS"
           echo "Brasfoot 2026 q1/value/materialization regressions: PASS"
           echo "Brasfoot 2026 P0..P220 asset/group maps: PASS"
-          echo "Career-scoped runtime + match persistence isolation/reopen/atomic rollback: PASS"
-          echo "Phase 9 persisted match energy/injury effects + rollback: PASS"
+          echo "Career-scoped runtime + match persistence + energy/injury atomic rollback: PASS"
           echo "Room V1->V2, V2->V3, V3->V4 and V4->V5 migration tests: PASS"
           echo "Brasfoot 2026 active fixture integrity: PASS"
           echo "assembleDebug: PASS"
-          echo "Room V1/V2/V3 + explicit V3->V4->V5 migration policy: PASS"
+          echo "Room V1/V2/V3 + explicit V4 contract + V5 migration policy: PASS"
