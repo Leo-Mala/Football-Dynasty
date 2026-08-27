@@ -98,11 +98,11 @@ class V1AdaptersIdentityTest {
     }
 
     @Test
-    fun `database V4 preserves explicit ordered migration registry from V1`() {
-        assertEquals(4, FootballDynastyDatabase.SCHEMA_VERSION)
-        assertEquals(3, FootballDynastyMigrations.ALL.size)
+    fun `database V5 preserves explicit ordered migration registry from V1`() {
+        assertEquals(5, FootballDynastyDatabase.SCHEMA_VERSION)
+        assertEquals(4, FootballDynastyMigrations.ALL.size)
         assertEquals(
-            listOf(1 to 2, 2 to 3, 3 to 4),
+            listOf(1 to 2, 2 to 3, 3 to 4, 4 to 5),
             FootballDynastyMigrations.ALL.map { it.startVersion to it.endVersion },
         )
     }

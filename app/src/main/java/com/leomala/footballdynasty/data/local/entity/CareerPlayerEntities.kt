@@ -1,5 +1,6 @@
 package com.leomala.footballdynasty.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -47,6 +48,10 @@ data class CareerPlayerRuntimeEntity(
     val legacyX: Boolean,
     val legacyY: Boolean,
     val legacyZ: Boolean,
+    @ColumnInfo(defaultValue = "100")
+    val energy: Int = 100,
+    @ColumnInfo(defaultValue = "0")
+    val injuryUntilEpochDay: Long = 0L,
 )
 
 /** Static facts for a player created inside a career through the legacy procedural generator. */

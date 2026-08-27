@@ -157,7 +157,45 @@ object FootballDynastyMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE `career_player_runtime` ADD COLUMN `energy` INTEGER NOT NULL DEFAULT 100"
+            )
+            db.execSQL(
+                "ALTER TABLE `career_player_runtime` ADD COLUMN `injuryUntilEpochDay` INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `career_player_club_season_stats` (
+                    `careerId` TEXT NOT NULL,
+                    `playerId` TEXT NOT NULL,
+                    `legacySeasonId` INTEGER NOT NULL,
+                    `legacyClubId` INTEGER NOT NULL,
+                    `legacyC` INTEGER NOT NULL,
+                    `legacyD` INTEGER NOT NULL,
+                    `legacyE` INTEGER NOT NULL,
+                    `legacyF` INTEGER NOT NULL,
+                    `legacyG` INTEGER NOT NULL,
+                    `legacyH` INTEGER NOT NULL,
+                    PRIMARY KEY(`careerId`, `playerId`, `legacySeasonId`, `legacyClubId`),
+                    FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_career_player_club_season_stats_careerId_playerId` " +
+                    "ON `career_player_club_season_stats` (`careerId`, `playerId`)"
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+    )
 }
 
 object FootballDynastyDatabaseFactory {
