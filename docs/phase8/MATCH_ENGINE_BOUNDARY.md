@@ -32,6 +32,8 @@ The minute-loop boundary is also no longer open evidence: each half executes exa
 
 `LegacyMatchAutomaticPostSimulationRules` represents the next proven `Q0()` routing boundary. It preserves Java short-circuit evaluation of `Z && a0 && P0()`, so `P0()` is not evaluated unless both prior flags are true. A true full gate produces an ordered `INVOKE_LEGACY_O` operation before an aggregate `CLEAR_BOTH_CLUB_FLAGS` operation; a false gate produces only the aggregate clear. The aggregate clear intentionally does not claim an order between the two individual `E1(false)` writes. The still-open internal effects of `o()` are not implemented by this rule.
 
+`LegacyMatchAutomaticFlowRules` composes those two already-proven boundaries without adding new behavior. Its gated integration suite proves that the post-simulation `P0()` decision is reached only after both automatic half loops and their event stamping have completed, that a short-circuited post gate consumes no extra RNG, and that stamped match events remain ordered before post-simulation resolution. The returned result remains a pure simulation result plus an ordered post-simulation plan; it still does not execute the internal effects of `o()` or the final club-flag writes itself.
+
 ## Direct per-minute RNG in `best.s.k`
 
 The proven direct chain is:
@@ -171,7 +173,7 @@ Corpus-wide SMALI search finds zero invocations of `best.s.p(Lbest/s;Z)[I`. `n0(
 
 ## Remaining downstream work
 
-The branch now characterizes `j`, `r`, `r0`, `P0`, Q0 added-time order/minute boundaries, the automatic `k -> K -> event stamp` half-loop orchestration, halftime transition, the post-loop `Z && a0 && P0()` short-circuit and ordered `o()`/flag-clear plan, goal subtype/materialization, `r3.n/j/i`, A/B weighted selection, `g`, `y/u/z`, `J/I`, pure `J -> I -> K` composition, `K`, `a(side)`, `best.l` event/score mapping, disciplinary routing, injury, and substitution selection/mutation.
+The branch now characterizes `j`, `r`, `r0`, `P0`, Q0 added-time order/minute boundaries, the automatic `k -> K -> event stamp` half-loop orchestration, halftime transition, the post-loop `Z && a0 && P0()` short-circuit and ordered `o()`/flag-clear plan, and the composed automatic simulation-to-post-loop boundary, plus goal subtype/materialization, `r3.n/j/i`, A/B weighted selection, `g`, `y/u/z`, `J/I`, pure `J -> I -> K` composition, `K`, `a(side)`, `best.l` event/score mapping, disciplinary routing, injury, and substitution selection/mutation.
 
 The remaining Phase 8 boundary is narrower than earlier documentation stated: authoritative evidence is still required for any reachable `components.r3.b()/c()` routing details not already represented by current goal materialization rules, for event-driven player/club state application that is not yet characterized, for the internal effects of legacy `o()`, for production application of the pure mutation plans into a modern match runtime, and for any additional required post-match side effects beyond the now-proven `Q0()` routing/flag-clear boundary.
 
