@@ -117,6 +117,7 @@ jobs:
           if not files:
               raise SystemExit('No JUnit XML files were generated')
           required = {
+              'LegacyMatchAutomaticSimulationRulesTest': None,
               'LegacyMatchMinuteRulesTest': None,
               'LegacyMatchPlayerSelectionRulesTest': None,
               'LegacyMatchScheduleRulesTest': None,
@@ -177,6 +178,12 @@ jobs:
                   'LegacyMatchScheduleRulesTest lost required corrected Q0 characterization coverage: '
                   f'expected at least 11 tests, got {schedule[0]}'
               )
+          automatic = required['LegacyMatchAutomaticSimulationRulesTest']
+          if automatic[0] < 3:
+              raise SystemExit(
+                  'LegacyMatchAutomaticSimulationRulesTest lost required Q0 orchestration coverage: '
+                  f'expected at least 3 tests, got {automatic[0]}'
+              )
           secondary = required['LegacyMatchGoalSecondarySelectionRulesTest']
           if secondary[0] < 13:
               raise SystemExit(
@@ -196,6 +203,7 @@ jobs:
                   f'expected at least 3 tests, got {step[0]}'
               )
           print(f'PHASE8_Q0_SCHEDULE_CHARACTERIZATION={schedule[0]} tests')
+          print(f'PHASE8_Q0_AUTOMATIC_ORCHESTRATION={automatic[0]} tests')
           print(f'PHASE8_SECONDARY_SELECTOR_CHARACTERIZATION={secondary[0]} tests')
           print(f'PHASE8_R3_CHAIN_INTEGRATION={chain[0]} tests')
           print(f'PHASE8_R3_STEP_ORCHESTRATION={step[0]} tests')
@@ -228,6 +236,7 @@ jobs:
           echo "Legacy best.s.S/T/U/V/W selection characterization: PASS"
           echo "Legacy best.s.m schedule initialization characterization: PASS"
           echo "Legacy best.s.Q0 pre-drawn added-time and 45+added loop characterization: PASS"
+          echo "Legacy best.s.Q0 automatic k -> K -> event stamp orchestration: PASS (>=3 tests)"
           echo "Phase 8 Q0 schedule characterization floor: PASS (>=11 tests)"
           echo "Legacy best.s.r/r0 transition characterization: PASS"
           echo "Legacy best.s.j second-half transition scheduling characterization: PASS"
