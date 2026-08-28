@@ -48,4 +48,11 @@ interface CareerCompetitionDao {
         competitionId: String,
         roundNumber: Int,
     ): List<CareerCompetitionMatchEntity>
+
+    @Query(
+        "SELECT * FROM career_competition_matches " +
+            "WHERE careerId = :careerId AND matchId = :matchId " +
+            "ORDER BY competitionId ASC"
+    )
+    suspend fun matchLinksForMatch(careerId: String, matchId: String): List<CareerCompetitionMatchEntity>
 }
