@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerCompetitionStoreTest {
     @Test
-    fun `resolved round standings and stable order survive database reopen`() = runBlocking {
+    fun `last match atomically advances standings and stable order survives reopen`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase10-competition-reopen"
         context.deleteDatabase(name)
@@ -61,13 +61,16 @@ class CareerCompetitionStoreTest {
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { competitionStore.completeCurrentRound("career-league", "league-1") }
         }
-        assertEquals(1, requireNotNull(competitionStore.load("career-league", "league-1")).currentRoundNumber)
+        assertEquals(
+            1,
+            requireNotNull(competitionStore.load("career-league", "league-1")).currentRoundNumber,
+        )
 
         val second = CareerMatchRuntimeBridge.run(first.state, first.schedule, "m2") { scheduled, _ ->
             Match(scheduled.matchId, scheduled.homeClubId, scheduled.awayClubId, 1, 1)
         }
         matchStore.commitMatch(second)
-        val advanced = competitionStore.completeCurrentRound("career-league", "league-1")
+        val advanced = requireNotNull(competitionStore.load("career-league", "league-1"))
 
         assertEquals(2, advanced.currentRoundNumber)
         assertEquals(listOf("a", "c", "d", "b"), advanced.standings.map { it.clubId })
