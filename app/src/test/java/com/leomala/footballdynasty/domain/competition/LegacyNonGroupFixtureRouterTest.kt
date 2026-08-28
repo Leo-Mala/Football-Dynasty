@@ -108,7 +108,7 @@ class LegacyNonGroupFixtureRouterTest {
     fun `generic router delegates using decided cycle count`() {
         val clubs = List(8) { index -> "club-${index + 1}" }
         val route = input(teamCount = clubs.size, requestedReverseCycle = true)
-        val expected = LegacyLeagueFixtureRules.generate(clubs, cycles = 2)
+        val expected = LegacyLeagueFixtureRules.generate(clubs, legacyCycleCode = 2)
         assertEquals(expected, LegacyNonGroupFixtureRouter.generate(clubs, route))
     }
 }
