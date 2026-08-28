@@ -18,12 +18,11 @@ data class CareerMatchPlayerRuntimeUpdate(
 )
 
 /**
- * Atomic Room boundary for Phase 9 scheduled-match + career RNG/calendar persistence.
+ * Atomic Room boundary for scheduled-match + career RNG/calendar persistence.
  *
- * Player-runtime and player-club-season updates contain only already-proven persisted legacy match
- * state. They are accepted only for career-local players owned by one of the two clubs in the
- * resolved scheduled match. Competition tables, standings and round-generation semantics remain
- * Phase 10 concerns.
+ * Proven player effects and a linked league round are committed in the same transaction. The
+ * competition table advances only when the just-saved result makes every fixture in its current
+ * round resolved, preserving the proven legacy `konrent.t.d0()` result -> table -> U ordering.
  */
 class CareerMatchStore(
     private val database: FootballDynastyDatabase,
@@ -57,7 +56,7 @@ class CareerMatchStore(
         return entity.toMatch()
     }
 
-    /** Commits post-match career state, score and proven player effects in one transaction. */
+    /** Commits post-match career state, score, proven player effects and linked round progression. */
     suspend fun commitMatch(
         result: CareerMatchRuntimeResult,
         playerRuntimeUpdates: List<CareerMatchPlayerRuntimeUpdate> = emptyList(),
@@ -104,7 +103,25 @@ class CareerMatchStore(
             )
             persistPlayerRuntimeUpdates(result, playerRuntimeUpdates)
             persistPlayerClubSeasonStatUpdates(result, playerClubSeasonStatUpdates)
+            advanceLinkedCompetitionRound(result.state.id, result.match.id)
         }
+    }
+
+    private suspend fun advanceLinkedCompetitionRound(careerId: String, matchId: String) {
+        val competitionDao = database.careerCompetitionDao()
+        val links = competitionDao.matchLinksForMatch(careerId, matchId)
+        require(links.size <= 1) { "Scheduled match $matchId belongs to multiple competitions" }
+        val link = links.singleOrNull() ?: return
+        val competition = requireNotNull(
+            competitionDao.findCompetition(careerId, link.competitionId)
+        ) { "Missing linked competition ${link.competitionId}" }
+        require(link.roundNumber == competition.currentRoundNumber) {
+            "Resolved match $matchId does not belong to current competition round"
+        }
+        CareerCompetitionStore(database).advanceCurrentRoundIfResolvedInCurrentTransaction(
+            careerId = careerId,
+            competitionId = link.competitionId,
+        )
     }
 
     private suspend fun persistPlayerRuntimeUpdates(
