@@ -195,6 +195,7 @@ object FootballDynastyMigrations {
         MIGRATION_2_3,
         MIGRATION_3_4,
         MIGRATION_4_5,
+        Phase10CompetitionMigration.MIGRATION_5_6,
     )
 }
 
