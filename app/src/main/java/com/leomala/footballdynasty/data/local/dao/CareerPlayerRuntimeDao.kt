@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.data.local.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import com.leomala.footballdynasty.data.local.entity.CareerPlayerClubSeasonStatEntity
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
@@ -20,6 +21,12 @@ interface CareerPlayerRuntimeDao {
 
     @Upsert
     suspend fun upsertMembership(entity: CareerSquadMembershipEntity)
+
+    @Upsert
+    suspend fun upsertClubSeasonStat(entity: CareerPlayerClubSeasonStatEntity)
+
+    @Upsert
+    suspend fun upsertClubSeasonStats(entities: List<CareerPlayerClubSeasonStatEntity>)
 
     @Query(
         "SELECT * FROM career_player_runtime " +
@@ -47,6 +54,22 @@ interface CareerPlayerRuntimeDao {
             "WHERE careerId = :careerId AND playerId = :playerId LIMIT 1"
     )
     suspend fun findMembership(careerId: String, playerId: String): CareerSquadMembershipEntity?
+
+    @Query(
+        "SELECT * FROM career_player_club_season_stats " +
+            "WHERE careerId = :careerId AND playerId = :playerId " +
+            "ORDER BY legacySeasonId, legacyClubId"
+    )
+    suspend fun clubSeasonStatsForPlayer(
+        careerId: String,
+        playerId: String,
+    ): List<CareerPlayerClubSeasonStatEntity>
+
+    @Query(
+        "SELECT * FROM career_player_club_season_stats " +
+            "WHERE careerId = :careerId ORDER BY playerId, legacySeasonId, legacyClubId"
+    )
+    suspend fun clubSeasonStatsForCareer(careerId: String): List<CareerPlayerClubSeasonStatEntity>
 
     @Query("DELETE FROM career_player_runtime WHERE careerId = :careerId AND playerId = :playerId")
     suspend fun deleteRuntime(careerId: String, playerId: String)
