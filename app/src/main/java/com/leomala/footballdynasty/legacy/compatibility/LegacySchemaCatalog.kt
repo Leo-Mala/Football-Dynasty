@@ -10,7 +10,22 @@ object LegacySchemaCatalog {
     val player = LegacyTypeDescriptor(
         type = "a.p",
         role = "career player",
-        confirmedFields = setOf("anoIn", "aposentado", "energiaBase", "forca", "pais", "posicao", "salario", "status"),
+        confirmedFields = setOf(
+            "anoIn",
+            "aposentado",
+            "energiaBase",
+            "forca",
+            "pais",
+            "posicao",
+            "salario",
+            "status",
+            "rcClause",
+            "rcRenewYear",
+            "rcConvYear",
+            "pendSaleClub",
+            "pendSaleValue",
+            "pendIsLoan",
+        ),
     )
     val club = LegacyTypeDescriptor(
         type = "a.ac",
