@@ -11,8 +11,8 @@ class LegacyManagedClubProfileTest {
             id = "club-a",
             sourceFileRef = "fixture.ban",
             name = "Fixture Club",
-            country = 1,
-            state = 2,
+            country = -7,
+            state = 0,
             level = 3,
             stadium = "Legacy Stadium",
             capacity = 54321,
@@ -23,6 +23,9 @@ class LegacyManagedClubProfileTest {
         assertEquals(
             LegacyManagedClubProfile(
                 clubId = "club-a",
+                country = -7,
+                state = 0,
+                level = 3,
                 stadium = "Legacy Stadium",
                 capacity = 54321,
                 reputation = 87,
