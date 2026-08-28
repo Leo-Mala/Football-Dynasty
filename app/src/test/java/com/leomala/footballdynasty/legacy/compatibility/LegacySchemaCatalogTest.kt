@@ -14,4 +14,15 @@ class LegacySchemaCatalogTest {
         assertTrue("posicao" in LegacySchemaCatalog.player.confirmedFields)
         assertTrue("nRebaixados" in LegacySchemaCatalog.competition.confirmedFields)
     }
+
+    @Test
+    fun provenPlayerCommercialFieldsRemainCatalogued() {
+        assertTrue("salario" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("rcClause" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("rcRenewYear" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("rcConvYear" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("pendSaleClub" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("pendSaleValue" in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue("pendIsLoan" in LegacySchemaCatalog.player.confirmedFields)
+    }
 }
