@@ -1,0 +1,45 @@
+package com.leomala.footballdynasty.domain.manager
+
+import com.leomala.footballdynasty.domain.model.Club
+
+/**
+ * Consolidated persistence-independent view of every senior-player field that is
+ * already proven by the legacy `.ban` snapshot and represented by the modern
+ * [com.leomala.footballdynasty.domain.model.Player] model.
+ *
+ * Numeric position/status/side/CR values remain intentionally opaque. This view
+ * does not decide starters, reserves, formation slots, eligibility, strength or
+ * tactical meaning; those rules require separate Java/SMALI characterization.
+ */
+data class LegacySeniorSquadPlayerView(
+    val playerId: String,
+    val name: String,
+    val age: Int,
+    val country: Int,
+    val position: Int,
+    val status: Int,
+    val side: Int,
+    val cr1: Int,
+    val cr2: Int,
+    val star: Boolean,
+    val worldTop: Boolean,
+)
+
+object LegacySeniorSquadPlayerViews {
+    fun from(club: Club): List<LegacySeniorSquadPlayerView> =
+        LegacySeniorSquad.players(club).map { player ->
+            LegacySeniorSquadPlayerView(
+                playerId = player.id,
+                name = player.name,
+                age = player.age,
+                country = player.country,
+                position = player.position,
+                status = player.status,
+                side = player.side,
+                cr1 = player.cr1,
+                cr2 = player.cr2,
+                star = player.star,
+                worldTop = player.worldTop,
+            )
+        }
+}
