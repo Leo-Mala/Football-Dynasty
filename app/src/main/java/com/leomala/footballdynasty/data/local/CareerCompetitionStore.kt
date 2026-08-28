@@ -101,36 +101,53 @@ class CareerCompetitionStore(
         return competition.toSnapshot(standings)
     }
 
-    /**
-     * Mirrors the proven `konrent.t.d0()` league-table tail for one fully resolved round:
-     * apply every result, stable-sort the table, then increment legacy `U`.
-     */
+    /** Explicit repair/import boundary: fail if the current round is not fully resolved. */
     suspend fun completeCurrentRound(
         careerId: String,
         competitionId: String,
     ): CareerCompetitionSnapshot = database.withTransaction {
+        val competition = requireNotNull(
+            database.careerCompetitionDao().findCompetition(careerId, competitionId)
+        ) { "Missing competition $competitionId for career $careerId" }
+        require(competition.currentRoundNumber <= competition.totalRounds) {
+            "Competition $competitionId is already finished"
+        }
+        advanceCurrentRoundIfResolvedInCurrentTransaction(careerId, competitionId)
+            ?: throw IllegalArgumentException(
+                "Competition round ${competition.currentRoundNumber} is not fully resolved"
+            )
+    }
+
+    /**
+     * Caller-owned transaction helper used by the match commit path. Returns null while any current
+     * round fixture is unresolved; otherwise applies results, stable-sorts and increments legacy U.
+     */
+    internal suspend fun advanceCurrentRoundIfResolvedInCurrentTransaction(
+        careerId: String,
+        competitionId: String,
+    ): CareerCompetitionSnapshot? {
         val dao = database.careerCompetitionDao()
         val competition = requireNotNull(dao.findCompetition(careerId, competitionId)) {
             "Missing competition $competitionId for career $careerId"
         }
-        require(competition.currentRoundNumber <= competition.totalRounds) {
-            "Competition $competitionId is already finished"
-        }
+        if (competition.currentRoundNumber > competition.totalRounds) return null
 
         val links = dao.matchesForRound(careerId, competitionId, competition.currentRoundNumber)
         require(links.isNotEmpty()) {
             "Competition round ${competition.currentRoundNumber} has no persisted matches"
         }
-        var rows = dao.standings(careerId, competitionId).map { it.toRow() }
-        require(rows.isNotEmpty()) { "Competition $competitionId has no persisted standings" }
-
-        links.forEach { link ->
-            val match = requireNotNull(database.careerScheduledMatchDao().findById(careerId, link.matchId)) {
+        val resolved = links.map { link ->
+            requireNotNull(database.careerScheduledMatchDao().findById(careerId, link.matchId)) {
                 "Missing scheduled competition match ${link.matchId}"
             }
-            require(match.processed && match.homeGoals != null && match.awayGoals != null) {
-                "Competition round cannot advance before ${link.matchId} is resolved"
-            }
+        }
+        if (resolved.any { !it.processed || it.homeGoals == null || it.awayGoals == null }) {
+            return null
+        }
+
+        var rows = dao.standings(careerId, competitionId).map { it.toRow() }
+        require(rows.isNotEmpty()) { "Competition $competitionId has no persisted standings" }
+        resolved.forEach { match ->
             rows = LegacyLeagueStandingsRules.applyMatch(
                 rows = rows,
                 homeClubId = match.homeClubId,
@@ -146,7 +163,7 @@ class CareerCompetitionStore(
         )
         val advanced = competition.copy(currentRoundNumber = competition.currentRoundNumber + 1)
         dao.upsertCompetition(advanced)
-        advanced.toSnapshot(ranked)
+        return advanced.toSnapshot(ranked)
     }
 
     private fun validateInitialization(
