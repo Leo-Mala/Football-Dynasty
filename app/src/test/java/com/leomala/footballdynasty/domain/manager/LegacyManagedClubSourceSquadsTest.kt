@@ -125,6 +125,39 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
+    fun rawIdentityLookupReturnsEveryExactSeniorMatchInSourceOrderOnly() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(
+                    player("First exact", 700),
+                    player("Different", 701),
+                    player("Second exact", 700),
+                ),
+                juniors = listOf(player("Junior exact", 700)),
+            ),
+        )
+
+        val identity = LegacyRawPlayerIdentity(
+            legacyAid = 7,
+            legacySid = 8,
+            legacyTid = 9,
+            legacyHash = 700,
+        )
+
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 2),
+            ),
+            result.seniorRefsByRawIdentity(identity),
+        )
+        assertEquals(
+            emptyList<LegacySourcePlayerRef>(),
+            result.seniorRefsByRawIdentity(identity.copy(legacyTid = 99)),
+        )
+    }
+
+    @Test
     fun neverFallsBackAcrossFilesCollectionsOrOutsideExactSourceIndex() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
