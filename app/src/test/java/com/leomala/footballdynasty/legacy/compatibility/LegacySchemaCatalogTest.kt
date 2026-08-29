@@ -25,4 +25,14 @@ class LegacySchemaCatalogTest {
         assertTrue("pendSaleValue" in LegacySchemaCatalog.player.confirmedFields)
         assertTrue("pendIsLoan" in LegacySchemaCatalog.player.confirmedFields)
     }
+
+    @Test
+    fun clubCommercialCatalogUsesTheSingleProvenFieldBoundary() {
+        assertEquals(
+            linkedSetOf("xp") + LegacyCareerClubCommercialFields.confirmedNames,
+            LegacySchemaCatalog.club.confirmedFields,
+        )
+        assertTrue(LegacyCareerClubCommercialFields.INVESTMENT in LegacySchemaCatalog.club.confirmedFields)
+        assertTrue(LegacyCareerClubCommercialFields.SPONSOR in LegacySchemaCatalog.club.confirmedFields)
+    }
 }
