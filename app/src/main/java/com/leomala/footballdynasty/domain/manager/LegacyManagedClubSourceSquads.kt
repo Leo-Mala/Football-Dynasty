@@ -28,6 +28,26 @@ data class LegacySourcePlayerRef(
 )
 
 /**
+ * Typed result of resolving one exact legacy source reference.
+ *
+ * This wrapper preserves the proven senior/junior collection boundary. It carries
+ * no starter, reserve, eligibility, promotion or tactical semantics.
+ */
+sealed interface LegacyResolvedSourcePlayer {
+    val ref: LegacySourcePlayerRef
+
+    data class Senior(
+        override val ref: LegacySourcePlayerRef,
+        val player: LegacySourceSeniorSquadPlayerView,
+    ) : LegacyResolvedSourcePlayer
+
+    data class Junior(
+        override val ref: LegacySourcePlayerRef,
+        val player: LegacySourceJuniorSquadPlayerView,
+    ) : LegacyResolvedSourcePlayer
+}
+
+/**
  * Single read-only provenance boundary for the two player collections proven by
  * the exact legacy team snapshot.
  *
@@ -78,6 +98,21 @@ data class LegacyManagedClubSourceSquads(
         } else {
             null
         }
+
+    /**
+     * Resolves an exact source reference while retaining its proven collection
+     * type. This is the neutral boundary later lineup/tactics characterization can
+     * consume without matching player facts or collapsing senior/junior sources.
+     */
+    fun player(ref: LegacySourcePlayerRef): LegacyResolvedSourcePlayer? = when (ref.rosterKind) {
+        LegacySourceRosterKind.SENIOR -> seniorPlayer(ref)?.let { player ->
+            LegacyResolvedSourcePlayer.Senior(ref = ref, player = player)
+        }
+
+        LegacySourceRosterKind.JUNIOR -> juniorPlayer(ref)?.let { player ->
+            LegacyResolvedSourcePlayer.Junior(ref = ref, player = player)
+        }
+    }
 }
 
 object LegacyManagedClubSourceSquadProjection {
