@@ -10,10 +10,11 @@ import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
  *
  * The exact legacy source selection is carried with the view so later Marco B
  * reconstruction can consume one provenance boundary instead of independently
- * re-resolving club data. Visual identity, opaque serialized source identity and
- * the raw legacy senior-player provenance are projected from that same exact source.
- * This still adds no lineup, tactics, transfer, finance, employment, dismissal,
- * reputation or progression semantics.
+ * re-resolving club data. Visual identity, opaque serialized source identity,
+ * and the raw legacy senior/junior player provenance are projected from that same
+ * exact source while preserving the legacy separation between both collections.
+ * This still adds no lineup, tactics, transfer, finance, youth-development,
+ * employment, dismissal, reputation or progression semantics.
  */
 data class ManagedClubManagerView(
     val overview: ManagedClubOverview,
@@ -21,6 +22,7 @@ data class ManagedClubManagerView(
     val sourceIdentity: LegacyManagedClubSourceIdentity,
     val visualIdentity: LegacyManagedClubVisualIdentity,
     val sourceSeniorSquad: List<LegacySourceSeniorSquadPlayerView>,
+    val sourceJuniorSquad: List<LegacySourceJuniorSquadPlayerView>,
     val coach: ManagedClubCoachView,
 )
 
@@ -44,6 +46,7 @@ object ManagedClubManagerViews {
             sourceIdentity = LegacyManagedClubSourceIdentityProjection.from(selection.legacyTeam),
             visualIdentity = LegacyManagedClubVisualIdentityProjection.from(selection.legacyTeam),
             sourceSeniorSquad = LegacySourceSeniorSquadPlayerViews.from(selection.legacyTeam),
+            sourceJuniorSquad = LegacySourceJuniorSquadPlayerViews.from(selection.legacyTeam),
             coach = ManagedClubCoachView(
                 clubId = selection.club.id,
                 coach = LegacyCoachProfileProjection.from(selection.legacyTeam),
