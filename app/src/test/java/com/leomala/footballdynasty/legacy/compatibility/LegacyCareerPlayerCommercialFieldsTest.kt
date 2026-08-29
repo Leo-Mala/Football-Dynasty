@@ -7,6 +7,11 @@ import org.junit.Test
 
 class LegacyCareerPlayerCommercialFieldsTest {
     @Test
+    fun exposesExactProvenPlayerSourceClass() {
+        assertEquals("a.p", LegacyCareerPlayerCommercialFields.SOURCE_CLASS)
+    }
+
+    @Test
     fun exposesOnlyTheSevenProvenCommercialPlayerFields() {
         assertEquals(
             linkedSetOf(
