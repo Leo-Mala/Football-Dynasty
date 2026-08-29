@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,5 +46,29 @@ class LegacyCareerPlayerCommercialProjectionTest {
         )
 
         assertEquals(original, restored)
+    }
+
+    @Test
+    fun `commercial field catalog pins only the proven primitive shapes`() {
+        val fields = LegacyCareerPlayerCommercialFields
+
+        assertEquals(
+            linkedMapOf(
+                fields.SALARY to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.RELEASE_CLAUSE to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.RENEW_YEAR to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.CONVERSION_YEAR to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.PENDING_SALE_CLUB to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.PENDING_SALE_VALUE to LegacyCareerPlayerCommercialFields.ScalarType.INT,
+                fields.PENDING_IS_LOAN to LegacyCareerPlayerCommercialFields.ScalarType.BOOLEAN,
+            ),
+            fields.confirmedTypes,
+        )
+        assertEquals(fields.confirmedTypes.keys, fields.confirmedNames)
+        assertEquals(
+            LegacyCareerPlayerCommercialFields.ScalarType.BOOLEAN,
+            fields.typeOf(fields.PENDING_IS_LOAN),
+        )
+        assertNull(fields.typeOf("unknownCommercialField"))
     }
 }
