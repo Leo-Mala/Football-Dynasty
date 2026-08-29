@@ -94,6 +94,38 @@ data class LegacyManagedClubSourceSquads(
     }
 
     /**
+     * Selects senior source references whose raw legacy position code matches
+     * [positionCode]. The code stays opaque: this method does not assign a football
+     * position, lineup slot, eligibility rule or tactical role. Source order is
+     * preserved exactly.
+     */
+    fun seniorRefsByPositionCode(positionCode: Int): List<LegacySourcePlayerRef> =
+        senior.mapIndexedNotNull { sourceIndex, player ->
+            seniorRef(sourceIndex)?.takeIf { player.position == positionCode }
+        }
+
+    /**
+     * Selects senior source references whose raw legacy status code matches
+     * [statusCode]. The code is deliberately not interpreted as injury,
+     * suspension, availability or any other gameplay state. Source order is
+     * preserved exactly.
+     */
+    fun seniorRefsByStatusCode(statusCode: Int): List<LegacySourcePlayerRef> =
+        senior.mapIndexedNotNull { sourceIndex, player ->
+            seniorRef(sourceIndex)?.takeIf { player.status == statusCode }
+        }
+
+    /**
+     * Selects senior source references whose raw legacy side code matches
+     * [sideCode]. The code remains opaque and does not imply a tactical side or
+     * formation assignment. Source order is preserved exactly.
+     */
+    fun seniorRefsBySideCode(sideCode: Int): List<LegacySourcePlayerRef> =
+        senior.mapIndexedNotNull { sourceIndex, player ->
+            seniorRef(sourceIndex)?.takeIf { player.side == sideCode }
+        }
+
+    /**
      * Resolves only a SENIOR reference owned by this exact legacy source file.
      * Wrong file, collection or absent index returns null; there is deliberately
      * no fallback to juniors, another team or fact matching.
