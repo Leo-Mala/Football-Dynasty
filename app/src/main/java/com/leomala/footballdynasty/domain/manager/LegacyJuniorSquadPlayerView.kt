@@ -5,13 +5,14 @@ import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 /**
  * Read-only junior-player view taken directly from the exact legacy team source.
  *
- * The legacy snapshot proves that juniors are stored in a collection separate from
- * the senior players. Numeric position/status/side/CR values and the `legacy*`
- * identifiers remain intentionally opaque. This projection does not promote a
- * junior, merge juniors into the senior squad, decide eligibility, or add any
- * youth-development gameplay semantics.
+ * [sourceIndex] is the zero-based position in the serialized `juniors` collection;
+ * it is provenance only and must not be interpreted as promotion, development,
+ * eligibility or tactical priority. The legacy snapshot proves that juniors are
+ * stored separately from senior players. Numeric position/status/side/CR values
+ * and the `legacy*` identifiers remain intentionally opaque.
  */
 data class LegacySourceJuniorSquadPlayerView(
+    val sourceIndex: Int,
     val name: String,
     val age: Int,
     val country: Int,
@@ -30,8 +31,9 @@ data class LegacySourceJuniorSquadPlayerView(
 
 object LegacySourceJuniorSquadPlayerViews {
     fun from(team: LegacyTeamSnapshot): List<LegacySourceJuniorSquadPlayerView> =
-        team.juniors.map { player ->
+        team.juniors.mapIndexed { sourceIndex, player ->
             LegacySourceJuniorSquadPlayerView(
+                sourceIndex = sourceIndex,
                 name = player.name,
                 age = player.age,
                 country = player.country,
