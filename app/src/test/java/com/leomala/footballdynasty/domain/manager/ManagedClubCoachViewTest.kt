@@ -13,6 +13,25 @@ import org.junit.Test
 
 class ManagedClubCoachViewTest {
     @Test
+    fun resolvesExactLegacyTeamThroughPersistedManagedClubProvenance() {
+        val club = club("club-b", "teams/b.ban")
+        val wrongSameName = legacyTeam("teams/a.ban", "Coach A", 10)
+        val exactSource = legacyTeam("teams/b.ban", "Coach B", 20)
+
+        assertEquals(
+            ManagedClubLegacyTeamSelection(
+                club = club,
+                legacyTeam = exactSource,
+            ),
+            ManagedClubLegacyTeamSelections.resolve(
+                career = career("club-b"),
+                clubs = listOf(club),
+                legacyTeams = listOf(wrongSameName, exactSource),
+            ),
+        )
+    }
+
+    @Test
     fun resolvesCoachOnlyThroughExactManagedClubSourceFile() {
         val club = club("club-b", "teams/b.ban")
         val wrongSameName = legacyTeam("teams/a.ban", "Coach A", 10)
@@ -40,6 +59,13 @@ class ManagedClubCoachViewTest {
         val club = club("club-b", "teams/b.ban")
         val otherSource = legacyTeam("teams/a.ban", "Coach A", 10)
 
+        assertNull(
+            ManagedClubLegacyTeamSelections.resolve(
+                career = career("club-b"),
+                clubs = listOf(club),
+                legacyTeams = listOf(otherSource),
+            ),
+        )
         assertNull(
             ManagedClubCoachViews.from(
                 career = career("missing"),
