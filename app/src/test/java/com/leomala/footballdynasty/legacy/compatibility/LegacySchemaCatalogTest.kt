@@ -16,14 +16,21 @@ class LegacySchemaCatalogTest {
     }
 
     @Test
-    fun provenPlayerCommercialFieldsRemainCatalogued() {
-        assertTrue("salario" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("rcClause" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("rcRenewYear" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("rcConvYear" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("pendSaleClub" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("pendSaleValue" in LegacySchemaCatalog.player.confirmedFields)
-        assertTrue("pendIsLoan" in LegacySchemaCatalog.player.confirmedFields)
+    fun playerCommercialCatalogUsesTheSingleProvenFieldBoundary() {
+        assertEquals(
+            linkedSetOf(
+                "anoIn",
+                "aposentado",
+                "energiaBase",
+                "forca",
+                "pais",
+                "posicao",
+                "status",
+            ) + LegacyCareerPlayerCommercialFields.confirmedNames,
+            LegacySchemaCatalog.player.confirmedFields,
+        )
+        assertTrue(LegacyCareerPlayerCommercialFields.SALARY in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue(LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN in LegacySchemaCatalog.player.confirmedFields)
     }
 
     @Test
