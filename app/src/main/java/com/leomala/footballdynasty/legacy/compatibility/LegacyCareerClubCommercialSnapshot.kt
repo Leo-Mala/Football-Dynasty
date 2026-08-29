@@ -16,12 +16,17 @@ data class LegacyCareerClubCommercialSnapshot(
 /**
  * Extracts the proven `a.ac` commercial slice without coercion or defaulting.
  *
- * Presence is checked with [Map.containsKey] so a present legacy null is preserved and
- * remains distinguishable from a missing field. Unrelated serialized club fields are
- * deliberately ignored.
+ * The source class must match the exact serialized career-club class proven by the
+ * legacy corpus. Presence is checked with [Map.containsKey] so a present legacy null
+ * is preserved and remains distinguishable from a missing field. Unrelated serialized
+ * club fields are deliberately ignored.
  */
 object LegacyCareerClubCommercialSnapshotExtractor {
-    fun extract(fields: Map<String, Any?>): LegacyCareerClubCommercialSnapshot? {
+    fun extract(
+        sourceClassName: String,
+        fields: Map<String, Any?>,
+    ): LegacyCareerClubCommercialSnapshot? {
+        if (sourceClassName != LegacyCareerClubCommercialFields.SOURCE_CLASS) return null
         if (!fields.containsKey(LegacyCareerClubCommercialFields.INVESTMENT)) return null
         if (!fields.containsKey(LegacyCareerClubCommercialFields.SPONSOR)) return null
 
