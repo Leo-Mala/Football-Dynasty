@@ -3,6 +3,18 @@ package com.leomala.footballdynasty.legacy.compatibility
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerCommercialState
 
 /**
+ * Decoder-facing representation of only the seven commercial fields proven on legacy `a.p`.
+ *
+ * This is deliberately a slice rather than a serialized-player model: unrelated `a.p` fields
+ * remain outside this boundary and must be preserved by whichever full-object decoder/encoder
+ * owns them.
+ */
+data class LegacyDecodedPlayerCommercialSlice(
+    val sourceClassName: String,
+    val fields: Map<String, Any?>,
+)
+
+/**
  * Lossless bridge between the proven legacy `a.p` commercial snapshot and the
  * persistence-independent manager domain.
  *
@@ -50,4 +62,25 @@ object LegacyCareerPlayerCommercialProjection {
             pendSaleValue = state.pendingMovement.valueCode,
             pendIsLoan = state.pendingMovement.loanFlag,
         )
+
+    /**
+     * Exports only the proven `a.p` commercial slice with its exact legacy field names and
+     * primitive shapes. This does not claim to serialize a complete player object and does not
+     * invent defaults for any unrelated field.
+     */
+    fun toDecodedFieldSlice(state: LegacyPlayerCommercialState): LegacyDecodedPlayerCommercialSlice {
+        val snapshot = toLegacySnapshot(state)
+        return LegacyDecodedPlayerCommercialSlice(
+            sourceClassName = LegacyCareerPlayerCommercialFields.SOURCE_CLASS,
+            fields = linkedMapOf(
+                LegacyCareerPlayerCommercialFields.SALARY to snapshot.salario,
+                LegacyCareerPlayerCommercialFields.RELEASE_CLAUSE to snapshot.rcClause,
+                LegacyCareerPlayerCommercialFields.RENEW_YEAR to snapshot.rcRenewYear,
+                LegacyCareerPlayerCommercialFields.CONVERSION_YEAR to snapshot.rcConvYear,
+                LegacyCareerPlayerCommercialFields.PENDING_SALE_CLUB to snapshot.pendSaleClub,
+                LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to snapshot.pendSaleValue,
+                LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to snapshot.pendIsLoan,
+            ),
+        )
+    }
 }
