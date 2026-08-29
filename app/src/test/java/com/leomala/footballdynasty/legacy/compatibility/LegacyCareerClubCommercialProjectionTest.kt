@@ -80,5 +80,55 @@ class LegacyCareerClubCommercialProjectionTest {
         )
     }
 
+    @Test
+    fun decodedFieldSliceRoundTripPreservesOnlyProvenOpaqueClubFields() {
+        val investment = OpaqueValue("round-trip-investment")
+        val sponsor = OpaqueValue("round-trip-sponsor")
+        val state = LegacyCareerClubCommercialProjection.toDomain(
+            LegacyCareerClubCommercialSnapshot(
+                ctInvest = investment,
+                sponsor = sponsor,
+            ),
+        )
+
+        val slice = LegacyCareerClubCommercialProjection.toDecodedFieldSlice(state)
+        val restored = LegacyCareerClubCommercialProjection.fromDecodedFields(
+            sourceClassName = slice.sourceClassName,
+            fields = slice.fields,
+        )
+
+        assertEquals(LegacyCareerClubCommercialFields.SOURCE_CLASS, slice.sourceClassName)
+        assertEquals(
+            listOf(
+                LegacyCareerClubCommercialFields.INVESTMENT,
+                LegacyCareerClubCommercialFields.SPONSOR,
+            ),
+            slice.fields.keys.toList(),
+        )
+        assertSame(investment, slice.fields[LegacyCareerClubCommercialFields.INVESTMENT])
+        assertSame(sponsor, slice.fields[LegacyCareerClubCommercialFields.SPONSOR])
+        requireNotNull(restored)
+        assertSame(investment, restored.investmentRaw)
+        assertSame(sponsor, restored.sponsorRaw)
+    }
+
+    @Test
+    fun decodedFieldSlicePreservesPresentNullsWithoutInventingDefaults() {
+        val state = LegacyCareerClubCommercialProjection.toDomain(
+            LegacyCareerClubCommercialSnapshot(
+                ctInvest = null,
+                sponsor = null,
+            ),
+        )
+
+        val slice = LegacyCareerClubCommercialProjection.toDecodedFieldSlice(state)
+
+        assertEquals(2, slice.fields.size)
+        assertEquals(true, slice.fields.containsKey(LegacyCareerClubCommercialFields.INVESTMENT))
+        assertEquals(true, slice.fields.containsKey(LegacyCareerClubCommercialFields.SPONSOR))
+        assertNull(slice.fields[LegacyCareerClubCommercialFields.INVESTMENT])
+        assertNull(slice.fields[LegacyCareerClubCommercialFields.SPONSOR])
+    }
+
     private data class OpaqueValue(val label: String)
 }
