@@ -16,8 +16,13 @@ enum class LegacySourceRosterKind {
 /**
  * Stable read-only reference to one player position in the exact legacy source
  * collections. The index is zero-based and is never inferred from player facts.
+ *
+ * [sourceFileRef] is part of the identity on purpose: the same collection/index
+ * pair can exist in every legacy team, so a reference must not resolve against a
+ * different `.ban` snapshot merely because its roster kind and index match.
  */
 data class LegacySourcePlayerRef(
+    val sourceFileRef: String,
     val rosterKind: LegacySourceRosterKind,
     val sourceIndex: Int,
 )
@@ -37,26 +42,42 @@ data class LegacyManagedClubSourceSquads(
     val juniors: List<LegacySourceJuniorSquadPlayerView>,
 ) {
     fun seniorRefs(): List<LegacySourcePlayerRef> = senior.indices.map { sourceIndex ->
-        LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, sourceIndex)
+        LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.SENIOR, sourceIndex)
     }
 
     fun juniorRefs(): List<LegacySourcePlayerRef> = juniors.indices.map { sourceIndex ->
-        LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, sourceIndex)
+        LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.JUNIOR, sourceIndex)
     }
 
     /**
-     * Resolves only a SENIOR source reference. Wrong collection or absent index
-     * returns null; there is deliberately no fallback to juniors or fact matching.
+     * Resolves only a SENIOR reference owned by this exact legacy source file.
+     * Wrong file, collection or absent index returns null; there is deliberately
+     * no fallback to juniors, another team or fact matching.
      */
     fun seniorPlayer(ref: LegacySourcePlayerRef): LegacySourceSeniorSquadPlayerView? =
-        if (ref.rosterKind == LegacySourceRosterKind.SENIOR) senior.getOrNull(ref.sourceIndex) else null
+        if (
+            ref.sourceFileRef == sourceFileRef &&
+            ref.rosterKind == LegacySourceRosterKind.SENIOR
+        ) {
+            senior.getOrNull(ref.sourceIndex)
+        } else {
+            null
+        }
 
     /**
-     * Resolves only a JUNIOR source reference. Wrong collection or absent index
-     * returns null; there is deliberately no fallback to seniors or fact matching.
+     * Resolves only a JUNIOR reference owned by this exact legacy source file.
+     * Wrong file, collection or absent index returns null; there is deliberately
+     * no fallback to seniors, another team or fact matching.
      */
     fun juniorPlayer(ref: LegacySourcePlayerRef): LegacySourceJuniorSquadPlayerView? =
-        if (ref.rosterKind == LegacySourceRosterKind.JUNIOR) juniors.getOrNull(ref.sourceIndex) else null
+        if (
+            ref.sourceFileRef == sourceFileRef &&
+            ref.rosterKind == LegacySourceRosterKind.JUNIOR
+        ) {
+            juniors.getOrNull(ref.sourceIndex)
+        } else {
+            null
+        }
 }
 
 object LegacyManagedClubSourceSquadProjection {
