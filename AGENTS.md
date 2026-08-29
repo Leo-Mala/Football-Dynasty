@@ -295,3 +295,21 @@ Do not stop at a status report when the task asks for implementation. Do not pro
 When uncertain about behavior, gather evidence rather than guessing.
 
 The final question for every gameplay change is: “Is this function and behavior present in the official supplied game?” If the answer is not proven, do not add it.
+
+## 15. Mandatory manual test build before final Release
+
+The final Release stage has an explicit user-validation gate and must not begin immediately after automated certification.
+
+Before creating the final production Release, release tag, or publishing the definitive production APK/artifact:
+
+1. finish implementation and the normal automated certification required by the roadmap up to the pre-Release boundary;
+2. generate an installable Android test build from the exact intended pre-Release candidate head;
+3. make that test build available to the user for manual installation and gameplay validation;
+4. record the exact candidate SHA/build identity supplied for manual testing;
+5. wait for the user's explicit manual-test result before proceeding with the final Release stage;
+6. if the user reports bugs, keep Release blocked, correct them through the normal branch/PR/test discipline, generate a new test build, and repeat manual validation;
+7. only after the user explicitly approves the manually tested candidate may the project proceed to the final Release/tag/publication workflow.
+
+The manual test build is a pre-Release validation artifact, not the official Release. Supplying it must not create a production tag, production Release, or bypass any remaining roadmap gate.
+
+This manual-validation requirement is mandatory even when all automated CI, unit, instrumentation, migration, integrity, performance, or other certification gates are already green.
