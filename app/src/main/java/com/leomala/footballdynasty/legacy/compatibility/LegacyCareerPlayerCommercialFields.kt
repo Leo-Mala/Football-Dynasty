@@ -9,6 +9,7 @@ package com.leomala.footballdynasty.legacy.compatibility
  * financial mutation.
  */
 object LegacyCareerPlayerCommercialFields {
+    const val SOURCE_CLASS = "a.p"
     const val SALARY = "salario"
     const val RELEASE_CLAUSE = "rcClause"
     const val RENEW_YEAR = "rcRenewYear"
