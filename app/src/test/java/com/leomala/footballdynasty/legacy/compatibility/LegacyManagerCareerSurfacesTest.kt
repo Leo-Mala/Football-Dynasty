@@ -13,6 +13,7 @@ class LegacyManagerCareerSurfacesTest {
             linkedSetOf(
                 LegacyManagerCareerSurface.COACH,
                 LegacyManagerCareerSurface.CLUB_INVITATION,
+                LegacyManagerCareerSurface.SELECTION_INVITATION,
                 LegacyManagerCareerSurface.DISMISSALS,
                 LegacyManagerCareerSurface.COACH_RANKING,
                 LegacyManagerCareerSurface.COACH_HALL,
@@ -30,6 +31,10 @@ class LegacyManagerCareerSurfacesTest {
         assertEquals(
             LegacyManagerCareerSurface.CLUB_INVITATION,
             LegacyManagerCareerSurfaces.fromLegacyClassName("ActivityConvite"),
+        )
+        assertEquals(
+            LegacyManagerCareerSurface.SELECTION_INVITATION,
+            LegacyManagerCareerSurfaces.fromLegacyClassName("ActivityConviteSelecao"),
         )
         assertEquals(
             LegacyManagerCareerSurface.DISMISSALS,
