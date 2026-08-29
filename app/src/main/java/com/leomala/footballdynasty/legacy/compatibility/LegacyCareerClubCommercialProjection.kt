@@ -17,6 +17,22 @@ object LegacyCareerClubCommercialProjection {
             sponsorRaw = snapshot.sponsor,
         )
 
+    /**
+     * Projects the proven commercial slice directly from decoder output while preserving the
+     * extractor's strict `a.ac` source-class and field-presence boundary.
+     *
+     * Returning null means the supplied decoded object is not a complete proven `a.ac`
+     * commercial slice. No fallback, coercion or financial interpretation is attempted.
+     */
+    fun fromDecodedFields(
+        sourceClassName: String,
+        fields: Map<String, Any?>,
+    ): LegacyClubCommercialState? =
+        LegacyCareerClubCommercialSnapshotExtractor.extract(
+            sourceClassName = sourceClassName,
+            fields = fields,
+        )?.let(::toDomain)
+
     fun toLegacySnapshot(state: LegacyClubCommercialState): LegacyCareerClubCommercialSnapshot =
         LegacyCareerClubCommercialSnapshot(
             ctInvest = state.investmentRaw,
