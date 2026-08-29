@@ -36,8 +36,8 @@ class LegacySeniorSquadPlayerViewTest {
     }
 
     @Test
-    fun preservesExactLegacySeniorPlayerSourceFieldsAndExcludesJuniors() {
-        val senior = LegacyPlayerSnapshot(
+    fun preservesExactLegacySeniorPlayerSourceFieldsIndexesAndExcludesJuniors() {
+        val firstSenior = LegacyPlayerSnapshot(
             name = " Source Alpha ",
             age = -1,
             country = 0,
@@ -53,7 +53,8 @@ class LegacySeniorSquadPlayerViewTest {
             legacyTid = 103,
             legacyHash = 104,
         )
-        val junior = senior.copy(name = "Junior", legacyHash = 999)
+        val secondSenior = firstSenior.copy(name = "Source Beta", legacyHash = 105)
+        val junior = firstSenior.copy(name = "Junior", legacyHash = 999)
         val team = LegacyTeamSnapshot(
             name = "Fixture Club",
             fileRef = "fixture.ban",
@@ -63,13 +64,14 @@ class LegacySeniorSquadPlayerViewTest {
             stadium = "",
             capacity = 0,
             reputation = 0,
-            players = listOf(senior),
+            players = listOf(firstSenior, secondSenior),
             juniors = listOf(junior),
         )
 
         assertEquals(
             listOf(
                 LegacySourceSeniorSquadPlayerView(
+                    sourceIndex = 0,
                     name = " Source Alpha ",
                     age = -1,
                     country = 0,
@@ -84,6 +86,23 @@ class LegacySeniorSquadPlayerViewTest {
                     legacySid = 102,
                     legacyTid = 103,
                     legacyHash = 104,
+                ),
+                LegacySourceSeniorSquadPlayerView(
+                    sourceIndex = 1,
+                    name = "Source Beta",
+                    age = -1,
+                    country = 0,
+                    position = -2,
+                    status = 7,
+                    side = -3,
+                    cr1 = -4,
+                    cr2 = 0,
+                    star = true,
+                    worldTop = false,
+                    legacyAid = 101,
+                    legacySid = 102,
+                    legacyTid = 103,
+                    legacyHash = 105,
                 ),
             ),
             LegacySourceSeniorSquadPlayerViews.from(team),
