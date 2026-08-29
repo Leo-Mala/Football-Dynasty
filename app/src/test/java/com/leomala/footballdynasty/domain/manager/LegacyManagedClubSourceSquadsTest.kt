@@ -158,6 +158,68 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
+    fun rawIdentityLookupReturnsEveryExactJuniorMatchWithoutCrossingIntoSeniorRoster() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(player("Senior exact", 710)),
+                juniors = listOf(
+                    player("Junior first exact", 710),
+                    player("Junior different", 711),
+                    player("Junior second exact", 710),
+                ),
+            ),
+        )
+
+        val identity = LegacyRawPlayerIdentity(
+            legacyAid = 7,
+            legacySid = 8,
+            legacyTid = 9,
+            legacyHash = 710,
+        )
+
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 2),
+            ),
+            result.juniorRefsByRawIdentity(identity),
+        )
+        assertEquals(
+            listOf(LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0)),
+            result.seniorRefsByRawIdentity(identity),
+        )
+    }
+
+    @Test
+    fun rawIdentityIsResolvedOnlyThroughExactFileCollectionAndIndexProvenance() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(player("Senior", 720)),
+                juniors = listOf(player("Junior", 721)),
+            ),
+        )
+
+        assertEquals(
+            LegacyRawPlayerIdentity(legacyAid = 7, legacySid = 8, legacyTid = 9, legacyHash = 720),
+            result.rawIdentity(result.seniorRefs().single()),
+        )
+        assertEquals(
+            LegacyRawPlayerIdentity(legacyAid = 7, legacySid = 8, legacyTid = 9, legacyHash = 721),
+            result.rawIdentity(result.juniorRefs().single()),
+        )
+        assertNull(
+            result.rawIdentity(
+                LegacySourcePlayerRef("teams/other.ban", LegacySourceRosterKind.SENIOR, 0),
+            ),
+        )
+        assertNull(
+            result.rawIdentity(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 1),
+            ),
+        )
+    }
+
+    @Test
     fun neverFallsBackAcrossFilesCollectionsOrOutsideExactSourceIndex() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
