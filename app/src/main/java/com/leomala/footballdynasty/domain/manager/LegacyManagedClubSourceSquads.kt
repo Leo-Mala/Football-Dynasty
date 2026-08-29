@@ -61,12 +61,36 @@ data class LegacyManagedClubSourceSquads(
     val senior: List<LegacySourceSeniorSquadPlayerView>,
     val juniors: List<LegacySourceJuniorSquadPlayerView>,
 ) {
+    /**
+     * Creates a reference only when [sourceIndex] names an existing senior entry.
+     * This is a bounds/provenance check only; it does not make that player eligible
+     * or selected for any lineup role.
+     */
+    fun seniorRef(sourceIndex: Int): LegacySourcePlayerRef? =
+        if (sourceIndex in senior.indices) {
+            LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.SENIOR, sourceIndex)
+        } else {
+            null
+        }
+
+    /**
+     * Creates a reference only when [sourceIndex] names an existing junior entry.
+     * This is a bounds/provenance check only; it does not imply promotion or any
+     * senior-team role.
+     */
+    fun juniorRef(sourceIndex: Int): LegacySourcePlayerRef? =
+        if (sourceIndex in juniors.indices) {
+            LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.JUNIOR, sourceIndex)
+        } else {
+            null
+        }
+
     fun seniorRefs(): List<LegacySourcePlayerRef> = senior.indices.map { sourceIndex ->
-        LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.SENIOR, sourceIndex)
+        checkNotNull(seniorRef(sourceIndex))
     }
 
     fun juniorRefs(): List<LegacySourcePlayerRef> = juniors.indices.map { sourceIndex ->
-        LegacySourcePlayerRef(sourceFileRef, LegacySourceRosterKind.JUNIOR, sourceIndex)
+        checkNotNull(juniorRef(sourceIndex))
     }
 
     /**
