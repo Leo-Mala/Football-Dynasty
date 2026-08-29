@@ -48,12 +48,16 @@ object LegacySeniorSquadPlayerViews {
 /**
  * Read-only senior-player view taken directly from the exact legacy team source.
  *
- * The `legacy*` values remain opaque. Keeping them beside the already-proven player
- * fields gives later Marco B characterization a provenance boundary without matching
- * players by name, position, ratings or other heuristics. Junior entries remain a
- * separate legacy collection and are intentionally excluded here.
+ * [sourceIndex] is the zero-based position in the serialized `players` collection;
+ * it is provenance only and must not be interpreted as starter/reserve priority or
+ * tactical order. The `legacy*` values remain opaque. Keeping source order and raw
+ * identifiers beside the already-proven player fields gives later Marco B
+ * characterization a deterministic boundary without matching players by name,
+ * position, ratings or other heuristics. Junior entries remain a separate legacy
+ * collection and are intentionally excluded here.
  */
 data class LegacySourceSeniorSquadPlayerView(
+    val sourceIndex: Int,
     val name: String,
     val age: Int,
     val country: Int,
@@ -72,8 +76,9 @@ data class LegacySourceSeniorSquadPlayerView(
 
 object LegacySourceSeniorSquadPlayerViews {
     fun from(team: LegacyTeamSnapshot): List<LegacySourceSeniorSquadPlayerView> =
-        team.players.map { player ->
+        team.players.mapIndexed { sourceIndex, player ->
             LegacySourceSeniorSquadPlayerView(
+                sourceIndex = sourceIndex,
                 name = player.name,
                 age = player.age,
                 country = player.country,
