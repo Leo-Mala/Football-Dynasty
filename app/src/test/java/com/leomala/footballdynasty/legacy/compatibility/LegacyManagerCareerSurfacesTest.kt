@@ -11,6 +11,8 @@ class LegacyManagerCareerSurfacesTest {
     fun confirmedCatalogMatchesOnlyProvenManagerFacingLegacyActivities() {
         assertEquals(
             linkedSetOf(
+                LegacyManagerCareerSurface.CLUB_SELECTION,
+                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
                 LegacyManagerCareerSurface.COACH,
                 LegacyManagerCareerSurface.CLUB_INVITATION,
                 LegacyManagerCareerSurface.SELECTION_INVITATION,
@@ -24,6 +26,14 @@ class LegacyManagerCareerSurfacesTest {
 
     @Test
     fun resolvesExactLegacyClassNamesWithoutAliasesOrFallbacks() {
+        assertEquals(
+            LegacyManagerCareerSurface.CLUB_SELECTION,
+            LegacyManagerCareerSurfaces.fromLegacyClassName("ActivityEscolhaTimes"),
+        )
+        assertEquals(
+            LegacyManagerCareerSurface.CAREER_CLUB_HUB,
+            LegacyManagerCareerSurfaces.fromLegacyClassName("ActivityMainTeam"),
+        )
         assertEquals(
             LegacyManagerCareerSurface.COACH,
             LegacyManagerCareerSurfaces.fromLegacyClassName("ActivityTecnico"),
