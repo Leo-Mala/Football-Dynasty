@@ -6,6 +6,7 @@ import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.ManagedClubState
 import com.leomala.footballdynasty.domain.career.SeasonState
 import com.leomala.footballdynasty.domain.model.Club
+import com.leomala.footballdynasty.domain.model.LegacyPlayerSnapshot
 import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -17,6 +18,7 @@ class ManagedClubManagerViewTest {
     @Test
     fun composesOverviewCoachVisualIdentityAndExactLegacyProvenanceForPersistedClub() {
         val club = club("club-b", "teams/b.ban")
+        val sourcePlayer = legacyPlayer("Source B", legacyHash = 204)
         val legacyTeam = legacyTeam(
             fileRef = "teams/b.ban",
             coach = "Coach B",
@@ -30,6 +32,7 @@ class ManagedClubManagerViewTest {
             legacyVid = 104,
             legacyId = 105,
             legacyValid = true,
+            players = listOf(sourcePlayer),
         )
 
         val result = ManagedClubManagerViews.from(
@@ -50,6 +53,8 @@ class ManagedClubManagerViewTest {
         assertEquals(" Legacy Primary ", result?.visualIdentity?.primaryColor)
         assertEquals("Legacy Secondary", result?.visualIdentity?.secondaryColor)
         assertEquals(0x123456, result?.visualIdentity?.baseColor)
+        assertEquals(listOf("Source B"), result?.sourceSeniorSquad?.map { it.name })
+        assertEquals(listOf(204), result?.sourceSeniorSquad?.map { it.legacyHash })
         assertEquals("club-b", result?.coach?.clubId)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
         assertEquals(20, result?.coach?.coach?.coachCountry)
@@ -87,6 +92,7 @@ class ManagedClubManagerViewTest {
             secondaryColor = "Wrong Secondary",
             baseColor = 1,
             legacyId = 999,
+            players = listOf(legacyPlayer("Wrong Player", legacyHash = 999)),
         )
         val exactSource = legacyTeam(
             fileRef = "teams/b.ban",
@@ -96,6 +102,7 @@ class ManagedClubManagerViewTest {
             secondaryColor = "Exact Secondary",
             baseColor = 2,
             legacyId = 123,
+            players = listOf(legacyPlayer("Exact Player", legacyHash = 123)),
         )
 
         val result = ManagedClubManagerViews.from(
@@ -110,6 +117,8 @@ class ManagedClubManagerViewTest {
         assertEquals("Exact Primary", result?.visualIdentity?.primaryColor)
         assertEquals("Exact Secondary", result?.visualIdentity?.secondaryColor)
         assertEquals(2, result?.visualIdentity?.baseColor)
+        assertEquals(listOf("Exact Player"), result?.sourceSeniorSquad?.map { it.name })
+        assertEquals(listOf(123), result?.sourceSeniorSquad?.map { it.legacyHash })
     }
 
     private fun career(managedClubId: String): CareerState = CareerState(
@@ -138,6 +147,23 @@ class ManagedClubManagerViewTest {
         players = emptyList(),
     )
 
+    private fun legacyPlayer(name: String, legacyHash: Int): LegacyPlayerSnapshot = LegacyPlayerSnapshot(
+        name = name,
+        age = 20,
+        country = 1,
+        position = 2,
+        status = 3,
+        side = 4,
+        cr1 = 5,
+        cr2 = 6,
+        star = false,
+        worldTop = false,
+        legacyAid = 201,
+        legacySid = 202,
+        legacyTid = 203,
+        legacyHash = legacyHash,
+    )
+
     private fun legacyTeam(
         fileRef: String,
         coach: String,
@@ -151,6 +177,7 @@ class ManagedClubManagerViewTest {
         legacyVid: Int = 0,
         legacyId: Int = 0,
         legacyValid: Boolean = false,
+        players: List<LegacyPlayerSnapshot> = emptyList(),
     ): LegacyTeamSnapshot = LegacyTeamSnapshot(
         name = "Same Name",
         fileRef = fileRef,
@@ -163,7 +190,7 @@ class ManagedClubManagerViewTest {
         primaryColor = primaryColor,
         secondaryColor = secondaryColor,
         baseColor = baseColor,
-        players = emptyList(),
+        players = players,
         juniors = emptyList(),
         coach = coach,
         coachCountry = coachCountry,
