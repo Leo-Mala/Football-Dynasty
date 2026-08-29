@@ -8,12 +8,14 @@ import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
  * Read-only composition of the already-proven manager-facing state for the
  * club explicitly persisted by the career.
  *
- * This only joins the certified club/senior-squad overview with the certified
- * legacy coach identity. It deliberately adds no lineup, tactics, transfer,
- * finance, employment, dismissal, reputation or progression semantics.
+ * The exact legacy source selection is carried with the view so later Marco B
+ * reconstruction can consume one provenance boundary instead of independently
+ * re-resolving club data. This still adds no lineup, tactics, transfer, finance,
+ * employment, dismissal, reputation or progression semantics.
  */
 data class ManagedClubManagerView(
     val overview: ManagedClubOverview,
+    val legacyTeam: LegacyTeamSnapshot,
     val coach: ManagedClubCoachView,
 )
 
@@ -24,11 +26,20 @@ object ManagedClubManagerViews {
         legacyTeams: List<LegacyTeamSnapshot>,
     ): ManagedClubManagerView? {
         val overview = ManagedClubOverviews.from(career, clubs) ?: return null
-        val coach = ManagedClubCoachViews.from(career, clubs, legacyTeams) ?: return null
-        if (overview.profile.clubId != coach.clubId) return null
+        val selection = ManagedClubLegacyTeamSelections.resolve(
+            career = career,
+            clubs = clubs,
+            legacyTeams = legacyTeams,
+        ) ?: return null
+        if (overview.profile.clubId != selection.club.id) return null
+
         return ManagedClubManagerView(
             overview = overview,
-            coach = coach,
+            legacyTeam = selection.legacyTeam,
+            coach = ManagedClubCoachView(
+                clubId = selection.club.id,
+                coach = LegacyCoachProfileProjection.from(selection.legacyTeam),
+            ),
         )
     }
 }
