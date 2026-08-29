@@ -9,11 +9,12 @@ import com.leomala.footballdynasty.domain.model.Club
 import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class ManagedClubManagerViewTest {
     @Test
-    fun composesOverviewAndCoachForExactPersistedClub() {
+    fun composesOverviewCoachAndExactLegacyProvenanceForPersistedClub() {
         val club = club("club-b", "teams/b.ban")
         val legacyTeam = legacyTeam("teams/b.ban", "Coach B", 20)
 
@@ -25,13 +26,14 @@ class ManagedClubManagerViewTest {
 
         assertEquals("club-b", result?.overview?.profile?.clubId)
         assertEquals("club-b", result?.overview?.squad?.clubId)
+        assertSame(legacyTeam, result?.legacyTeam)
         assertEquals("club-b", result?.coach?.clubId)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
         assertEquals(20, result?.coach?.coach?.coachCountry)
     }
 
     @Test
-    fun remainsUnavailableWhenEitherExactClubOrLegacyCoachSourceIsMissing() {
+    fun remainsUnavailableWhenEitherExactClubOrLegacySourceIsMissing() {
         val club = club("club-b", "teams/b.ban")
         val wrongLegacySource = legacyTeam("teams/a.ban", "Coach A", 10)
 
@@ -49,6 +51,22 @@ class ManagedClubManagerViewTest {
                 legacyTeams = listOf(wrongLegacySource),
             ),
         )
+    }
+
+    @Test
+    fun doesNotFallbackToAnotherLegacyTeamWithMatchingPresentationFields() {
+        val club = club("club-b", "teams/b.ban")
+        val wrongSource = legacyTeam("teams/a.ban", "Coach A", 10)
+        val exactSource = legacyTeam("teams/b.ban", "Coach B", 20)
+
+        val result = ManagedClubManagerViews.from(
+            career = career("club-b"),
+            clubs = listOf(club),
+            legacyTeams = listOf(wrongSource, exactSource),
+        )
+
+        assertSame(exactSource, result?.legacyTeam)
+        assertEquals("Coach B", result?.coach?.coach?.coachName)
     }
 
     private fun career(managedClubId: String): CareerState = CareerState(
