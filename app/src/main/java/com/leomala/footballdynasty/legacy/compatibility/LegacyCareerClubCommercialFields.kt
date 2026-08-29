@@ -11,6 +11,7 @@ package com.leomala.footballdynasty.legacy.compatibility
  * Java/SMALI control flow is characterized.
  */
 object LegacyCareerClubCommercialFields {
+    const val SOURCE_CLASS = "a.ac"
     const val INVESTMENT = "ctInvest"
     const val SPONSOR = "sponsor"
 
