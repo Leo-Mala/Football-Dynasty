@@ -28,6 +28,21 @@ data class LegacySourcePlayerRef(
 )
 
 /**
+ * Exact raw identifier tuple already present on the serialized legacy player.
+ *
+ * The field names deliberately mirror the compatibility snapshot. No uniqueness,
+ * domain meaning or cross-file stability is assumed. Consumers that need to bind
+ * later Java/SMALI evidence can use this tuple without matching on player name,
+ * position, rating or other sporting facts.
+ */
+data class LegacyRawPlayerIdentity(
+    val legacyAid: Int,
+    val legacySid: Int,
+    val legacyTid: Int,
+    val legacyHash: Int,
+)
+
+/**
  * Typed result of resolving one exact legacy source reference.
  *
  * This wrapper preserves the proven senior/junior collection boundary. It carries
@@ -123,6 +138,22 @@ data class LegacyManagedClubSourceSquads(
     fun seniorRefsBySideCode(sideCode: Int): List<LegacySourcePlayerRef> =
         senior.mapIndexedNotNull { sourceIndex, player ->
             seniorRef(sourceIndex)?.takeIf { player.side == sideCode }
+        }
+
+    /**
+     * Selects senior source references whose complete raw legacy identifier tuple
+     * matches [identity]. The tuple is treated as opaque evidence, not as a proven
+     * unique player ID. Therefore every exact match is returned in source order.
+     * Juniors remain excluded because the legacy collections are distinct.
+     */
+    fun seniorRefsByRawIdentity(identity: LegacyRawPlayerIdentity): List<LegacySourcePlayerRef> =
+        senior.mapIndexedNotNull { sourceIndex, player ->
+            seniorRef(sourceIndex)?.takeIf {
+                player.legacyAid == identity.legacyAid &&
+                    player.legacySid == identity.legacySid &&
+                    player.legacyTid == identity.legacyTid &&
+                    player.legacyHash == identity.legacyHash
+            }
         }
 
     /**
