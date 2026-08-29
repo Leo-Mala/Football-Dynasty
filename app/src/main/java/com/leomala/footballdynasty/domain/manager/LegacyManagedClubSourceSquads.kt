@@ -148,12 +148,17 @@ data class LegacyManagedClubSourceSquads(
      */
     fun seniorRefsByRawIdentity(identity: LegacyRawPlayerIdentity): List<LegacySourcePlayerRef> =
         senior.mapIndexedNotNull { sourceIndex, player ->
-            seniorRef(sourceIndex)?.takeIf {
-                player.legacyAid == identity.legacyAid &&
-                    player.legacySid == identity.legacySid &&
-                    player.legacyTid == identity.legacyTid &&
-                    player.legacyHash == identity.legacyHash
-            }
+            seniorRef(sourceIndex)?.takeIf { player.rawIdentity() == identity }
+        }
+
+    /**
+     * Mirrors [seniorRefsByRawIdentity] for the separately serialized junior
+     * collection. Every exact match is preserved in junior source order; no
+     * promotion, senior fallback or cross-collection deduplication is performed.
+     */
+    fun juniorRefsByRawIdentity(identity: LegacyRawPlayerIdentity): List<LegacySourcePlayerRef> =
+        juniors.mapIndexedNotNull { sourceIndex, player ->
+            juniorRef(sourceIndex)?.takeIf { player.rawIdentity() == identity }
         }
 
     /**
@@ -200,6 +205,33 @@ data class LegacyManagedClubSourceSquads(
             LegacyResolvedSourcePlayer.Junior(ref = ref, player = player)
         }
     }
+
+    /**
+     * Returns the exact opaque raw identifier tuple for a reference only after the
+     * file/collection/index provenance checks above succeed. Invalid or foreign
+     * references stay unresolved instead of being matched by football facts.
+     */
+    fun rawIdentity(ref: LegacySourcePlayerRef): LegacyRawPlayerIdentity? = when (val resolved = player(ref)) {
+        is LegacyResolvedSourcePlayer.Senior -> resolved.player.rawIdentity()
+        is LegacyResolvedSourcePlayer.Junior -> resolved.player.rawIdentity()
+        null -> null
+    }
+
+    private fun LegacySourceSeniorSquadPlayerView.rawIdentity(): LegacyRawPlayerIdentity =
+        LegacyRawPlayerIdentity(
+            legacyAid = legacyAid,
+            legacySid = legacySid,
+            legacyTid = legacyTid,
+            legacyHash = legacyHash,
+        )
+
+    private fun LegacySourceJuniorSquadPlayerView.rawIdentity(): LegacyRawPlayerIdentity =
+        LegacyRawPlayerIdentity(
+            legacyAid = legacyAid,
+            legacySid = legacySid,
+            legacyTid = legacyTid,
+            legacyHash = legacyHash,
+        )
 }
 
 object LegacyManagedClubSourceSquadProjection {
