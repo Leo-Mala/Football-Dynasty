@@ -15,6 +15,12 @@ class LegacyCareerPlayerCommercialSnapshotExtractorTest {
         LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to true,
     )
 
+    private fun extract(fields: Map<String, Any?> = provenFields) =
+        LegacyCareerPlayerCommercialSnapshotExtractor.extract(
+            sourceClassName = LegacyCareerPlayerCommercialFields.SOURCE_CLASS,
+            fields = fields,
+        )
+
     @Test
     fun `extracts exact proven scalar values and ignores unrelated player fields`() {
         val fields = provenFields + mapOf(
@@ -32,7 +38,17 @@ class LegacyCareerPlayerCommercialSnapshotExtractorTest {
                 pendSaleValue = -99,
                 pendIsLoan = true,
             ),
-            LegacyCareerPlayerCommercialSnapshotExtractor.extract(fields),
+            extract(fields),
+        )
+    }
+
+    @Test
+    fun `rejects same field shape from a different legacy class`() {
+        assertNull(
+            LegacyCareerPlayerCommercialSnapshotExtractor.extract(
+                sourceClassName = "a.ac",
+                fields = provenFields,
+            ),
         )
     }
 
@@ -41,7 +57,7 @@ class LegacyCareerPlayerCommercialSnapshotExtractorTest {
         LegacyCareerPlayerCommercialFields.confirmedNames.forEach { missing ->
             assertNull(
                 "missing field must fail extraction: $missing",
-                LegacyCareerPlayerCommercialSnapshotExtractor.extract(provenFields - missing),
+                extract(provenFields - missing),
             )
         }
     }
@@ -49,23 +65,17 @@ class LegacyCareerPlayerCommercialSnapshotExtractorTest {
     @Test
     fun `rejects scalar widening coercion and boolean coercion`() {
         assertNull(
-            LegacyCareerPlayerCommercialSnapshotExtractor.extract(
-                provenFields + (LegacyCareerPlayerCommercialFields.SALARY to 3L),
-            ),
+            extract(provenFields + (LegacyCareerPlayerCommercialFields.SALARY to 3L)),
         )
         assertNull(
-            LegacyCareerPlayerCommercialSnapshotExtractor.extract(
-                provenFields + (LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to 1),
-            ),
+            extract(provenFields + (LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to 1)),
         )
     }
 
     @Test
     fun `rejects null instead of manufacturing a default sentinel`() {
         assertNull(
-            LegacyCareerPlayerCommercialSnapshotExtractor.extract(
-                provenFields + (LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to null),
-            ),
+            extract(provenFields + (LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to null)),
         )
     }
 }
