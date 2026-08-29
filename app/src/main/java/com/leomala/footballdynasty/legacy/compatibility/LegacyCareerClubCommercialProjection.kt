@@ -67,4 +67,27 @@ object LegacyCareerClubCommercialProjection {
             ),
         )
     }
+
+    /**
+     * Replaces only the two proven commercial fields inside an already-decoded complete `a.ac`
+     * field map, preserving every unrelated field and its existing value/reference.
+     *
+     * The method deliberately refuses a wrong source class or an input map missing either proven
+     * field. It is therefore a narrow write-back boundary, not permission to synthesize a partial
+     * legacy club object. No financial semantics or defaults are introduced.
+     */
+    fun writeBackToDecodedFields(
+        sourceClassName: String,
+        existingFields: Map<String, Any?>,
+        state: LegacyClubCommercialState,
+    ): Map<String, Any?>? {
+        if (sourceClassName != LegacyCareerClubCommercialFields.SOURCE_CLASS) return null
+        if (!existingFields.containsKey(LegacyCareerClubCommercialFields.INVESTMENT)) return null
+        if (!existingFields.containsKey(LegacyCareerClubCommercialFields.SPONSOR)) return null
+
+        val updated = LinkedHashMap(existingFields)
+        val slice = toDecodedFieldSlice(state)
+        slice.fields.forEach { (fieldName, value) -> updated[fieldName] = value }
+        return updated
+    }
 }
