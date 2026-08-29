@@ -61,6 +61,29 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
+    fun createsSingleReferencesOnlyForExistingCollectionIndexes() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(player("Senior A", 610), player("Senior B", 611)),
+                juniors = listOf(player("Junior A", 612)),
+            ),
+        )
+
+        assertEquals(
+            LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 1),
+            result.seniorRef(1),
+        )
+        assertEquals(
+            LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 0),
+            result.juniorRef(0),
+        )
+        assertNull(result.seniorRef(-1))
+        assertNull(result.seniorRef(2))
+        assertNull(result.juniorRef(-1))
+        assertNull(result.juniorRef(1))
+    }
+
+    @Test
     fun neverFallsBackAcrossFilesCollectionsOrOutsideExactSourceIndex() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
