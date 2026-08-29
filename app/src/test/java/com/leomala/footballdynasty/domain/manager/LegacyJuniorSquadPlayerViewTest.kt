@@ -7,7 +7,7 @@ import org.junit.Test
 
 class LegacyJuniorSquadPlayerViewTest {
     @Test
-    fun preservesJuniorCollectionOrderAndOpaqueSourceFields() {
+    fun preservesJuniorCollectionOrderIndexesAndOpaqueSourceFields() {
         val first = player("Junior A", legacyHash = 401)
         val second = player("Junior B", legacyHash = 402)
         val team = team(
@@ -17,6 +17,7 @@ class LegacyJuniorSquadPlayerViewTest {
 
         val result = LegacySourceJuniorSquadPlayerViews.from(team)
 
+        assertEquals(listOf(0, 1), result.map { it.sourceIndex })
         assertEquals(listOf("Junior A", "Junior B"), result.map { it.name })
         assertEquals(listOf(401, 402), result.map { it.legacyHash })
         assertEquals(listOf(201, 201), result.map { it.legacyAid })
@@ -33,6 +34,7 @@ class LegacyJuniorSquadPlayerViewTest {
 
         val result = LegacySourceJuniorSquadPlayerViews.from(team)
 
+        assertEquals(listOf(0), result.map { it.sourceIndex })
         assertEquals(listOf("Junior"), result.map { it.name })
         assertEquals(listOf(401), result.map { it.legacyHash })
     }
