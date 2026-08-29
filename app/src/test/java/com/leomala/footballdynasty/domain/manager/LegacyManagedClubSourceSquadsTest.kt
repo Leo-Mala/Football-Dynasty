@@ -84,6 +84,47 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
+    fun filtersOpaqueSeniorCodesWithoutChangingSourceIdentityOrOrder() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(
+                    player("A", 620, position = 9, status = 4, side = 7),
+                    player("B", 621, position = 2, status = 4, side = 3),
+                    player("C", 622, position = 9, status = 8, side = 7),
+                ),
+                juniors = listOf(
+                    player("Junior same codes", 623, position = 9, status = 4, side = 7),
+                ),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 2),
+            ),
+            result.seniorRefsByPositionCode(9),
+        )
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 1),
+            ),
+            result.seniorRefsByStatusCode(4),
+        )
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 2),
+            ),
+            result.seniorRefsBySideCode(7),
+        )
+        assertEquals(emptyList<LegacySourcePlayerRef>(), result.seniorRefsByPositionCode(99))
+        assertEquals(emptyList<LegacySourcePlayerRef>(), result.seniorRefsByStatusCode(99))
+        assertEquals(emptyList<LegacySourcePlayerRef>(), result.seniorRefsBySideCode(99))
+    }
+
+    @Test
     fun neverFallsBackAcrossFilesCollectionsOrOutsideExactSourceIndex() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
@@ -147,13 +188,19 @@ class LegacyManagedClubSourceSquadsTest {
         assertEquals(902, exact.juniorPlayer(exact.juniorRefs().single())?.legacyHash)
     }
 
-    private fun player(name: String, legacyHash: Int): LegacyPlayerSnapshot = LegacyPlayerSnapshot(
+    private fun player(
+        name: String,
+        legacyHash: Int,
+        position: Int = 2,
+        status: Int = 3,
+        side: Int = 4,
+    ): LegacyPlayerSnapshot = LegacyPlayerSnapshot(
         name = name,
         age = 18,
         country = 1,
-        position = 2,
-        status = 3,
-        side = 4,
+        position = position,
+        status = status,
+        side = side,
         cr1 = 5,
         cr2 = 6,
         star = false,
