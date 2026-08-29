@@ -30,7 +30,7 @@ object LegacySchemaCatalog {
     val club = LegacyTypeDescriptor(
         type = "a.ac",
         role = "career club",
-        confirmedFields = setOf("xp", "ctInvest", "sponsor"),
+        confirmedFields = linkedSetOf("xp") + LegacyCareerClubCommercialFields.confirmedNames,
     )
     val match = LegacyTypeDescriptor(
         type = "a.t",
