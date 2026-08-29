@@ -10,6 +10,7 @@ import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ManagedClubManagerViewTest {
@@ -23,6 +24,12 @@ class ManagedClubManagerViewTest {
             primaryColor = " Legacy Primary ",
             secondaryColor = "Legacy Secondary",
             baseColor = 0x123456,
+            legacyAid = 101,
+            legacySid = 102,
+            legacyTid = 103,
+            legacyVid = 104,
+            legacyId = 105,
+            legacyValid = true,
         )
 
         val result = ManagedClubManagerViews.from(
@@ -34,6 +41,12 @@ class ManagedClubManagerViewTest {
         assertEquals("club-b", result?.overview?.profile?.clubId)
         assertEquals("club-b", result?.overview?.squad?.clubId)
         assertSame(legacyTeam, result?.legacyTeam)
+        assertEquals(101, result?.sourceIdentity?.legacyAid)
+        assertEquals(102, result?.sourceIdentity?.legacySid)
+        assertEquals(103, result?.sourceIdentity?.legacyTid)
+        assertEquals(104, result?.sourceIdentity?.legacyVid)
+        assertEquals(105, result?.sourceIdentity?.legacyId)
+        assertTrue(result?.sourceIdentity?.legacyValid == true)
         assertEquals(" Legacy Primary ", result?.visualIdentity?.primaryColor)
         assertEquals("Legacy Secondary", result?.visualIdentity?.secondaryColor)
         assertEquals(0x123456, result?.visualIdentity?.baseColor)
@@ -73,6 +86,7 @@ class ManagedClubManagerViewTest {
             primaryColor = "Wrong Primary",
             secondaryColor = "Wrong Secondary",
             baseColor = 1,
+            legacyId = 999,
         )
         val exactSource = legacyTeam(
             fileRef = "teams/b.ban",
@@ -81,6 +95,7 @@ class ManagedClubManagerViewTest {
             primaryColor = "Exact Primary",
             secondaryColor = "Exact Secondary",
             baseColor = 2,
+            legacyId = 123,
         )
 
         val result = ManagedClubManagerViews.from(
@@ -90,6 +105,7 @@ class ManagedClubManagerViewTest {
         )
 
         assertSame(exactSource, result?.legacyTeam)
+        assertEquals(123, result?.sourceIdentity?.legacyId)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
         assertEquals("Exact Primary", result?.visualIdentity?.primaryColor)
         assertEquals("Exact Secondary", result?.visualIdentity?.secondaryColor)
@@ -129,6 +145,12 @@ class ManagedClubManagerViewTest {
         primaryColor: String = "",
         secondaryColor: String = "",
         baseColor: Int = 0,
+        legacyAid: Int = 0,
+        legacySid: Int = 0,
+        legacyTid: Int = 0,
+        legacyVid: Int = 0,
+        legacyId: Int = 0,
+        legacyValid: Boolean = false,
     ): LegacyTeamSnapshot = LegacyTeamSnapshot(
         name = "Same Name",
         fileRef = fileRef,
@@ -145,5 +167,11 @@ class ManagedClubManagerViewTest {
         juniors = emptyList(),
         coach = coach,
         coachCountry = coachCountry,
+        legacyAid = legacyAid,
+        legacySid = legacySid,
+        legacyTid = legacyTid,
+        legacyVid = legacyVid,
+        legacyId = legacyId,
+        legacyValid = legacyValid,
     )
 }
