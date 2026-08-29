@@ -36,16 +36,6 @@ data class LegacyManagedClubSourceSquads(
     val senior: List<LegacySourceSeniorSquadPlayerView>,
     val juniors: List<LegacySourceJuniorSquadPlayerView>,
 ) {
-    /**
-     * Returns the exact source entry addressed by [ref], or null when that exact
-     * serialized collection/index pair is absent. No cross-collection fallback,
-     * name matching or player-property heuristic is attempted.
-     */
-    fun player(ref: LegacySourcePlayerRef): Any? = when (ref.rosterKind) {
-        LegacySourceRosterKind.SENIOR -> senior.getOrNull(ref.sourceIndex)
-        LegacySourceRosterKind.JUNIOR -> juniors.getOrNull(ref.sourceIndex)
-    }
-
     fun seniorRefs(): List<LegacySourcePlayerRef> = senior.indices.map { sourceIndex ->
         LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, sourceIndex)
     }
@@ -53,6 +43,20 @@ data class LegacyManagedClubSourceSquads(
     fun juniorRefs(): List<LegacySourcePlayerRef> = juniors.indices.map { sourceIndex ->
         LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, sourceIndex)
     }
+
+    /**
+     * Resolves only a SENIOR source reference. Wrong collection or absent index
+     * returns null; there is deliberately no fallback to juniors or fact matching.
+     */
+    fun seniorPlayer(ref: LegacySourcePlayerRef): LegacySourceSeniorSquadPlayerView? =
+        if (ref.rosterKind == LegacySourceRosterKind.SENIOR) senior.getOrNull(ref.sourceIndex) else null
+
+    /**
+     * Resolves only a JUNIOR source reference. Wrong collection or absent index
+     * returns null; there is deliberately no fallback to seniors or fact matching.
+     */
+    fun juniorPlayer(ref: LegacySourcePlayerRef): LegacySourceJuniorSquadPlayerView? =
+        if (ref.rosterKind == LegacySourceRosterKind.JUNIOR) juniors.getOrNull(ref.sourceIndex) else null
 }
 
 object LegacyManagedClubSourceSquadProjection {
