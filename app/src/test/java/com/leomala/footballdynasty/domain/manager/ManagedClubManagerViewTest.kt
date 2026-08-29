@@ -14,9 +14,16 @@ import org.junit.Test
 
 class ManagedClubManagerViewTest {
     @Test
-    fun composesOverviewCoachAndExactLegacyProvenanceForPersistedClub() {
+    fun composesOverviewCoachVisualIdentityAndExactLegacyProvenanceForPersistedClub() {
         val club = club("club-b", "teams/b.ban")
-        val legacyTeam = legacyTeam("teams/b.ban", "Coach B", 20)
+        val legacyTeam = legacyTeam(
+            fileRef = "teams/b.ban",
+            coach = "Coach B",
+            coachCountry = 20,
+            primaryColor = " Legacy Primary ",
+            secondaryColor = "Legacy Secondary",
+            baseColor = 0x123456,
+        )
 
         val result = ManagedClubManagerViews.from(
             career = career("club-b"),
@@ -27,6 +34,9 @@ class ManagedClubManagerViewTest {
         assertEquals("club-b", result?.overview?.profile?.clubId)
         assertEquals("club-b", result?.overview?.squad?.clubId)
         assertSame(legacyTeam, result?.legacyTeam)
+        assertEquals(" Legacy Primary ", result?.visualIdentity?.primaryColor)
+        assertEquals("Legacy Secondary", result?.visualIdentity?.secondaryColor)
+        assertEquals(0x123456, result?.visualIdentity?.baseColor)
         assertEquals("club-b", result?.coach?.clubId)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
         assertEquals(20, result?.coach?.coach?.coachCountry)
@@ -56,8 +66,22 @@ class ManagedClubManagerViewTest {
     @Test
     fun doesNotFallbackToAnotherLegacyTeamWithMatchingPresentationFields() {
         val club = club("club-b", "teams/b.ban")
-        val wrongSource = legacyTeam("teams/a.ban", "Coach A", 10)
-        val exactSource = legacyTeam("teams/b.ban", "Coach B", 20)
+        val wrongSource = legacyTeam(
+            fileRef = "teams/a.ban",
+            coach = "Coach A",
+            coachCountry = 10,
+            primaryColor = "Wrong Primary",
+            secondaryColor = "Wrong Secondary",
+            baseColor = 1,
+        )
+        val exactSource = legacyTeam(
+            fileRef = "teams/b.ban",
+            coach = "Coach B",
+            coachCountry = 20,
+            primaryColor = "Exact Primary",
+            secondaryColor = "Exact Secondary",
+            baseColor = 2,
+        )
 
         val result = ManagedClubManagerViews.from(
             career = career("club-b"),
@@ -67,6 +91,9 @@ class ManagedClubManagerViewTest {
 
         assertSame(exactSource, result?.legacyTeam)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
+        assertEquals("Exact Primary", result?.visualIdentity?.primaryColor)
+        assertEquals("Exact Secondary", result?.visualIdentity?.secondaryColor)
+        assertEquals(2, result?.visualIdentity?.baseColor)
     }
 
     private fun career(managedClubId: String): CareerState = CareerState(
@@ -95,19 +122,28 @@ class ManagedClubManagerViewTest {
         players = emptyList(),
     )
 
-    private fun legacyTeam(fileRef: String, coach: String, coachCountry: Int): LegacyTeamSnapshot =
-        LegacyTeamSnapshot(
-            name = "Same Name",
-            fileRef = fileRef,
-            country = 1,
-            state = 2,
-            level = 3,
-            stadium = "Legacy Stadium",
-            capacity = 10000,
-            reputation = 4,
-            players = emptyList(),
-            juniors = emptyList(),
-            coach = coach,
-            coachCountry = coachCountry,
-        )
+    private fun legacyTeam(
+        fileRef: String,
+        coach: String,
+        coachCountry: Int,
+        primaryColor: String = "",
+        secondaryColor: String = "",
+        baseColor: Int = 0,
+    ): LegacyTeamSnapshot = LegacyTeamSnapshot(
+        name = "Same Name",
+        fileRef = fileRef,
+        country = 1,
+        state = 2,
+        level = 3,
+        stadium = "Legacy Stadium",
+        capacity = 10000,
+        reputation = 4,
+        primaryColor = primaryColor,
+        secondaryColor = secondaryColor,
+        baseColor = baseColor,
+        players = emptyList(),
+        juniors = emptyList(),
+        coach = coach,
+        coachCountry = coachCountry,
+    )
 }
