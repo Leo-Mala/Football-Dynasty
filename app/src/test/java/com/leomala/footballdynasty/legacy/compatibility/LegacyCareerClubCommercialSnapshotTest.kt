@@ -6,7 +6,7 @@ import org.junit.Test
 
 class LegacyCareerClubCommercialSnapshotTest {
     @Test
-    fun `extracts both proven club commercial fields verbatim and ignores unrelated fields`() {
+    fun `extracts both proven club commercial fields verbatim from exact legacy class and ignores unrelated fields`() {
         val opaqueInvestment = listOf("uninterpreted", 7)
         val opaqueSponsor = linkedMapOf("raw" to true)
         val fields = linkedMapOf<String, Any?>(
@@ -20,7 +20,10 @@ class LegacyCareerClubCommercialSnapshotTest {
                 ctInvest = opaqueInvestment,
                 sponsor = opaqueSponsor,
             ),
-            LegacyCareerClubCommercialSnapshotExtractor.extract(fields),
+            LegacyCareerClubCommercialSnapshotExtractor.extract(
+                sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+                fields = fields,
+            ),
         )
     }
 
@@ -33,7 +36,25 @@ class LegacyCareerClubCommercialSnapshotTest {
 
         assertEquals(
             LegacyCareerClubCommercialSnapshot(ctInvest = null, sponsor = null),
-            LegacyCareerClubCommercialSnapshotExtractor.extract(fields),
+            LegacyCareerClubCommercialSnapshotExtractor.extract(
+                sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+                fields = fields,
+            ),
+        )
+    }
+
+    @Test
+    fun `rejects fields from a different legacy source class`() {
+        val fields = mapOf<String, Any?>(
+            LegacyCareerClubCommercialFields.INVESTMENT to 1,
+            LegacyCareerClubCommercialFields.SPONSOR to 2,
+        )
+
+        assertNull(
+            LegacyCareerClubCommercialSnapshotExtractor.extract(
+                sourceClassName = "a.p",
+                fields = fields,
+            ),
         )
     }
 
@@ -41,7 +62,8 @@ class LegacyCareerClubCommercialSnapshotTest {
     fun `rejects missing investment field without manufacturing a default`() {
         assertNull(
             LegacyCareerClubCommercialSnapshotExtractor.extract(
-                mapOf(LegacyCareerClubCommercialFields.SPONSOR to 1),
+                sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+                fields = mapOf(LegacyCareerClubCommercialFields.SPONSOR to 1),
             ),
         )
     }
@@ -50,7 +72,8 @@ class LegacyCareerClubCommercialSnapshotTest {
     fun `rejects missing sponsor field without manufacturing a default`() {
         assertNull(
             LegacyCareerClubCommercialSnapshotExtractor.extract(
-                mapOf(LegacyCareerClubCommercialFields.INVESTMENT to 1),
+                sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+                fields = mapOf(LegacyCareerClubCommercialFields.INVESTMENT to 1),
             ),
         )
     }
