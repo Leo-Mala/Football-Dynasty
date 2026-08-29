@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.domain.manager
 
 import com.leomala.footballdynasty.domain.model.Club
+import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 
 /**
  * Consolidated persistence-independent view of every senior-player field that is
@@ -40,6 +41,53 @@ object LegacySeniorSquadPlayerViews {
                 cr2 = player.cr2,
                 star = player.star,
                 worldTop = player.worldTop,
+            )
+        }
+}
+
+/**
+ * Read-only senior-player view taken directly from the exact legacy team source.
+ *
+ * The `legacy*` values remain opaque. Keeping them beside the already-proven player
+ * fields gives later Marco B characterization a provenance boundary without matching
+ * players by name, position, ratings or other heuristics. Junior entries remain a
+ * separate legacy collection and are intentionally excluded here.
+ */
+data class LegacySourceSeniorSquadPlayerView(
+    val name: String,
+    val age: Int,
+    val country: Int,
+    val position: Int,
+    val status: Int,
+    val side: Int,
+    val cr1: Int,
+    val cr2: Int,
+    val star: Boolean,
+    val worldTop: Boolean,
+    val legacyAid: Int,
+    val legacySid: Int,
+    val legacyTid: Int,
+    val legacyHash: Int,
+)
+
+object LegacySourceSeniorSquadPlayerViews {
+    fun from(team: LegacyTeamSnapshot): List<LegacySourceSeniorSquadPlayerView> =
+        team.players.map { player ->
+            LegacySourceSeniorSquadPlayerView(
+                name = player.name,
+                age = player.age,
+                country = player.country,
+                position = player.position,
+                status = player.status,
+                side = player.side,
+                cr1 = player.cr1,
+                cr2 = player.cr2,
+                star = player.star,
+                worldTop = player.worldTop,
+                legacyAid = player.legacyAid,
+                legacySid = player.legacySid,
+                legacyTid = player.legacyTid,
+                legacyHash = player.legacyHash,
             )
         }
 }
