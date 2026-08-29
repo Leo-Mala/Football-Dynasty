@@ -27,4 +27,23 @@ class LegacyCareerPlayerCommercialProjectionTest {
         assertEquals(101, state.pendingMovement.valueCode)
         assertTrue(state.pendingMovement.loanFlag)
     }
+
+    @Test
+    fun `round trip preserves every proven commercial field without interpretation`() {
+        val original = LegacyCareerPlayerCommercialSnapshot(
+            salario = -17,
+            rcClause = Int.MAX_VALUE,
+            rcRenewYear = 0,
+            rcConvYear = -1,
+            pendSaleClub = -99,
+            pendSaleValue = Int.MIN_VALUE,
+            pendIsLoan = false,
+        )
+
+        val restored = LegacyCareerPlayerCommercialProjection.toLegacySnapshot(
+            LegacyCareerPlayerCommercialProjection.toDomain(original),
+        )
+
+        assertEquals(original, restored)
+    }
 }
