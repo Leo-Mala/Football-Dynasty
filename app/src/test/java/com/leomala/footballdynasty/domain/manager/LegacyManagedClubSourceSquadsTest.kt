@@ -37,7 +37,7 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
-    fun createsExactCollectionAndIndexReferencesWithoutFactMatching() {
+    fun createsExactFileCollectionAndIndexReferencesWithoutFactMatching() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
                 players = listOf(player("Same", 501), player("Same", 502)),
@@ -47,13 +47,13 @@ class LegacyManagedClubSourceSquadsTest {
 
         assertEquals(
             listOf(
-                LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 0),
-                LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 1),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 1),
             ),
             result.seniorRefs(),
         )
         assertEquals(
-            listOf(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 0)),
+            listOf(LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 0)),
             result.juniorRefs(),
         )
         assertEquals(502, result.seniorPlayer(result.seniorRefs()[1])?.legacyHash)
@@ -61,7 +61,7 @@ class LegacyManagedClubSourceSquadsTest {
     }
 
     @Test
-    fun neverFallsBackAcrossCollectionsOrOutsideExactSourceIndex() {
+    fun neverFallsBackAcrossFilesCollectionsOrOutsideExactSourceIndex() {
         val result = LegacyManagedClubSourceSquadProjection.from(
             team(
                 players = listOf(player("Shared", 701)),
@@ -69,10 +69,59 @@ class LegacyManagedClubSourceSquadsTest {
             ),
         )
 
-        assertNull(result.seniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 0)))
-        assertNull(result.juniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 0)))
-        assertNull(result.seniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 1)))
-        assertNull(result.juniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 1)))
+        assertNull(
+            result.seniorPlayer(
+                LegacySourcePlayerRef("teams/other.ban", LegacySourceRosterKind.SENIOR, 0),
+            ),
+        )
+        assertNull(
+            result.juniorPlayer(
+                LegacySourcePlayerRef("teams/other.ban", LegacySourceRosterKind.JUNIOR, 0),
+            ),
+        )
+        assertNull(
+            result.seniorPlayer(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 0),
+            ),
+        )
+        assertNull(
+            result.juniorPlayer(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 0),
+            ),
+        )
+        assertNull(
+            result.seniorPlayer(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.SENIOR, 1),
+            ),
+        )
+        assertNull(
+            result.juniorPlayer(
+                LegacySourcePlayerRef("teams/exact.ban", LegacySourceRosterKind.JUNIOR, 1),
+            ),
+        )
+    }
+
+    @Test
+    fun identicalRosterIndexCannotResolveAgainstAnotherTeamSource() {
+        val exact = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                fileRef = "teams/exact.ban",
+                players = listOf(player("Exact Senior", 901)),
+                juniors = listOf(player("Exact Junior", 902)),
+            ),
+        )
+        val other = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                fileRef = "teams/other.ban",
+                players = listOf(player("Other Senior", 903)),
+                juniors = listOf(player("Other Junior", 904)),
+            ),
+        )
+
+        assertNull(other.seniorPlayer(exact.seniorRefs().single()))
+        assertNull(other.juniorPlayer(exact.juniorRefs().single()))
+        assertEquals(901, exact.seniorPlayer(exact.seniorRefs().single())?.legacyHash)
+        assertEquals(902, exact.juniorPlayer(exact.juniorRefs().single())?.legacyHash)
     }
 
     private fun player(name: String, legacyHash: Int): LegacyPlayerSnapshot = LegacyPlayerSnapshot(
@@ -95,9 +144,10 @@ class LegacyManagedClubSourceSquadsTest {
     private fun team(
         players: List<LegacyPlayerSnapshot>,
         juniors: List<LegacyPlayerSnapshot>,
+        fileRef: String = "teams/exact.ban",
     ): LegacyTeamSnapshot = LegacyTeamSnapshot(
         name = "Exact",
-        fileRef = "teams/exact.ban",
+        fileRef = fileRef,
         country = 1,
         state = 2,
         level = 3,
