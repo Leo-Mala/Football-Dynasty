@@ -40,5 +40,45 @@ class LegacyCareerClubCommercialProjectionTest {
         assertEquals(source, restored)
     }
 
+    @Test
+    fun decodedFieldsBridgePreservesExactOpaqueReferences() {
+        val investment = OpaqueValue("decoded-investment")
+        val sponsor = OpaqueValue("decoded-sponsor")
+
+        val state = LegacyCareerClubCommercialProjection.fromDecodedFields(
+            sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+            fields = linkedMapOf(
+                LegacyCareerClubCommercialFields.INVESTMENT to investment,
+                LegacyCareerClubCommercialFields.SPONSOR to sponsor,
+                "unrelatedClubField" to 99,
+            ),
+        )
+
+        requireNotNull(state)
+        assertSame(investment, state.investmentRaw)
+        assertSame(sponsor, state.sponsorRaw)
+    }
+
+    @Test
+    fun decodedFieldsBridgeKeepsExtractorBoundary() {
+        val completeFields = mapOf(
+            LegacyCareerClubCommercialFields.INVESTMENT to OpaqueValue("investment"),
+            LegacyCareerClubCommercialFields.SPONSOR to OpaqueValue("sponsor"),
+        )
+
+        assertNull(
+            LegacyCareerClubCommercialProjection.fromDecodedFields(
+                sourceClassName = "a.p",
+                fields = completeFields,
+            ),
+        )
+        assertNull(
+            LegacyCareerClubCommercialProjection.fromDecodedFields(
+                sourceClassName = LegacyCareerClubCommercialFields.SOURCE_CLASS,
+                fields = mapOf(LegacyCareerClubCommercialFields.INVESTMENT to null),
+            ),
+        )
+    }
+
     private data class OpaqueValue(val label: String)
 }
