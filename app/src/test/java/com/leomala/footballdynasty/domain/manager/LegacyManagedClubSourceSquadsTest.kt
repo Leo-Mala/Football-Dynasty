@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.domain.manager
 import com.leomala.footballdynasty.domain.model.LegacyPlayerSnapshot
 import com.leomala.footballdynasty.domain.model.LegacyTeamSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LegacyManagedClubSourceSquadsTest {
@@ -33,6 +34,45 @@ class LegacyManagedClubSourceSquadsTest {
 
         assertEquals(listOf("Senior"), result.senior.map { it.name })
         assertEquals(listOf("Junior"), result.juniors.map { it.name })
+    }
+
+    @Test
+    fun createsExactCollectionAndIndexReferencesWithoutFactMatching() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(player("Same", 501), player("Same", 502)),
+                juniors = listOf(player("Same", 601)),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 0),
+                LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 1),
+            ),
+            result.seniorRefs(),
+        )
+        assertEquals(
+            listOf(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 0)),
+            result.juniorRefs(),
+        )
+        assertEquals(502, result.seniorPlayer(result.seniorRefs()[1])?.legacyHash)
+        assertEquals(601, result.juniorPlayer(result.juniorRefs()[0])?.legacyHash)
+    }
+
+    @Test
+    fun neverFallsBackAcrossCollectionsOrOutsideExactSourceIndex() {
+        val result = LegacyManagedClubSourceSquadProjection.from(
+            team(
+                players = listOf(player("Shared", 701)),
+                juniors = listOf(player("Shared", 801)),
+            ),
+        )
+
+        assertNull(result.seniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 0)))
+        assertNull(result.juniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 0)))
+        assertNull(result.seniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.SENIOR, 1)))
+        assertNull(result.juniorPlayer(LegacySourcePlayerRef(LegacySourceRosterKind.JUNIOR, 1)))
     }
 
     private fun player(name: String, legacyHash: Int): LegacyPlayerSnapshot = LegacyPlayerSnapshot(
