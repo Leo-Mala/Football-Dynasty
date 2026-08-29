@@ -19,6 +19,7 @@ class ManagedClubManagerViewTest {
     fun composesOverviewCoachVisualIdentityAndExactLegacyProvenanceForPersistedClub() {
         val club = club("club-b", "teams/b.ban")
         val sourcePlayer = legacyPlayer("Source B", legacyHash = 204)
+        val sourceJunior = legacyPlayer("Junior B", legacyHash = 304)
         val legacyTeam = legacyTeam(
             fileRef = "teams/b.ban",
             coach = "Coach B",
@@ -33,6 +34,7 @@ class ManagedClubManagerViewTest {
             legacyId = 105,
             legacyValid = true,
             players = listOf(sourcePlayer),
+            juniors = listOf(sourceJunior),
         )
 
         val result = ManagedClubManagerViews.from(
@@ -55,6 +57,8 @@ class ManagedClubManagerViewTest {
         assertEquals(0x123456, result?.visualIdentity?.baseColor)
         assertEquals(listOf("Source B"), result?.sourceSeniorSquad?.map { it.name })
         assertEquals(listOf(204), result?.sourceSeniorSquad?.map { it.legacyHash })
+        assertEquals(listOf("Junior B"), result?.sourceJuniorSquad?.map { it.name })
+        assertEquals(listOf(304), result?.sourceJuniorSquad?.map { it.legacyHash })
         assertEquals("club-b", result?.coach?.clubId)
         assertEquals("Coach B", result?.coach?.coach?.coachName)
         assertEquals(20, result?.coach?.coach?.coachCountry)
@@ -93,6 +97,7 @@ class ManagedClubManagerViewTest {
             baseColor = 1,
             legacyId = 999,
             players = listOf(legacyPlayer("Wrong Player", legacyHash = 999)),
+            juniors = listOf(legacyPlayer("Wrong Junior", legacyHash = 998)),
         )
         val exactSource = legacyTeam(
             fileRef = "teams/b.ban",
@@ -103,6 +108,7 @@ class ManagedClubManagerViewTest {
             baseColor = 2,
             legacyId = 123,
             players = listOf(legacyPlayer("Exact Player", legacyHash = 123)),
+            juniors = listOf(legacyPlayer("Exact Junior", legacyHash = 122)),
         )
 
         val result = ManagedClubManagerViews.from(
@@ -119,6 +125,8 @@ class ManagedClubManagerViewTest {
         assertEquals(2, result?.visualIdentity?.baseColor)
         assertEquals(listOf("Exact Player"), result?.sourceSeniorSquad?.map { it.name })
         assertEquals(listOf(123), result?.sourceSeniorSquad?.map { it.legacyHash })
+        assertEquals(listOf("Exact Junior"), result?.sourceJuniorSquad?.map { it.name })
+        assertEquals(listOf(122), result?.sourceJuniorSquad?.map { it.legacyHash })
     }
 
     private fun career(managedClubId: String): CareerState = CareerState(
@@ -178,6 +186,7 @@ class ManagedClubManagerViewTest {
         legacyId: Int = 0,
         legacyValid: Boolean = false,
         players: List<LegacyPlayerSnapshot> = emptyList(),
+        juniors: List<LegacyPlayerSnapshot> = emptyList(),
     ): LegacyTeamSnapshot = LegacyTeamSnapshot(
         name = "Same Name",
         fileRef = fileRef,
@@ -191,7 +200,7 @@ class ManagedClubManagerViewTest {
         secondaryColor = secondaryColor,
         baseColor = baseColor,
         players = players,
-        juniors = emptyList(),
+        juniors = juniors,
         coach = coach,
         coachCountry = coachCountry,
         legacyAid = legacyAid,
