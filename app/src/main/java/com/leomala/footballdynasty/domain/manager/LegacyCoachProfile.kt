@@ -16,6 +16,12 @@ data class LegacyCoachProfile(
 )
 
 object LegacyCoachProfileProjection {
+    /**
+     * Source fields proven by the retained legacy team snapshot. Keep this list narrow so future
+     * manager progression work cannot silently promote club reputation/country into coach state.
+     */
+    internal val provenSourceFields: Set<String> = linkedSetOf("coach", "coachCountry")
+
     fun from(team: LegacyTeamSnapshot): LegacyCoachProfile = LegacyCoachProfile(
         teamFileRef = team.fileRef,
         coachName = team.coach,
