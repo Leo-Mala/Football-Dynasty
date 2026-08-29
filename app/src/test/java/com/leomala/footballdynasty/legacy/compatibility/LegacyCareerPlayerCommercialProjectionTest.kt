@@ -76,6 +76,43 @@ class LegacyCareerPlayerCommercialProjectionTest {
     }
 
     @Test
+    fun `domain exports only the exact proven a p commercial slice and round trips losslessly`() {
+        val original = LegacyCareerPlayerCommercialProjection.toDomain(
+            LegacyCareerPlayerCommercialSnapshot(
+                salario = Int.MIN_VALUE,
+                rcClause = Int.MAX_VALUE,
+                rcRenewYear = -1,
+                rcConvYear = 0,
+                pendSaleClub = -99,
+                pendSaleValue = 101,
+                pendIsLoan = true,
+            ),
+        )
+
+        val decoded = LegacyCareerPlayerCommercialProjection.toDecodedFieldSlice(original)
+
+        assertEquals(LegacyCareerPlayerCommercialFields.SOURCE_CLASS, decoded.sourceClassName)
+        assertEquals(
+            linkedMapOf(
+                LegacyCareerPlayerCommercialFields.SALARY to Int.MIN_VALUE,
+                LegacyCareerPlayerCommercialFields.RELEASE_CLAUSE to Int.MAX_VALUE,
+                LegacyCareerPlayerCommercialFields.RENEW_YEAR to -1,
+                LegacyCareerPlayerCommercialFields.CONVERSION_YEAR to 0,
+                LegacyCareerPlayerCommercialFields.PENDING_SALE_CLUB to -99,
+                LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to 101,
+                LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to true,
+            ),
+            decoded.fields,
+        )
+
+        val restored = LegacyCareerPlayerCommercialProjection.fromDecodedFields(
+            sourceClassName = decoded.sourceClassName,
+            fields = decoded.fields,
+        )
+        assertEquals(original, restored)
+    }
+
+    @Test
     fun `decoded player bridge rejects the wrong serialized source class`() {
         val fields = completeDecodedFields()
 
