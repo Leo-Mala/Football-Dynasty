@@ -21,6 +21,7 @@ data class ManagedClubManagerView(
     val legacyTeam: LegacyTeamSnapshot,
     val sourceIdentity: LegacyManagedClubSourceIdentity,
     val visualIdentity: LegacyManagedClubVisualIdentity,
+    val sourceSquads: LegacyManagedClubSourceSquads,
     val sourceSeniorSquad: List<LegacySourceSeniorSquadPlayerView>,
     val sourceJuniorSquad: List<LegacySourceJuniorSquadPlayerView>,
     val coach: ManagedClubCoachView,
@@ -40,13 +41,16 @@ object ManagedClubManagerViews {
         ) ?: return null
         if (overview.profile.clubId != selection.club.id) return null
 
+        val sourceSquads = LegacyManagedClubSourceSquadProjection.from(selection.legacyTeam)
+
         return ManagedClubManagerView(
             overview = overview,
             legacyTeam = selection.legacyTeam,
             sourceIdentity = LegacyManagedClubSourceIdentityProjection.from(selection.legacyTeam),
             visualIdentity = LegacyManagedClubVisualIdentityProjection.from(selection.legacyTeam),
-            sourceSeniorSquad = LegacySourceSeniorSquadPlayerViews.from(selection.legacyTeam),
-            sourceJuniorSquad = LegacySourceJuniorSquadPlayerViews.from(selection.legacyTeam),
+            sourceSquads = sourceSquads,
+            sourceSeniorSquad = sourceSquads.senior,
+            sourceJuniorSquad = sourceSquads.juniors,
             coach = ManagedClubCoachView(
                 clubId = selection.club.id,
                 coach = LegacyCoachProfileProjection.from(selection.legacyTeam),
