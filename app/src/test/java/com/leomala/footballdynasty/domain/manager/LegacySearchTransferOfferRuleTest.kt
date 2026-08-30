@@ -49,7 +49,7 @@ class LegacySearchTransferOfferRuleTest {
             age = 25,
             value = 1001,
         )
-        val old = weak.copy(strength = 99, age = 36)
+        val old = weak.copy(playerStrength = 99, playerAge = 36)
 
         assertEquals(851, LegacySearchTransferOfferRule.minimumAcceptedOffer(weak))
         assertEquals(851, LegacySearchTransferOfferRule.minimumAcceptedOffer(old))
