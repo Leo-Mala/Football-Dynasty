@@ -8,7 +8,7 @@ import org.junit.Test
 
 class LegacyTransferRuntimeStateTest {
     @Test
-    fun `purchase applies proven cash roster slot contract flag and salary mutations`() {
+    fun `purchase applies proven cash roster slot contract flag salary and raw copy mutations`() {
         val playerCode = 77
         val state = LegacyTransferRuntimeState(
             mainTeamDirty = false,
@@ -21,6 +21,8 @@ class LegacyTransferRuntimeStateTest {
                 rawY = true,
                 rawZ = true,
                 rawCrossActiveFlag = false,
+                rawOCode = -123,
+                rawDCode = 999,
             ),
             sourceClub = LegacyTransferClubRuntimeState(
                 clubCode = 10,
@@ -69,6 +71,9 @@ class LegacyTransferRuntimeStateTest {
         assertTrue(after.player.rawY)
         assertFalse(after.player.rawZ)
         assertTrue(after.player.rawCrossActiveFlag)
+        // best.o.Q1() is unconditional inside T1: raw field o is copied to raw field D.
+        assertEquals(-123, after.player.rawOCode)
+        assertEquals(-123, after.player.rawDCode)
 
         val source = requireNotNull(after.sourceClub)
         assertEquals(1_300L, source.funds)
