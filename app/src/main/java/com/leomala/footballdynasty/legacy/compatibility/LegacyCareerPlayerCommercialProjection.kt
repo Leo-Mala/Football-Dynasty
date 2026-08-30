@@ -83,4 +83,29 @@ object LegacyCareerPlayerCommercialProjection {
             ),
         )
     }
+
+    /**
+     * Replaces only the seven proven commercial fields inside an already-decoded complete `a.p`
+     * field map, preserving every unrelated field and its existing value/reference.
+     *
+     * The method deliberately refuses a wrong source class or an input map missing any proven
+     * field. It is therefore a narrow write-back boundary, not permission to synthesize a partial
+     * legacy player object. No transfer, contract, monetary, sentinel, or loan semantics are
+     * introduced.
+     */
+    fun writeBackToDecodedFields(
+        sourceClassName: String,
+        existingFields: Map<String, Any?>,
+        state: LegacyPlayerCommercialState,
+    ): Map<String, Any?>? {
+        if (sourceClassName != LegacyCareerPlayerCommercialFields.SOURCE_CLASS) return null
+        if (!LegacyCareerPlayerCommercialFields.confirmedNames.all(existingFields::containsKey)) {
+            return null
+        }
+
+        val updated = LinkedHashMap(existingFields)
+        val slice = toDecodedFieldSlice(state)
+        slice.fields.forEach { (fieldName, value) -> updated[fieldName] = value }
+        return updated
+    }
 }
