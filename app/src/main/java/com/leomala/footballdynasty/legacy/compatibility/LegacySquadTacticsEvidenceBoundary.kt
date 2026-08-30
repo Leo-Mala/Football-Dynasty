@@ -9,11 +9,25 @@ package com.leomala.footballdynasty.legacy.compatibility
  * semantics must remain blocked until a method-level read is backed by characterization tests.
  */
 object LegacySquadTacticsEvidenceBoundary {
-    private val phase11LegacyClasses: Set<String> = setOf(
-        "DialogTatics",
-        "ActivityEscala",
-        "ActivitySavedTatics",
+    data class SemanticTarget(
+        val legacyClassName: String,
+        val methodSignature: String,
+        val surfaceRole: String,
     )
+
+    /**
+     * Exact Phase 11 targets jointly proven by `ACTIVITY_MAP.md` (surface exists) and
+     * `SMALI_RECOVERY.md` (method body recovered). These are investigation targets only;
+     * `surfaceRole` identifies the UI surface and does not assign unproven gameplay semantics.
+     */
+    val requiredSemanticTargets: List<SemanticTarget> = listOf(
+        SemanticTarget("ActivityEscala", "gL()", "lineup"),
+        SemanticTarget("DialogTatics", "onCreate(Bundle)", "tactics"),
+        SemanticTarget("ActivitySavedTatics", "sa()", "saved-tactics"),
+    )
+
+    private val phase11LegacyClasses: Set<String> =
+        requiredSemanticTargets.mapTo(linkedSetOf()) { target -> target.legacyClassName }
 
     val recoveredMethodsAwaitingSemanticCharacterization: Set<LegacyRecoveredManagerMethod> =
         LegacyManagerRecoveredMethodEvidence.confirmed
@@ -32,4 +46,8 @@ object LegacySquadTacticsEvidenceBoundary {
         legacyClassName: String,
         methodSignature: String,
     ): Boolean = isRecoveredPhase11Method(legacyClassName, methodSignature)
+
+    fun allRequiredTargetsHaveRecoveredBodies(): Boolean = requiredSemanticTargets.all { target ->
+        isRecoveredPhase11Method(target.legacyClassName, target.methodSignature)
+    }
 }
