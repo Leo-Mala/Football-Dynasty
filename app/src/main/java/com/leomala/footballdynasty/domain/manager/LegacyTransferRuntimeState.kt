@@ -27,6 +27,10 @@ data class LegacyTransferPlayerRuntimeState(
     val rawY: Boolean,
     val rawZ: Boolean,
     val rawCrossActiveFlag: Boolean,
+    /** Raw `best.o.o`; meaning intentionally unassigned. */
+    val rawOCode: Int = 0,
+    /** Raw `best.o.D`; T1 always executes Q1(), which copies o into D. */
+    val rawDCode: Int = 0,
 )
 
 data class LegacyTransferRuntimeState(
@@ -76,6 +80,7 @@ object LegacyTransferRuntimeMutation {
             rawY = plan.rawYMutation.applyTo(state.player.rawY),
             rawZ = plan.rawZMutation.applyTo(state.player.rawZ),
             rawCrossActiveFlag = state.player.rawCrossActiveFlag || plan.setPlayerCrossActiveFlag,
+            rawDCode = state.player.rawOCode,
         )
 
         return LegacyTransferRuntimeState(
