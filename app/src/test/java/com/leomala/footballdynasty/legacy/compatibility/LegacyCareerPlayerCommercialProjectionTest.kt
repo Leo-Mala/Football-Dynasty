@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -113,6 +114,91 @@ class LegacyCareerPlayerCommercialProjectionTest {
     }
 
     @Test
+    fun `write back replaces only proven fields and preserves unrelated player fields`() {
+        val unknownBefore = OpaqueValue("before")
+        val unknownAfter = OpaqueValue("after")
+        val existing = linkedMapOf<String, Any?>(
+            "unknownBefore" to unknownBefore,
+            LegacyCareerPlayerCommercialFields.SALARY to 1,
+            LegacyCareerPlayerCommercialFields.RELEASE_CLAUSE to 2,
+            LegacyCareerPlayerCommercialFields.RENEW_YEAR to 3,
+            "unknownMiddle" to null,
+            LegacyCareerPlayerCommercialFields.CONVERSION_YEAR to 4,
+            LegacyCareerPlayerCommercialFields.PENDING_SALE_CLUB to 5,
+            LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to 6,
+            LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to false,
+            "unknownAfter" to unknownAfter,
+        )
+        val state = LegacyCareerPlayerCommercialProjection.toDomain(
+            LegacyCareerPlayerCommercialSnapshot(
+                salario = Int.MIN_VALUE,
+                rcClause = Int.MAX_VALUE,
+                rcRenewYear = -1,
+                rcConvYear = 0,
+                pendSaleClub = -99,
+                pendSaleValue = 101,
+                pendIsLoan = true,
+            ),
+        )
+
+        val updated = LegacyCareerPlayerCommercialProjection.writeBackToDecodedFields(
+            sourceClassName = LegacyCareerPlayerCommercialFields.SOURCE_CLASS,
+            existingFields = existing,
+            state = state,
+        )
+
+        requireNotNull(updated)
+        assertEquals(existing.keys.toList(), updated.keys.toList())
+        assertSame(unknownBefore, updated["unknownBefore"])
+        assertTrue(updated.containsKey("unknownMiddle"))
+        assertNull(updated["unknownMiddle"])
+        assertSame(unknownAfter, updated["unknownAfter"])
+        assertEquals(Int.MIN_VALUE, updated[LegacyCareerPlayerCommercialFields.SALARY])
+        assertEquals(Int.MAX_VALUE, updated[LegacyCareerPlayerCommercialFields.RELEASE_CLAUSE])
+        assertEquals(-1, updated[LegacyCareerPlayerCommercialFields.RENEW_YEAR])
+        assertEquals(0, updated[LegacyCareerPlayerCommercialFields.CONVERSION_YEAR])
+        assertEquals(-99, updated[LegacyCareerPlayerCommercialFields.PENDING_SALE_CLUB])
+        assertEquals(101, updated[LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE])
+        assertEquals(true, updated[LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN])
+        assertEquals(1, existing[LegacyCareerPlayerCommercialFields.SALARY])
+        assertEquals(false, existing[LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN])
+    }
+
+    @Test
+    fun `write back rejects wrong source or incomplete decoded player without synthesis`() {
+        val state = LegacyCareerPlayerCommercialProjection.toDomain(
+            LegacyCareerPlayerCommercialSnapshot(
+                salario = 17,
+                rcClause = 23,
+                rcRenewYear = 2031,
+                rcConvYear = 2032,
+                pendSaleClub = 9,
+                pendSaleValue = 101,
+                pendIsLoan = true,
+            ),
+        )
+        val complete = completeDecodedFields()
+        val incomplete = complete.toMutableMap().apply {
+            remove(LegacyCareerPlayerCommercialFields.CONVERSION_YEAR)
+        }
+
+        assertNull(
+            LegacyCareerPlayerCommercialProjection.writeBackToDecodedFields(
+                sourceClassName = "a.ac",
+                existingFields = complete,
+                state = state,
+            ),
+        )
+        assertNull(
+            LegacyCareerPlayerCommercialProjection.writeBackToDecodedFields(
+                sourceClassName = LegacyCareerPlayerCommercialFields.SOURCE_CLASS,
+                existingFields = incomplete,
+                state = state,
+            ),
+        )
+    }
+
+    @Test
     fun `decoded player bridge rejects the wrong serialized source class`() {
         val fields = completeDecodedFields()
 
@@ -189,4 +275,6 @@ class LegacyCareerPlayerCommercialProjectionTest {
         LegacyCareerPlayerCommercialFields.PENDING_SALE_VALUE to 101,
         LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN to true,
     )
+
+    private data class OpaqueValue(val label: String)
 }
