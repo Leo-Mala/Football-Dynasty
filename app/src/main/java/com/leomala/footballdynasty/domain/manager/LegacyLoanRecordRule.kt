@@ -3,23 +3,37 @@ package com.leomala.footballdynasty.domain.manager
 import java.util.Calendar
 
 /**
- * Pure reconstruction of the serialized `components.o2` record created by
- * `best.o.q(best.c0)` immediately before the legacy loan movement calls
- * `best.o.T1(...)`.
+ * Pure reconstruction of the serialized `components.o2` loan record created by
+ * `best.o.q(best.c0)` and consumed by `best.b.d4()`.
  *
- * The recovered constructor stores the player and the source club, appends the
- * record to the global ArrayList in insertion order, seeds a Calendar from
- * `Calendar.getInstance()`, replaces only YEAR/MONTH/DAY_OF_MONTH with the
- * current in-game date, then adds exactly 319 calendar days.
+ * Creation evidence:
+ * - stores the player and the source club;
+ * - appends the record to the global ArrayList in insertion order;
+ * - seeds a Calendar from `Calendar.getInstance()`;
+ * - replaces only YEAR/MONTH/DAY_OF_MONTH with the current in-game date;
+ * - adds exactly 319 calendar days.
  *
- * The creation Calendar is therefore an explicit input here. That preserves the
- * legacy time-of-day/time-zone behavior without introducing wall-clock access in
- * modern deterministic gameplay code.
+ * Expiry evidence from `best.b.d4()`:
+ * - expiry is strict `recordCalendar.before(currentCalendar)` (equality is not expired);
+ * - when player and stored source club are both present, the player is moved back via
+ *   `best.o.U1(sourceClub)`;
+ * - `U1` delegates to `T1(sourceClub, 0, false, false, true)`, i.e. a zero-value,
+ *   non-financial return movement;
+ * - an expired record is removed after the return attempt when that loop iteration
+ *   completes normally.
+ *
+ * Calendar/wall-clock inputs are explicit so the modern rule remains deterministic.
  */
 data class LegacyLoanRecord(
     val playerCode: Int,
     val sourceClubCode: Int,
     val expiryMillis: Long,
+)
+
+data class LegacyLoanExpiryDecision(
+    val expired: Boolean,
+    val executeReturnMove: Boolean,
+    val removeRecord: Boolean,
 )
 
 object LegacyLoanRecordRule {
@@ -57,5 +71,49 @@ object LegacyLoanRecordRule {
         sourceClubCode = sourceClubCode,
         gameCalendar = gameCalendar,
         creationCalendar = creationCalendar,
+    )
+
+    fun expiryDecision(
+        record: LegacyLoanRecord,
+        currentCalendarMillis: Long,
+        playerPresent: Boolean,
+        storedSourceClubPresent: Boolean,
+    ): LegacyLoanExpiryDecision {
+        val expired = record.expiryMillis < currentCalendarMillis
+        return LegacyLoanExpiryDecision(
+            expired = expired,
+            executeReturnMove = expired && playerPresent && storedSourceClubPresent,
+            removeRecord = expired,
+        )
+    }
+
+    /**
+     * Exact `U1 -> T1(sourceClub, 0, false, false, true)` transfer input used when
+     * an expired loan returns to the club stored in `components.o2.c`.
+     */
+    fun returnTransferInput(
+        record: LegacyLoanRecord,
+        currentClubPresent: Boolean,
+        currentClubActive: Boolean,
+        storedSourceClubActive: Boolean,
+        playerContractEndMillisBefore: Long,
+        currentGameMillis: Long,
+        currentCalendarMillis: Long?,
+        currentClubPrimarySlotMatchesPlayer: Boolean,
+        currentClubSecondarySlotMatchesPlayer: Boolean,
+    ): LegacyTransferExecutionInput = LegacyTransferExecutionInput(
+        sourceClubPresent = currentClubPresent,
+        sourceClubActive = currentClubActive,
+        destinationClubActive = storedSourceClubActive,
+        destinationClubId = record.sourceClubCode,
+        transferValue = 0,
+        legacySecondaryChargeFlag = false,
+        loanMove = false,
+        legacyNonFinancialMoveFlag = true,
+        playerContractEndMillisBefore = playerContractEndMillisBefore,
+        currentGameMillis = currentGameMillis,
+        currentCalendarMillis = currentCalendarMillis,
+        sourcePrimarySlotMatchesPlayer = currentClubPrimarySlotMatchesPlayer,
+        sourceSecondarySlotMatchesPlayer = currentClubSecondarySlotMatchesPlayer,
     )
 }
