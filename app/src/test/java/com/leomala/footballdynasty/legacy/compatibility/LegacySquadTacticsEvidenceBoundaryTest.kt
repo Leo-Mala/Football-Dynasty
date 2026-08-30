@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -21,28 +22,46 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun semanticTargetsMatchTheProvenLegacySurfacesAndRecoveredMethods() {
+    fun semanticTargetsCarryOnlyRecoveredStructuralEvidence() {
+        val targets = LegacySquadTacticsEvidenceBoundary.requiredSemanticTargets
+
+        assertEquals(3, targets.size)
         assertEquals(
-            listOf(
-                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
-                    "ActivityEscala",
-                    "gL()",
-                    "lineup",
-                ),
-                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
-                    "DialogTatics",
-                    "onCreate(Bundle)",
-                    "tactics",
-                ),
-                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
-                    "ActivitySavedTatics",
-                    "sa()",
-                    "saved-tactics",
-                ),
-            ),
-            LegacySquadTacticsEvidenceBoundary.requiredSemanticTargets,
+            listOf("ActivityEscala", "DialogTatics", "ActivitySavedTatics"),
+            targets.map { it.legacyClassName },
         )
+        assertTrue(
+            targets.all { target ->
+                target.characterizationState ==
+                    LegacySquadTacticsEvidenceBoundary.CharacterizationState.RECOVERED_BODY_ONLY
+            },
+        )
+        assertTrue(targets.all(LegacySquadTacticsEvidenceBoundary::recoveryMetadataMatchesInventory))
         assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveRecoveredBodies())
+        assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
+    }
+
+    @Test
+    fun recoveredMetadataMatchesTheVersionedSmaliInventoryExactly() {
+        val lineup = LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscala", "gL()")
+        val tactics = LegacySquadTacticsEvidenceBoundary.findTarget("DialogTatics", "onCreate(Bundle)")
+        val saved = LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "sa()")
+
+        assertNotNull(lineup)
+        assertNotNull(tactics)
+        assertNotNull(saved)
+
+        assertEquals("ActivityEscala.smali", lineup!!.smaliFileName)
+        assertEquals(223, lineup.instructionCount)
+        assertEquals(22, lineup.branchCount)
+
+        assertEquals("DialogTatics.smali", tactics!!.smaliFileName)
+        assertEquals(172, tactics.instructionCount)
+        assertEquals(20, tactics.branchCount)
+
+        assertEquals("ActivitySavedTatics.smali", saved!!.smaliFileName)
+        assertEquals(115, saved.instructionCount)
+        assertEquals(9, saved.branchCount)
     }
 
     @Test
