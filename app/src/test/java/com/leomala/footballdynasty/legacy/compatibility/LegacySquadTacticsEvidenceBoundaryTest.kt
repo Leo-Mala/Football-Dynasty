@@ -21,6 +21,31 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
+    fun semanticTargetsMatchTheProvenLegacySurfacesAndRecoveredMethods() {
+        assertEquals(
+            listOf(
+                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
+                    "ActivityEscala",
+                    "gL()",
+                    "lineup",
+                ),
+                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
+                    "DialogTatics",
+                    "onCreate(Bundle)",
+                    "tactics",
+                ),
+                LegacySquadTacticsEvidenceBoundary.SemanticTarget(
+                    "ActivitySavedTatics",
+                    "sa()",
+                    "saved-tactics",
+                ),
+            ),
+            LegacySquadTacticsEvidenceBoundary.requiredSemanticTargets,
+        )
+        assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveRecoveredBodies())
+    }
+
+    @Test
     fun recoveredBodiesStayBlockedUntilGameplaySemanticsAreCharacterized() {
         assertTrue(
             LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
