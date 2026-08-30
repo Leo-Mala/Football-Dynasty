@@ -4,6 +4,8 @@ import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LegacyLoanRecordRuleTest {
@@ -73,5 +75,76 @@ class LegacyLoanRecordRuleTest {
         assertEquals(11, after[2].sourceClubCode)
         assertEquals(3, after.size)
         assertEquals(2, after.count { it.playerCode == 77 })
+    }
+
+    @Test
+    fun `expiry is strict before not equal and expired records are removed even without a return target`() {
+        val record = LegacyLoanRecord(playerCode = 7, sourceClubCode = 8, expiryMillis = 1_000L)
+
+        val equal = LegacyLoanRecordRule.expiryDecision(
+            record = record,
+            currentCalendarMillis = 1_000L,
+            playerPresent = true,
+            storedSourceClubPresent = true,
+        )
+        assertFalse(equal.expired)
+        assertFalse(equal.executeReturnMove)
+        assertFalse(equal.removeRecord)
+
+        val expiredMissingTarget = LegacyLoanRecordRule.expiryDecision(
+            record = record,
+            currentCalendarMillis = 1_001L,
+            playerPresent = true,
+            storedSourceClubPresent = false,
+        )
+        assertTrue(expiredMissingTarget.expired)
+        assertFalse(expiredMissingTarget.executeReturnMove)
+        assertTrue(expiredMissingTarget.removeRecord)
+
+        val expiredComplete = LegacyLoanRecordRule.expiryDecision(
+            record = record,
+            currentCalendarMillis = 1_001L,
+            playerPresent = true,
+            storedSourceClubPresent = true,
+        )
+        assertTrue(expiredComplete.executeReturnMove)
+        assertTrue(expiredComplete.removeRecord)
+    }
+
+    @Test
+    fun `expired return maps exactly to U1 zero value non financial T1 call`() {
+        val record = LegacyLoanRecord(playerCode = 7, sourceClubCode = 55, expiryMillis = 1_000L)
+
+        val input = LegacyLoanRecordRule.returnTransferInput(
+            record = record,
+            currentClubPresent = true,
+            currentClubActive = true,
+            storedSourceClubActive = false,
+            playerContractEndMillisBefore = 9_000L,
+            currentGameMillis = 10_000L,
+            currentCalendarMillis = 11_000L,
+            currentClubPrimarySlotMatchesPlayer = true,
+            currentClubSecondarySlotMatchesPlayer = false,
+        )
+
+        assertTrue(input.sourceClubPresent)
+        assertTrue(input.sourceClubActive)
+        assertFalse(input.destinationClubActive)
+        assertEquals(55, input.destinationClubId)
+        assertEquals(0, input.transferValue)
+        assertFalse(input.legacySecondaryChargeFlag)
+        assertFalse(input.loanMove)
+        assertTrue(input.legacyNonFinancialMoveFlag)
+        assertEquals(9_000L, input.playerContractEndMillisBefore)
+        assertEquals(10_000L, input.currentGameMillis)
+        assertEquals(11_000L, input.currentCalendarMillis)
+        assertTrue(input.sourcePrimarySlotMatchesPlayer)
+        assertFalse(input.sourceSecondarySlotMatchesPlayer)
+
+        val plan = LegacyTransferExecutionRule.plan(input)
+        assertEquals(0L, plan.sellerFundsDelta)
+        assertEquals(0L, plan.buyerFundsDelta)
+        assertEquals(180L, plan.contractDurationDays)
+        assertEquals(LegacyBooleanMutation.SET_FALSE, plan.rawYMutation)
     }
 }
