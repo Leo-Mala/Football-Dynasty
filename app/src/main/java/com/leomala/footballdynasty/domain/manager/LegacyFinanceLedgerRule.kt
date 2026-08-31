@@ -79,6 +79,17 @@ object LegacyFinanceLedgerRule {
     }
 
     /**
+     * Exact separate long-valued salary path from legacy `best.m.e(long)`.
+     *
+     * The automatic salary calendar does not route through `d(int, 2)`: `c0.E(long)` calls this
+     * long accumulator directly, which is why totals above Int.MAX_VALUE must remain lossless.
+     */
+    fun addSalaryExpense(
+        state: LegacyFinanceLedgerState,
+        amount: Long,
+    ): LegacyFinanceLedgerState = state.copy(salaryExpense = state.salaryExpense + amount)
+
+    /**
      * Reconstructs `best.m.z()`: all period income/expense accumulators are
      * cleared, while borrowed principal and its precomputed monthly charge are
      * intentionally not touched.
