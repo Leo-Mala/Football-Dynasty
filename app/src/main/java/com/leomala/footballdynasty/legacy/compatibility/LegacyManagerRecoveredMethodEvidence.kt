@@ -96,6 +96,38 @@ object LegacyManagerRecoveredMethodEvidence {
             branchCount = 8,
             smaliMethodSignature = "g()V",
         ),
+        LegacyRecoveredManagerMethod(
+            legacyClassName = "best.b",
+            methodSignature = "G(best.c0,best.f0,best.f0)",
+            smaliFileName = "best/b.smali",
+            instructionCount = 5,
+            branchCount = 2,
+            smaliMethodSignature = "G(Lbest/c0;Lbest/f0;Lbest/f0;)V",
+        ),
+        LegacyRecoveredManagerMethod(
+            legacyClassName = "best.f0",
+            methodSignature = "l(best.f0)",
+            smaliFileName = "best/f0.smali",
+            instructionCount = 100,
+            branchCount = 5,
+            smaliMethodSignature = "l(Lbest/f0;)V",
+        ),
+        LegacyRecoveredManagerMethod(
+            legacyClassName = "best.f0",
+            methodSignature = "e(best.c0)",
+            smaliFileName = "best/f0.smali",
+            instructionCount = 38,
+            branchCount = 3,
+            smaliMethodSignature = "e(Lbest/c0;)V",
+        ),
+        LegacyRecoveredManagerMethod(
+            legacyClassName = "best.c0",
+            methodSignature = "y()",
+            smaliFileName = "best/c0.smali",
+            instructionCount = 103,
+            branchCount = 22,
+            smaliMethodSignature = "y()Lbest/f0;",
+        ),
     )
 
     private val byExactMethod: Map<Pair<String, String>, LegacyRecoveredManagerMethod> =

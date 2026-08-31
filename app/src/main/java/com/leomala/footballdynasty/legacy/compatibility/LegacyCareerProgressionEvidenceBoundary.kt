@@ -7,6 +7,7 @@ enum class LegacyCharacterizedCareerRuntimePath {
     MANAGER_NAME_VALIDATION,
     CLUB_INVITATION_ACCEPTANCE_DISPATCH,
     CLUB_INVITATION_CANCEL_DISPATCH,
+    CLUB_MANAGER_TRANSFER_G_L_E,
 }
 
 /**
@@ -17,8 +18,9 @@ object LegacyCareerProgressionEvidenceBoundary {
         LegacyCoachProfileProjection.provenSourceFields.toSet()
 
     /**
-     * Current official Phase 4R method identities. The historical `ActivityEscolhaTimes.E(String)`
-     * name is superseded by `ActivityEscolhaTimes.i(String)` in `com.brasfoot.v2020`.
+     * Current official Phase 4R Activity method identities. The historical
+     * `ActivityEscolhaTimes.E(String)` name is superseded by `ActivityEscolhaTimes.i(String)` in
+     * `com.brasfoot.v2020`.
      */
     val recoveredCareerHostMethods: Map<LegacyManagerCareerSurface, LegacyRecoveredManagerMethod> =
         mapOf(
@@ -59,16 +61,58 @@ object LegacyCareerProgressionEvidenceBoundary {
         )
 
     /**
-     * `ActivityEscolhaTimes.i(String)` is characterized as manager-name validation.
-     * `ActivityConvite.onClickAccept/onClickCancel` are characterized only through their exact
-     * dispatch/ordering. The internals of `c0.y()`, `best.b.G(...)` and continuation `best.n.l()`
-     * remain separate evidence targets, so the full invitation surface remains fail-closed.
+     * Employment mutation called by the invitation flow is now characterized independently from
+     * replacement-manager selection. These exact methods are Java↔SMALI verified.
+     */
+    val characterizedEmploymentMethods: Set<LegacyRecoveredManagerMethod> = linkedSetOf(
+        requireNotNull(
+            LegacyManagerRecoveredMethodEvidence.findExact(
+                "best.b",
+                "G(best.c0,best.f0,best.f0)",
+            ),
+        ),
+        requireNotNull(
+            LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "l(best.f0)"),
+        ),
+        requireNotNull(
+            LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "e(best.c0)"),
+        ),
+    ).also { methods ->
+        require(methods.map { it.instructionCount to it.branchCount } == listOf(5 to 2, 100 to 5, 38 to 3)) {
+            "Official manager employment method structure changed"
+        }
+    }
+
+    /**
+     * `best.c0.y()` is recovered and readable as the replacement-manager resolver, but it invokes
+     * legacy random candidate selection/shuffle paths. It remains blocked until those draws are
+     * migrated through the project's `RandomSource` without changing draw order or bounds.
+     */
+    val recoveredReplacementManagerResolver: LegacyRecoveredManagerMethod = requireNotNull(
+        LegacyManagerRecoveredMethodEvidence.findExact("best.c0", "y()"),
+    ).also { recovered ->
+        require(
+            recovered.smaliFileName == "best/c0.smali" &&
+                recovered.smaliMethodSignature == "y()Lbest/f0;" &&
+                recovered.instructionCount == 103 &&
+                recovered.branchCount == 22,
+        ) {
+            "Official SMALI structure changed for best.c0.y()"
+        }
+    }
+
+    /**
+     * `ActivityEscolhaTimes.i(String)`, invitation dispatch and the direct employment transition
+     * `best.b.G -> best.f0.l/e` are characterized. The whole invitation/career progression surface
+     * is still fail-closed because `best.c0.y()` replacement selection and downstream
+     * `best.n.l()/m()` progression contain unresolved RNG/continuation semantics.
      */
     val characterizedCareerRuntimePaths: Set<LegacyCharacterizedCareerRuntimePath> =
         setOf(
             LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
             LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_ACCEPTANCE_DISPATCH,
             LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_CANCEL_DISPATCH,
+            LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E,
         )
 
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =

@@ -18,6 +18,10 @@ Official Phase 4R corpus: `Brasfoot.apk_Decompiler.com.zip`, SHA-256 `3eb5622ba9
 | career-club hub | `ActivityMainTeam.onStart()` | same | 93 | 15 |
 | saved tactics | `ActivitySavedTatics.g()` | `g()V` | 103 | 8 |
 | club invitation acceptance | `ActivityConvite.onClickAccept(View)` | same descriptor | 39 | 8 |
+| manager transfer dispatcher | `best.b.G(best.c0,best.f0,best.f0)` | `G(Lbest/c0;Lbest/f0;Lbest/f0;)V` | 5 | 2 |
+| manager leaves club | `best.f0.l(best.f0)` | `l(Lbest/f0;)V` | 100 | 5 |
+| manager joins club | `best.f0.e(best.c0)` | `e(Lbest/c0;)V` | 38 | 3 |
+| replacement-manager resolver | `best.c0.y()` | `y()Lbest/f0;` | 103 | 22 |
 
 ## Phase 11 characterized behavior
 
@@ -35,6 +39,18 @@ The official class is `ActivityEscalacao`, not historical `ActivityEscala`. The 
 - `ActivitySavedTatics.g/e/b/f` and `ActivityEscalacao.onActivityResult(101,-1)`: saved tactic create/list/delete/load/result behavior is characterized, including upper-bound-only index guards and preserved negative-index failure behavior.
 
 All three Phase 11 evidence hosts (`ActivityEscalacao.B()`, `DialogTatics.onCreate`, `ActivitySavedTatics.g`) are now semantically characterized. This closes the legacy evidence blocker for Fase 11; aggregate Marco B remains Draft until Fases 12–14 and the full manager-loop gate are certified together.
+
+## Phase 14 characterized employment transition
+
+The direct employment mutation reached by club-invitation acceptance is now characterized separately from replacement-manager selection:
+
+- `best.b.G(target,outgoing,incoming)` is only an ordered dispatcher: `outgoing.l(incoming)` when outgoing is non-null, then `incoming.e(target)` when incoming is non-null.
+- `best.f0.l(incoming)` appends manager-change history with current career Y/M/D and previous club legacy ID, captures the outgoing manager's previous club/country/division (`divisionValue - 1`), performs the user-controlled departure branch when `K()==true`, optionally resets `T.A(0)`, clears the club manager, and clears the manager's current club. Country code `29` additionally writes global `H3(state)`; every user departure writes `I3(country)`. The world controlled-club collection remains ArrayList-like: removal removes only the first matching club entry.
+- The user-controlled departure branch preserves ordered helper effects `club.t1(false)`, `club.j1()`, `club.k1()`, first-match removal from `world.g1()`, and `manager.R(null)`. Helpers whose deeper state is outside the current modern boundary remain explicit typed effects rather than invented replacements.
+- `best.f0.e(target)` assigns manager↔club references, writes raw manager values `G=100`, `H=80`, `M=0`, and calls `target.j1()`. When incoming manager `K()==true`, it marks the club controlled, appends it to `world.g1()`, calls `N1()`, applies player `c(180,true)` across the roster, and calls `c1()` (which includes youth reset/recreation in the legacy code).
+- `best.c0.y()` is recovered at `103` useful instructions / `22` branches but remains **not promoted**. It chooses replacement managers through `best.b.t`, `best.b.B` and related paths that use legacy `Random.nextInt(100)` and `Collections.shuffle`. Those paths must be migrated through the project `RandomSource` with exact draw/order characterization before the replacement resolver can leave the fail-closed boundary.
+
+Therefore `CLUB_MANAGER_TRANSFER_G_L_E` is characterized, while the whole club-invitation/career-progression surface remains blocked pending `best.c0.y()` plus downstream `best.n.l()/m()` continuation/dismissal semantics.
 
 ## Behavioral rule
 

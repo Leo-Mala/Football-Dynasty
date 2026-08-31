@@ -45,23 +45,38 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun characterizedSubpathsRemainNarrowerThanWholeCareerSurfaces() {
+    fun directManagerEmploymentTransitionIsCharacterizedWithoutUnlockingReplacementSelection() {
         assertEquals(
             setOf(
                 LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
                 LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_ACCEPTANCE_DISPATCH,
                 LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_CANCEL_DISPATCH,
+                LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E,
             ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
         assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION,
+            LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(
+                LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E,
             ),
         )
+        assertEquals(
+            setOf(
+                "best.b" to "G(best.c0,best.f0,best.f0)",
+                "best.f0" to "l(best.f0)",
+                "best.f0" to "e(best.c0)",
+            ),
+            LegacyCareerProgressionEvidenceBoundary.characterizedEmploymentMethods
+                .map { it.legacyClassName to it.methodSignature }
+                .toSet(),
+        )
+        assertEquals("best.c0", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.legacyClassName)
+        assertEquals("y()", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.methodSignature)
+        assertEquals(103, LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.instructionCount)
+        assertEquals(22, LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.branchCount)
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE,
+                LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION,
             ),
         )
     }
@@ -80,7 +95,7 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun recoveredCareerBodiesDoNotUnlockUncharacterizedCareerSemantics() {
+    fun recoveredCareerBodiesDoNotUnlockRemainingCareerSurfaces() {
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
                 LegacyManagerCareerSurface.CLUB_SELECTION,
@@ -95,11 +110,11 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
             LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed,
             LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces,
         )
-    }
-
-    @Test
-    fun provenCoachIdentityDoesNotUnlockCoachProfileCareerMutations() {
-        assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"))
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyCareerProgressionSurfaceEvidence.DISMISSALS,
+            ),
+        )
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
                 LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE,
