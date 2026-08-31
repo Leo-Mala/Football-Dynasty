@@ -15,10 +15,11 @@ object LegacyCareerProgressionEvidenceBoundary {
         LegacyCoachProfileProjection.provenSourceFields.toSet()
 
     /**
-     * Phase 14 currently has one recovered method body attached to a career-facing host:
-     * `ActivityMainTeam.onStart()`. The recovery inventory proves only that the body exists and
-     * retains its exact structural fingerprint; it does not prove offer, dismissal, invitation,
-     * reputation or club-switch semantics.
+     * Phase 14 currently has two recovered method bodies attached to career-facing hosts:
+     * `ActivityEscolhaTimes.E(String)` and `ActivityMainTeam.onStart()`. The recovery inventory
+     * proves only that the bodies exist and retains their exact structural fingerprints; it does
+     * not prove club-selection mutation, offer, dismissal, invitation, reputation or club-switch
+     * semantics.
      *
      * Keeping this mapping here makes the remaining evidence gap explicit: the other career
      * surfaces are proven reachable by the activity map, but do not yet have method-level bodies
@@ -26,6 +27,24 @@ object LegacyCareerProgressionEvidenceBoundary {
      */
     val recoveredCareerHostMethods: Map<LegacyManagerCareerSurface, LegacyRecoveredManagerMethod> =
         mapOf(
+            LegacyManagerCareerSurface.CLUB_SELECTION to requireNotNull(
+                LegacyManagerRecoveredMethodEvidence.findExact(
+                    legacyClassName = "ActivityEscolhaTimes",
+                    methodSignature = "E(String)",
+                ),
+            ) {
+                "Missing recovered SMALI method for ActivityEscolhaTimes.E(String)"
+            }.also { recovered ->
+                require(
+                    recovered.smaliFileName == "ActivityEscolhaTimes.smali" &&
+                        recovered.instructionCount == 38 &&
+                        recovered.branchCount == 9,
+                ) {
+                    "Recovered SMALI structure changed for ActivityEscolhaTimes.E(String): expected " +
+                        "ActivityEscolhaTimes.smali 38/9, got ${recovered.smaliFileName} " +
+                        "${recovered.instructionCount}/${recovered.branchCount}"
+                }
+            },
             LegacyManagerCareerSurface.CAREER_CLUB_HUB to requireNotNull(
                 LegacyManagerRecoveredMethodEvidence.findExact(
                     legacyClassName = "ActivityMainTeam",

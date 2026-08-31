@@ -28,26 +28,44 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun onlyCareerClubHubHasRecoveredMethodLevelHostEvidence() {
-        val recovered = requireNotNull(
+    fun clubSelectionAndCareerClubHubHaveRecoveredMethodLevelEvidence() {
+        val clubSelection = requireNotNull(
+            LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
+                LegacyManagerCareerSurface.CLUB_SELECTION,
+            ),
+        )
+        assertEquals("ActivityEscolhaTimes", clubSelection.legacyClassName)
+        assertEquals("E(String)", clubSelection.methodSignature)
+        assertEquals("ActivityEscolhaTimes.smali", clubSelection.smaliFileName)
+        assertEquals(38, clubSelection.instructionCount)
+        assertEquals(9, clubSelection.branchCount)
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
+                LegacyManagerCareerSurface.CLUB_SELECTION,
+            ),
+        )
+
+        val careerClubHub = requireNotNull(
             LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
                 LegacyManagerCareerSurface.CAREER_CLUB_HUB,
             ),
         )
-
-        assertEquals("ActivityMainTeam", recovered.legacyClassName)
-        assertEquals("onStart()", recovered.methodSignature)
-        assertEquals("ActivityMainTeam.smali", recovered.smaliFileName)
-        assertEquals(97, recovered.instructionCount)
-        assertEquals(15, recovered.branchCount)
+        assertEquals("ActivityMainTeam", careerClubHub.legacyClassName)
+        assertEquals("onStart()", careerClubHub.methodSignature)
+        assertEquals("ActivityMainTeam.smali", careerClubHub.smaliFileName)
+        assertEquals(97, careerClubHub.instructionCount)
+        assertEquals(15, careerClubHub.branchCount)
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
                 LegacyManagerCareerSurface.CAREER_CLUB_HUB,
             ),
         )
 
-        val expectedAwaitingRecovery =
-            LegacyManagerCareerSurfaces.confirmed - LegacyManagerCareerSurface.CAREER_CLUB_HUB
+        val recoveredSurfaces = setOf(
+            LegacyManagerCareerSurface.CLUB_SELECTION,
+            LegacyManagerCareerSurface.CAREER_CLUB_HUB,
+        )
+        val expectedAwaitingRecovery = LegacyManagerCareerSurfaces.confirmed - recoveredSurfaces
         assertEquals(
             expectedAwaitingRecovery,
             LegacyCareerProgressionEvidenceBoundary.reachableCareerSurfacesWithoutRecoveredHostBody,
@@ -64,7 +82,12 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun recoveredCareerClubHubBodyDoesNotUnlockCareerSemantics() {
+    fun recoveredCareerBodiesDoNotUnlockCareerSemantics() {
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
+                LegacyManagerCareerSurface.CLUB_SELECTION,
+            ),
+        )
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
                 LegacyManagerCareerSurface.CAREER_CLUB_HUB,

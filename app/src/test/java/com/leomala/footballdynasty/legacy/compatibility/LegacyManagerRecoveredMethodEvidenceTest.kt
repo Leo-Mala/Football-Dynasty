@@ -14,6 +14,7 @@ class LegacyManagerRecoveredMethodEvidenceTest {
                 LegacyRecoveredManagerMethod("DialogTatics", "onCreate(Bundle)", "DialogTatics.smali", 172, 20),
                 LegacyRecoveredManagerMethod("ActivityEscala", "gL()", "ActivityEscala.smali", 223, 22),
                 LegacyRecoveredManagerMethod("ActivityProcura", "a(a.p,a.ac,int)", "ActivityProcura.smali", 2, 0),
+                LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "E(String)", "ActivityEscolhaTimes.smali", 38, 9),
                 LegacyRecoveredManagerMethod("DialogIgrokInfo", "onCreate(Bundle)", "DialogIgrokInfo.smali", 554, 28),
                 LegacyRecoveredManagerMethod("ActivityTimes", "a(a.p,a.ac,int)", "ActivityTimes.smali", 2, 0),
                 LegacyRecoveredManagerMethod("ActivityMainTeam", "onStart()", "ActivityMainTeam.smali", 97, 15),
@@ -29,8 +30,13 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             LegacyRecoveredManagerMethod("ActivityEscala", "gL()", "ActivityEscala.smali", 223, 22),
             LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gL()"),
         )
+        assertEquals(
+            LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "E(String)", "ActivityEscolhaTimes.smali", 38, 9),
+            LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"),
+        )
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gl()"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "onCreate(Bundle)"))
+        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "e(String)"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityTactics", "onCreate(Bundle)"))
     }
 

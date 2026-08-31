@@ -52,6 +52,13 @@ object LegacyManagerRecoveredMethodEvidence {
             branchCount = 0,
         ),
         LegacyRecoveredManagerMethod(
+            legacyClassName = "ActivityEscolhaTimes",
+            methodSignature = "E(String)",
+            smaliFileName = "ActivityEscolhaTimes.smali",
+            instructionCount = 38,
+            branchCount = 9,
+        ),
+        LegacyRecoveredManagerMethod(
             legacyClassName = "DialogIgrokInfo",
             methodSignature = "onCreate(Bundle)",
             smaliFileName = "DialogIgrokInfo.smali",
