@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,7 +28,48 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun reachableCareerSurfacesRemainBlockedFromInventedRuntimeSemantics() {
+    fun onlyCareerClubHubHasRecoveredMethodLevelHostEvidence() {
+        val recovered = requireNotNull(
+            LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
+                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
+            ),
+        )
+
+        assertEquals("ActivityMainTeam", recovered.legacyClassName)
+        assertEquals("onStart()", recovered.methodSignature)
+        assertEquals("ActivityMainTeam.smali", recovered.smaliFileName)
+        assertEquals(97, recovered.instructionCount)
+        assertEquals(15, recovered.branchCount)
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
+                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
+            ),
+        )
+
+        val expectedAwaitingRecovery =
+            LegacyManagerCareerSurfaces.confirmed - LegacyManagerCareerSurface.CAREER_CLUB_HUB
+        assertEquals(
+            expectedAwaitingRecovery,
+            LegacyCareerProgressionEvidenceBoundary.reachableCareerSurfacesWithoutRecoveredHostBody,
+        )
+        expectedAwaitingRecovery.forEach { surface ->
+            assertTrue(
+                LegacyCareerProgressionEvidenceBoundary
+                    .isReachableCareerSurfaceAwaitingRecoveredHostBody(surface),
+            )
+            assertNull(
+                LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(surface),
+            )
+        }
+    }
+
+    @Test
+    fun recoveredCareerClubHubBodyDoesNotUnlockCareerSemantics() {
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
+                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
+            ),
+        )
         assertEquals(
             LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed,
             LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces,
