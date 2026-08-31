@@ -16,10 +16,38 @@ class LegacySquadTacticsEvidenceBoundaryTest {
                 LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.SOURCE_ORDER_PRESERVATION,
                 LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_POSITION_CODE,
                 LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_STATUS_CODE,
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_SIDE_CODE,
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
             ),
             LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives,
         )
         assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
+    }
+
+    @Test
+    fun opaqueSideAndTraitEvidenceDoesNotUnlockLineupOrTactics() {
+        assertTrue(
+            LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives.contains(
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_SIDE_CODE,
+            ),
+        )
+        assertTrue(
+            LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives.contains(
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
+            ),
+        )
+        assertTrue(
+            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
+                "ActivityEscala",
+                "gL()",
+            ),
+        )
+        assertTrue(
+            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
+                "DialogTatics",
+                "onCreate(Bundle)",
+            ),
+        )
     }
 
     @Test

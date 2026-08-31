@@ -17,12 +17,19 @@ object LegacySquadTacticsEvidenceBoundary {
     /**
      * Phase 11 squad facts already supported by legacy model evidence and existing runtime
      * projections. These are deliberately narrower than lineup/tactics semantics.
+     *
+     * Position, status, side and trait fields are intentionally opaque here. Their raw presence is
+     * proven and preserved, but no football meaning (eligibility, role, preferred side, injury,
+     * suspension, lineup priority or tactical effect) is assigned until the Java↔SMALI call path
+     * proves it.
      */
     enum class ProvenSquadPrimitive {
         SENIOR_ROSTER_MEMBERSHIP,
         SOURCE_ORDER_PRESERVATION,
         OPAQUE_POSITION_CODE,
         OPAQUE_STATUS_CODE,
+        OPAQUE_SIDE_CODE,
+        OPAQUE_TRAIT_FIELDS,
     }
 
     val provenSquadPrimitives: Set<ProvenSquadPrimitive> = setOf(
@@ -30,6 +37,8 @@ object LegacySquadTacticsEvidenceBoundary {
         ProvenSquadPrimitive.SOURCE_ORDER_PRESERVATION,
         ProvenSquadPrimitive.OPAQUE_POSITION_CODE,
         ProvenSquadPrimitive.OPAQUE_STATUS_CODE,
+        ProvenSquadPrimitive.OPAQUE_SIDE_CODE,
+        ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
     )
 
     data class SemanticTarget(
