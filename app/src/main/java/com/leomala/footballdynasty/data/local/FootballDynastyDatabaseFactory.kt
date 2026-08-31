@@ -65,59 +65,33 @@ object FootballDynastyMigrations {
                 )
                 """.trimIndent()
             )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_careerId` " +
-                    "ON `career_player_runtime` (`careerId`)"
-            )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_playerId` " +
-                    "ON `career_player_runtime` (`playerId`)"
-            )
-
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_player_runtime_careerId` ON `career_player_runtime` (`careerId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_player_runtime_playerId` ON `career_player_runtime` (`playerId`)")
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS `career_procedural_players` (
-                    `careerId` TEXT NOT NULL,
-                    `playerId` TEXT NOT NULL,
-                    `name` TEXT NOT NULL,
-                    `country` INTEGER NOT NULL,
-                    `position` INTEGER NOT NULL,
-                    `status` INTEGER NOT NULL,
-                    `side` INTEGER NOT NULL,
-                    `cr1` INTEGER NOT NULL,
-                    `cr2` INTEGER NOT NULL,
+                    `careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `name` TEXT NOT NULL,
+                    `country` INTEGER NOT NULL, `position` INTEGER NOT NULL, `status` INTEGER NOT NULL,
+                    `side` INTEGER NOT NULL, `cr1` INTEGER NOT NULL, `cr2` INTEGER NOT NULL,
                     PRIMARY KEY(`careerId`, `playerId`),
                     FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE
                 )
                 """.trimIndent()
             )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_procedural_players_playerId` " +
-                    "ON `career_procedural_players` (`playerId`)"
-            )
-
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_procedural_players_playerId` ON `career_procedural_players` (`playerId`)")
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS `career_squad_memberships` (
-                    `careerId` TEXT NOT NULL,
-                    `playerId` TEXT NOT NULL,
-                    `clubId` TEXT NOT NULL,
-                    `rosterKind` TEXT NOT NULL,
-                    `sourceOrdinal` INTEGER NOT NULL,
+                    `careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `clubId` TEXT NOT NULL,
+                    `rosterKind` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL,
                     PRIMARY KEY(`careerId`, `playerId`),
                     FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE,
                     FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION
                 )
                 """.trimIndent()
             )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_squad_memberships_clubId` " +
-                    "ON `career_squad_memberships` (`clubId`)"
-            )
-            db.execSQL(
-                "CREATE UNIQUE INDEX IF NOT EXISTS `index_career_squad_memberships_careerId_clubId_rosterKind_sourceOrdinal` " +
-                    "ON `career_squad_memberships` (`careerId`, `clubId`, `rosterKind`, `sourceOrdinal`)"
-            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_squad_memberships_clubId` ON `career_squad_memberships` (`clubId`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_career_squad_memberships_careerId_clubId_rosterKind_sourceOrdinal` ON `career_squad_memberships` (`careerId`, `clubId`, `rosterKind`, `sourceOrdinal`)")
         }
     }
 
@@ -126,15 +100,9 @@ object FootballDynastyMigrations {
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS `career_scheduled_matches` (
-                    `careerId` TEXT NOT NULL,
-                    `matchId` TEXT NOT NULL,
-                    `dayIndex` INTEGER NOT NULL,
-                    `eventTypeCode` INTEGER NOT NULL,
-                    `homeClubId` TEXT NOT NULL,
-                    `awayClubId` TEXT NOT NULL,
-                    `processed` INTEGER NOT NULL,
-                    `homeGoals` INTEGER,
-                    `awayGoals` INTEGER,
+                    `careerId` TEXT NOT NULL, `matchId` TEXT NOT NULL, `dayIndex` INTEGER NOT NULL,
+                    `eventTypeCode` INTEGER NOT NULL, `homeClubId` TEXT NOT NULL, `awayClubId` TEXT NOT NULL,
+                    `processed` INTEGER NOT NULL, `homeGoals` INTEGER, `awayGoals` INTEGER,
                     PRIMARY KEY(`careerId`, `matchId`),
                     FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
                     FOREIGN KEY(`homeClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION,
@@ -142,51 +110,28 @@ object FootballDynastyMigrations {
                 )
                 """.trimIndent()
             )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_careerId_dayIndex` " +
-                    "ON `career_scheduled_matches` (`careerId`, `dayIndex`)"
-            )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_homeClubId` " +
-                    "ON `career_scheduled_matches` (`homeClubId`)"
-            )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_awayClubId` " +
-                    "ON `career_scheduled_matches` (`awayClubId`)"
-            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_careerId_dayIndex` ON `career_scheduled_matches` (`careerId`, `dayIndex`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_homeClubId` ON `career_scheduled_matches` (`homeClubId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_awayClubId` ON `career_scheduled_matches` (`awayClubId`)")
         }
     }
 
     val MIGRATION_4_5: Migration = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
-                "ALTER TABLE `career_player_runtime` ADD COLUMN `energy` INTEGER NOT NULL DEFAULT 100"
-            )
-            db.execSQL(
-                "ALTER TABLE `career_player_runtime` ADD COLUMN `injuryUntilEpochDay` INTEGER NOT NULL DEFAULT 0"
-            )
+            db.execSQL("ALTER TABLE `career_player_runtime` ADD COLUMN `energy` INTEGER NOT NULL DEFAULT 100")
+            db.execSQL("ALTER TABLE `career_player_runtime` ADD COLUMN `injuryUntilEpochDay` INTEGER NOT NULL DEFAULT 0")
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS `career_player_club_season_stats` (
-                    `careerId` TEXT NOT NULL,
-                    `playerId` TEXT NOT NULL,
-                    `legacySeasonId` INTEGER NOT NULL,
-                    `legacyClubId` INTEGER NOT NULL,
-                    `legacyC` INTEGER NOT NULL,
-                    `legacyD` INTEGER NOT NULL,
-                    `legacyE` INTEGER NOT NULL,
-                    `legacyF` INTEGER NOT NULL,
-                    `legacyG` INTEGER NOT NULL,
-                    `legacyH` INTEGER NOT NULL,
+                    `careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `legacySeasonId` INTEGER NOT NULL,
+                    `legacyClubId` INTEGER NOT NULL, `legacyC` INTEGER NOT NULL, `legacyD` INTEGER NOT NULL,
+                    `legacyE` INTEGER NOT NULL, `legacyF` INTEGER NOT NULL, `legacyG` INTEGER NOT NULL, `legacyH` INTEGER NOT NULL,
                     PRIMARY KEY(`careerId`, `playerId`, `legacySeasonId`, `legacyClubId`),
                     FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE
                 )
                 """.trimIndent()
             )
-            db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_player_club_season_stats_careerId_playerId` " +
-                    "ON `career_player_club_season_stats` (`careerId`, `playerId`)"
-            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_career_player_club_season_stats_careerId_playerId` ON `career_player_club_season_stats` (`careerId`, `playerId`)")
         }
     }
 
@@ -196,6 +141,7 @@ object FootballDynastyMigrations {
         MIGRATION_3_4,
         MIGRATION_4_5,
         Phase10CompetitionMigration.MIGRATION_5_6,
+        Phase12ManagerPersistenceMigration.MIGRATION_6_7,
     )
 }
 

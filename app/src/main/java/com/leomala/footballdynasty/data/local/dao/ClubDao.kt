@@ -16,6 +16,10 @@ interface ClubDao {
     @Query("SELECT * FROM clubs WHERE sourceFileRef = :fileRef LIMIT 1")
     suspend fun findBySourceFileRef(fileRef: String): ClubEntity?
 
+    /** Legacy numeric ids are resolved fail-closed by callers; duplicates remain observable. */
+    @Query("SELECT * FROM clubs WHERE legacyId = :legacyId ORDER BY sourceFileRef")
+    suspend fun findByLegacyId(legacyId: Int): List<ClubEntity>
+
     @Query("SELECT * FROM clubs ORDER BY sourceFileRef")
     suspend fun all(): List<ClubEntity>
 
