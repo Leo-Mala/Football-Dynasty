@@ -5,6 +5,8 @@ import com.leomala.footballdynasty.domain.manager.LegacyCoachProfileProjection
 /** Narrow Phase 14 subpaths whose behavior is already characterized from the official corpus. */
 enum class LegacyCharacterizedCareerRuntimePath {
     MANAGER_NAME_VALIDATION,
+    CLUB_INVITATION_ACCEPTANCE_DISPATCH,
+    CLUB_INVITATION_CANCEL_DISPATCH,
 }
 
 /**
@@ -57,12 +59,17 @@ object LegacyCareerProgressionEvidenceBoundary {
         )
 
     /**
-     * `ActivityEscolhaTimes.i(String)` is now semantically characterized as manager-name validation.
-     * This intentionally does not unlock the complete CLUB_SELECTION surface: club choice,
-     * randomized choice, career initialization and persistence are separate call paths.
+     * `ActivityEscolhaTimes.i(String)` is characterized as manager-name validation.
+     * `ActivityConvite.onClickAccept/onClickCancel` are characterized only through their exact
+     * dispatch/ordering. The internals of `c0.y()`, `best.b.G(...)` and continuation `best.n.l()`
+     * remain separate evidence targets, so the full invitation surface remains fail-closed.
      */
     val characterizedCareerRuntimePaths: Set<LegacyCharacterizedCareerRuntimePath> =
-        setOf(LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION)
+        setOf(
+            LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
+            LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_ACCEPTANCE_DISPATCH,
+            LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_CANCEL_DISPATCH,
+        )
 
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =
         LegacyManagerCareerSurfaces.confirmed - recoveredCareerHostMethods.keys

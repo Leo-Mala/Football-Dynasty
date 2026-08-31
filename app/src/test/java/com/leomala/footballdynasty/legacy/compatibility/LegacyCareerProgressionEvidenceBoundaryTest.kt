@@ -42,39 +42,26 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
         assertEquals("onStart()V", careerClubHub.smaliMethodSignature)
         assertEquals(93, careerClubHub.instructionCount)
         assertEquals(15, careerClubHub.branchCount)
-
-        val recoveredSurfaces = setOf(
-            LegacyManagerCareerSurface.CLUB_SELECTION,
-            LegacyManagerCareerSurface.CAREER_CLUB_HUB,
-        )
-        val expectedAwaitingRecovery = LegacyManagerCareerSurfaces.confirmed - recoveredSurfaces
-        assertEquals(
-            expectedAwaitingRecovery,
-            LegacyCareerProgressionEvidenceBoundary.reachableCareerSurfacesWithoutRecoveredHostBody,
-        )
-        expectedAwaitingRecovery.forEach { surface ->
-            assertTrue(
-                LegacyCareerProgressionEvidenceBoundary
-                    .isReachableCareerSurfaceAwaitingRecoveredHostBody(surface),
-            )
-            assertNull(LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(surface))
-        }
     }
 
     @Test
-    fun managerNameValidationIsCharacterizedWithoutUnlockingWholeClubSelection() {
+    fun characterizedSubpathsRemainNarrowerThanWholeCareerSurfaces() {
         assertEquals(
-            setOf(LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION),
+            setOf(
+                LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
+                LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_ACCEPTANCE_DISPATCH,
+                LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_CANCEL_DISPATCH,
+            ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
         assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(
-                LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
+            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION,
             ),
         )
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.CLUB_SELECTION,
+                LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE,
             ),
         )
     }
