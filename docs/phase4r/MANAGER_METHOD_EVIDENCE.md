@@ -51,8 +51,13 @@ The following paths are now semantically characterized directly from the officia
 - `ActivitySavedTatics.g()`: rejects only exact empty names or names longer than 30 Java/Kotlin UTF-16 code units; otherwise copies the current player/slot parallel lists, stores null player IDs as `-1`, prefixes the typed name with the formation label, appends the snapshot, clears the input and refreshes the saved-tactics list. A short parallel slot list or invalid formation index is not silently repaired.
 - `ActivitySavedTatics.e/b/f`: an empty saved list disables the spinner and clears its adapter; otherwise the display-name list is rebuilt and the last entry selected. Delete/load reject only an empty list or `index >= size`; a negative index is not clamped and preserves the legacy failure. Successful load returns result code `-1`, extra `idTaticaSalva=<index>` and finishes.
 - `ActivityEscalacao.onActivityResult`: only request code `101` plus result `-1` consumes `idTaticaSalva`; it uses the same upper-bound-only list guard before forwarding the selected snapshot into the lineup load path.
+- `DialogTatics.onCreate`: a null static club reference finishes immediately. Otherwise it loads raw option slots `S[1]`, `S[3]`, `S[2]`, checkbox `T`, wires the four player selectors, refreshes their labels, and disables every mutating control when `Q0()==false`.
+- `DialogTatics.j()`: when `Q0()==false` it is a complete no-op. Otherwise the three radio groups write only known selections into `S[1]`, `S[2]`, `S[3]`, and checkbox `T` is overwritten with the UI state. Back/close commits through this path before finishing.
+- `DialogTatics.k(String,best.o)`: exact keys `cap`, `bFaltas`, `bEscanteios`, `fNove` assign captain, free-kick, corner and false-nine references respectively; unknown keys do not assign.
+- `best.c0.F0/G0/H0/I0`: a special-player reference is kept when the player still belongs to the club. Otherwise it is cleared unless legacy `T0()` fallback is active and that same player object still exists in `Z()`.
+- `v2`: initial picker selection uses reference identity against the current special player, otherwise selects index 0 only when the candidate list is non-empty. Confirmation is a no-op for index `<0` or `>=size`; a valid selection calls `DialogTatics.k()` and closes the picker.
 
-Because `ActivitySavedTatics.g()` is fully characterized end-to-end, that exact method may leave the fail-closed state. The other saved-tactics UI methods above are readable characterized subpaths. `ActivityEscalacao.B()`/SMALI `y()` and `DialogTatics.onCreate(Bundle)` remain blocked until their larger control flows are characterized.
+`ActivitySavedTatics.g()` and the `DialogTatics` host are now semantically characterized end-to-end and may leave the fail-closed state. The remaining Phase 11 host blocked on gameplay semantics is `ActivityEscalacao.B()` / SMALI `y()V`, including the complete application of a saved formation snapshot.
 
 ## Behavioral rule
 
