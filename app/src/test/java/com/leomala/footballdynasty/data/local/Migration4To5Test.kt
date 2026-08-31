@@ -38,8 +38,8 @@ class Migration4To5Test {
         )
         db.close()
 
-        // V4/V5 JSON assets were not historically versioned. Validate the exact V3->V4->V5
-        // transitions against the current schema while keeping every V5 behavioral assertion.
+        // V4/V5/V6 JSON assets were not historically versioned. Run every explicit transition to
+        // the current V7 schema while retaining each V5 behavioral/FK assertion below.
         db = helper.runMigrationsAndValidate(
             name,
             FootballDynastyDatabase.SCHEMA_VERSION,
@@ -47,6 +47,7 @@ class Migration4To5Test {
             FootballDynastyMigrations.MIGRATION_3_4,
             FootballDynastyMigrations.MIGRATION_4_5,
             Phase10CompetitionMigration.MIGRATION_5_6,
+            Phase12ManagerPersistenceMigration.MIGRATION_6_7,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 

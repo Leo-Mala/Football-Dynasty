@@ -20,8 +20,8 @@ class Migration5To6Test {
     )
 
     @Test
-    fun `explicit 3 to 4 to 5 to 6 chain adds competition runtime without destroying career`() {
-        val name = "phase10-migration-3-6"
+    fun `explicit chain through V6 preserves competition runtime in current schema`() {
+        val name = "phase10-migration-3-7-v6-contract"
         var db = helper.createDatabase(name, 3)
         db.execSQL(
             "INSERT INTO career_metadata " +
@@ -30,13 +30,16 @@ class Migration5To6Test {
         )
         db.close()
 
+        // V6 JSON was never committed as a historical schema asset. Validate the V6 competition
+        // contract after the complete explicit migration chain to the current V7 schema instead.
         db = helper.runMigrationsAndValidate(
             name,
-            6,
+            FootballDynastyDatabase.SCHEMA_VERSION,
             true,
             FootballDynastyMigrations.MIGRATION_3_4,
             FootballDynastyMigrations.MIGRATION_4_5,
             Phase10CompetitionMigration.MIGRATION_5_6,
+            Phase12ManagerPersistenceMigration.MIGRATION_6_7,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 
@@ -76,6 +79,12 @@ class Migration5To6Test {
                 setOf("careerId", "competitionId", "matchId", "roundNumber", "fixtureOrdinal"),
                 names,
             )
+        }
+
+        // V7 is additive: the Phase 10 tables remain present while the new manager tables exist too.
+        db.query("SELECT COUNT(*) FROM career_player_commercial").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
         }
 
         db.execSQL("DELETE FROM career_metadata WHERE id='career-v6'")
