@@ -1,5 +1,12 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
+/** Characterized readable Phase 11 subpaths from the current official corpus. */
+enum class LegacyCharacterizedLineupRuntimePath {
+    BENCH_REORDER_U,
+    STARTER_BENCH_SWAP_V,
+    STARTER_REORDER_W,
+}
+
 /**
  * Fail-closed Phase 11 boundary for lineup/tactics methods whose current official SMALI bodies are
  * recovered but whose gameplay semantics have not yet been fully characterized Java↔SMALI.
@@ -28,6 +35,16 @@ object LegacySquadTacticsEvidenceBoundary {
         ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
     )
 
+    /**
+     * U/V/W are independently readable and verified in SMALI, so their slot mutations may advance
+     * without pretending that the large `ActivityEscalacao.B()`/bytecode `y()` path is understood.
+     */
+    val characterizedLineupRuntimePaths: Set<LegacyCharacterizedLineupRuntimePath> = setOf(
+        LegacyCharacterizedLineupRuntimePath.BENCH_REORDER_U,
+        LegacyCharacterizedLineupRuntimePath.STARTER_BENCH_SWAP_V,
+        LegacyCharacterizedLineupRuntimePath.STARTER_REORDER_W,
+    )
+
     data class SemanticTarget(
         val legacyClassName: String,
         val methodSignature: String,
@@ -41,11 +58,6 @@ object LegacySquadTacticsEvidenceBoundary {
         val characterizationState: CharacterizationState,
     )
 
-    /**
-     * Exact Phase 11 targets revalidated against the official `com.brasfoot.v2020` corpus.
-     * `ActivityEscalacao.B()` is the Java/decompiler-facing method; jadx records its bytecode name
-     * as `y`, which is why the matching SMALI signature is `y()V`.
-     */
     val requiredSemanticTargets: List<SemanticTarget> = listOf(
         SemanticTarget(
             legacyClassName = "ActivityEscalacao",
@@ -99,6 +111,9 @@ object LegacySquadTacticsEvidenceBoundary {
     ): SemanticTarget? = requiredSemanticTargets.firstOrNull { target ->
         target.legacyClassName == legacyClassName && target.methodSignature == methodSignature
     }
+
+    fun isCharacterizedLineupRuntimePath(path: LegacyCharacterizedLineupRuntimePath): Boolean =
+        path in characterizedLineupRuntimePaths
 
     fun isRecoveredPhase11Method(
         legacyClassName: String,
