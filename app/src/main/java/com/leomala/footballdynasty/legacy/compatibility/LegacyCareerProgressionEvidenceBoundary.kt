@@ -16,6 +16,8 @@ enum class LegacyCharacterizedCareerRuntimePath {
     PENDING_MATCH_LAUNCH_H,
     POST_SEASON_RESULTS_J,
     INVITATION_DISPATCH_K,
+    END_OF_YEAR_RESUME_N,
+    CONTROLLED_CLUB_SWITCH_S,
 }
 
 /** Fail-closed boundary between proven coach behavior and remaining career progression semantics. */
@@ -63,8 +65,10 @@ object LegacyCareerProgressionEvidenceBoundary {
         requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "h()")),
         requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "j()")),
         requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "k()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "n()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "s(String)")),
     ).also { methods ->
-        require(methods.map { it.instructionCount to it.branchCount } == listOf(78 to 16, 37 to 3, 27 to 3, 117 to 20))
+        require(methods.map { it.instructionCount to it.branchCount } == listOf(78 to 16, 37 to 3, 27 to 3, 117 to 20, 9 to 2, 80 to 10))
     }
 
     /**
@@ -92,6 +96,8 @@ object LegacyCareerProgressionEvidenceBoundary {
         LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H,
         LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J,
         LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K,
+        LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_RESUME_N,
+        LegacyCharacterizedCareerRuntimePath.CONTROLLED_CLUB_SWITCH_S,
     )
 
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =

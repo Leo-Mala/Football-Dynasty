@@ -44,6 +44,8 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
                 LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H,
                 LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J,
                 LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K,
+                LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_RESUME_N,
+                LegacyCharacterizedCareerRuntimePath.CONTROLLED_CLUB_SWITCH_S,
             ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
@@ -65,7 +67,7 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     @Test
     fun officialContinuationMethodsHaveExactFingerprintsAndPaths() {
         assertEquals(
-            setOf("best.n" to "i()", "best.n" to "h()", "best.n" to "j()", "best.n" to "k()"),
+            setOf("best.n" to "i()", "best.n" to "h()", "best.n" to "j()", "best.n" to "k()", "best.n" to "n()", "best.n" to "s(String)"),
             LegacyCareerProgressionEvidenceBoundary.characterizedContinuationMethods.map { it.legacyClassName to it.methodSignature }.toSet(),
         )
         val byName = LegacyCareerProgressionEvidenceBoundary.characterizedContinuationMethods.associateBy { it.methodSignature }
@@ -73,10 +75,14 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
         assertEquals(37 to 3, requireNotNull(byName["h()"]).let { it.instructionCount to it.branchCount })
         assertEquals(27 to 3, requireNotNull(byName["j()"]).let { it.instructionCount to it.branchCount })
         assertEquals(117 to 20, requireNotNull(byName["k()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(9 to 2, requireNotNull(byName["n()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(80 to 10, requireNotNull(byName["s(String)"]).let { it.instructionCount to it.branchCount })
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.CAREER_CONTINUATION_I))
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H))
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J))
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_RESUME_N))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.CONTROLLED_CLUB_SWITCH_S))
     }
 
     @Test

@@ -36,6 +36,8 @@ object LegacyManagerRecoveredMethodEvidence {
         LegacyRecoveredManagerMethod("best.n", "h()", "best/n.smali", 37, 3, "h()V"),
         LegacyRecoveredManagerMethod("best.n", "j()", "best/n.smali", 27, 3, "j()V"),
         LegacyRecoveredManagerMethod("best.n", "k()", "best/n.smali", 117, 20, "k()V"),
+        LegacyRecoveredManagerMethod("best.n", "n()", "best/n.smali", 9, 2, "n()V"),
+        LegacyRecoveredManagerMethod("best.n", "s(String)", "best/n.smali", 80, 10, "s(Ljava/lang/String;)V"),
     )
 
     private val byExactMethod: Map<Pair<String, String>, LegacyRecoveredManagerMethod> =

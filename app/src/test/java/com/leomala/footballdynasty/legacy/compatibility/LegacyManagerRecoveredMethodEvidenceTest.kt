@@ -33,6 +33,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
                 LegacyRecoveredManagerMethod("best.n", "h()", "best/n.smali", 37, 3, "h()V"),
                 LegacyRecoveredManagerMethod("best.n", "j()", "best/n.smali", 27, 3, "j()V"),
                 LegacyRecoveredManagerMethod("best.n", "k()", "best/n.smali", 117, 20, "k()V"),
+                LegacyRecoveredManagerMethod("best.n", "n()", "best/n.smali", 9, 2, "n()V"),
+                LegacyRecoveredManagerMethod("best.n", "s(String)", "best/n.smali", 80, 10, "s(Ljava/lang/String;)V"),
             ),
             LegacyManagerRecoveredMethodEvidence.confirmed,
         )
@@ -50,6 +52,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
         assertEquals("h()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "h()")).smaliMethodSignature)
         assertEquals("j()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "j()")).smaliMethodSignature)
         assertEquals("k()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "k()")).smaliMethodSignature)
+        assertEquals("n()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "n()")).smaliMethodSignature)
+        assertEquals("s(Ljava/lang/String;)V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "s(String)")).smaliMethodSignature)
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gL()"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivitySavedTatics", "sa()"))
@@ -78,6 +82,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             "h()" to (37 to 3),
             "j()" to (27 to 3),
             "k()" to (117 to 20),
+            "n()" to (9 to 2),
+            "s(String)" to (80 to 10),
         )
         expected.forEach { (signature, fingerprint) ->
             val recovered = requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", signature))
@@ -92,7 +98,7 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivityProcura"),
         )
         assertEquals(2, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.f0").size)
-        assertEquals(6, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.n").size)
+        assertEquals(8, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.n").size)
         assertTrue(LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivitySearch").isEmpty())
     }
 }
