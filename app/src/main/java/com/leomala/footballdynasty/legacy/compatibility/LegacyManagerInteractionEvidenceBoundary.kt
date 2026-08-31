@@ -4,6 +4,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 enum class LegacyCharacterizedPlayerDialogRuntimePath {
     CONTRACT_RENEWAL,
     LOAN_MANAGEMENT,
+    PLAYER_SALE,
 }
 
 /**
@@ -103,13 +104,36 @@ object LegacyManagerInteractionEvidenceBoundary {
         setOf(
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
+            LegacyManagerInteractionEvidence.PLAYER_SALE,
         )
 
     val characterizedPlayerDialogRuntimePaths: Set<LegacyCharacterizedPlayerDialogRuntimePath> =
         setOf(
             LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,
             LegacyCharacterizedPlayerDialogRuntimePath.LOAN_MANAGEMENT,
+            LegacyCharacterizedPlayerDialogRuntimePath.PLAYER_SALE,
         )
+
+    val characterizedPlayerSaleMethods: List<LegacyRecoveredPlayerSaleMethod> =
+        LegacyPlayerSaleRecoveredMethodEvidence.confirmed.also { methods ->
+            require(methods.size == 11)
+            require(
+                methods.map { it.instructionCount to it.branchCount } ==
+                    listOf(
+                        72 to 7,
+                        29 to 0,
+                        18 to 0,
+                        45 to 7,
+                        17 to 0,
+                        9 to 1,
+                        621 to 86,
+                        84 to 20,
+                        321 to 42,
+                        83 to 9,
+                        77 to 16,
+                    ),
+            )
+        }
 
     val semanticRuntimeBlockedInteractions: Set<LegacyManagerInteractionEvidence> =
         LegacyManagerInteractionEvidenceCatalog.confirmed - semanticRuntimeCharacterizedInteractions

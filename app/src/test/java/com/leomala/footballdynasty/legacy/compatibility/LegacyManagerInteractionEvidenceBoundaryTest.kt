@@ -26,6 +26,7 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
         val characterized = setOf(
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
+            LegacyManagerInteractionEvidence.PLAYER_SALE,
         )
         assertEquals(characterized, LegacyManagerInteractionEvidenceBoundary.semanticRuntimeCharacterizedInteractions)
         characterized.forEach { interaction ->
@@ -42,17 +43,43 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
     }
 
     @Test
-    fun characterizedPlayerDialogSubpathsDoNotUnlockSiblingInteractions() {
+    fun characterizedPlayerDialogSubpathsUnlockSaleButNotRetirement() {
         val characterizedPaths = setOf(
             LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,
             LegacyCharacterizedPlayerDialogRuntimePath.LOAN_MANAGEMENT,
+            LegacyCharacterizedPlayerDialogRuntimePath.PLAYER_SALE,
         )
         assertEquals(characterizedPaths, LegacyManagerInteractionEvidenceBoundary.characterizedPlayerDialogRuntimePaths)
         characterizedPaths.forEach { path ->
             assertTrue(LegacyManagerInteractionEvidenceBoundary.isCharacterizedPlayerDialogRuntimePath(path))
         }
-        assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.PLAYER_SALE))
+        assertFalse(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.PLAYER_SALE))
         assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.PLAYER_RETIREMENT))
+        assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.TEAM_PROPOSAL))
+        assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.CAREER_CLUB_OFFER))
+    }
+
+    @Test
+    fun exactSaleChainIsLockedSeparatelyFromTheDialogHost() {
+        assertEquals(11, LegacyManagerInteractionEvidenceBoundary.characterizedPlayerSaleMethods.size)
+        assertEquals(
+            listOf(
+                72 to 7,
+                29 to 0,
+                18 to 0,
+                45 to 7,
+                17 to 0,
+                9 to 1,
+                621 to 86,
+                84 to 20,
+                321 to 42,
+                83 to 9,
+                77 to 16,
+            ),
+            LegacyManagerInteractionEvidenceBoundary.characterizedPlayerSaleMethods.map {
+                it.instructionCount to it.branchCount
+            },
+        )
     }
 
     @Test
