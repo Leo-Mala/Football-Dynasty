@@ -16,6 +16,11 @@ enum class LegacyCharacterizedTacticsRuntimePath {
     SAVED_TACTIC_DELETE_B,
     SAVED_TACTIC_LOAD_F,
     SAVED_TACTIC_RESULT_CONSUME,
+    DIALOG_STATE_LOAD_ON_CREATE,
+    DIALOG_STATE_COMMIT_J,
+    SPECIAL_PLAYER_ASSIGNMENT_K,
+    SPECIAL_PLAYER_REFERENCE_CLEANUP,
+    PLAYER_PICKER_V2,
 }
 
 /**
@@ -60,6 +65,11 @@ object LegacySquadTacticsEvidenceBoundary {
         LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_DELETE_B,
         LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_LOAD_F,
         LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_RESULT_CONSUME,
+        LegacyCharacterizedTacticsRuntimePath.DIALOG_STATE_LOAD_ON_CREATE,
+        LegacyCharacterizedTacticsRuntimePath.DIALOG_STATE_COMMIT_J,
+        LegacyCharacterizedTacticsRuntimePath.SPECIAL_PLAYER_ASSIGNMENT_K,
+        LegacyCharacterizedTacticsRuntimePath.SPECIAL_PLAYER_REFERENCE_CLEANUP,
+        LegacyCharacterizedTacticsRuntimePath.PLAYER_PICKER_V2,
     )
 
     data class SemanticTarget(
@@ -98,7 +108,7 @@ object LegacySquadTacticsEvidenceBoundary {
             smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
             instructionCount = 171,
             branchCount = 19,
-            characterizationState = CharacterizationState.RECOVERED_BODY_ONLY,
+            characterizationState = CharacterizationState.SEMANTICS_CHARACTERIZED,
         ),
         SemanticTarget(
             legacyClassName = "ActivitySavedTatics",
