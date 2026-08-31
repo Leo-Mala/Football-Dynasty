@@ -12,6 +12,10 @@ enum class LegacyCharacterizedCareerRuntimePath {
     MANAGER_SWAP_B4,
     DISMISSAL_GATE_L,
     END_OF_YEAR_DISPATCH_M,
+    CAREER_CONTINUATION_I,
+    PENDING_MATCH_LAUNCH_H,
+    POST_SEASON_RESULTS_J,
+    INVITATION_DISPATCH_K,
 }
 
 /** Fail-closed boundary between proven coach behavior and remaining career progression semantics. */
@@ -54,6 +58,15 @@ object LegacyCareerProgressionEvidenceBoundary {
         require(methods.map { it.instructionCount to it.branchCount } == listOf(81 to 16, 65 to 11))
     }
 
+    val characterizedContinuationMethods: Set<LegacyRecoveredManagerMethod> = linkedSetOf(
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "i()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "h()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "j()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "k()")),
+    ).also { methods ->
+        require(methods.map { it.instructionCount to it.branchCount } == listOf(78 to 16, 37 to 3, 27 to 3, 117 to 20))
+    }
+
     /**
      * Structural fingerprint for the replacement resolver host. Its persistence-independent
      * orchestration and the `best.b.B -> best.x.H0/G0 -> konrent.t.H0` discovery chain are now
@@ -75,6 +88,10 @@ object LegacyCareerProgressionEvidenceBoundary {
         LegacyCharacterizedCareerRuntimePath.MANAGER_SWAP_B4,
         LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L,
         LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M,
+        LegacyCharacterizedCareerRuntimePath.CAREER_CONTINUATION_I,
+        LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H,
+        LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J,
+        LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K,
     )
 
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =

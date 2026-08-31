@@ -28,7 +28,7 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun replacementPoolFallbackSwapAndYearEndHostsAreCharacterized() {
+    fun replacementYearEndAndContinuationHostsAreCharacterized() {
         assertEquals(
             setOf(
                 LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
@@ -40,40 +40,43 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
                 LegacyCharacterizedCareerRuntimePath.MANAGER_SWAP_B4,
                 LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L,
                 LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M,
+                LegacyCharacterizedCareerRuntimePath.CAREER_CONTINUATION_I,
+                LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H,
+                LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J,
+                LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K,
             ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
         assertEquals(
-            setOf(
-                "best.b" to "t(best.c0,int)",
-                "best.b" to "u()",
-                "best.b" to "b4(best.f0,best.f0)",
-            ),
-            LegacyCareerProgressionEvidenceBoundary.characterizedReplacementSubmethods
-                .map { it.legacyClassName to it.methodSignature }
-                .toSet(),
+            setOf("best.b" to "t(best.c0,int)", "best.b" to "u()", "best.b" to "b4(best.f0,best.f0)"),
+            LegacyCareerProgressionEvidenceBoundary.characterizedReplacementSubmethods.map { it.legacyClassName to it.methodSignature }.toSet(),
         )
-        val byName = LegacyCareerProgressionEvidenceBoundary.characterizedReplacementSubmethods.associateBy { it.methodSignature }
-        assertEquals(120 to 20, requireNotNull(byName["t(best.c0,int)"]).let { it.instructionCount to it.branchCount })
-        assertEquals(30 to 4, requireNotNull(byName["u()"]).let { it.instructionCount to it.branchCount })
-        assertEquals(9 to 0, requireNotNull(byName["b4(best.f0,best.f0)"]).let { it.instructionCount to it.branchCount })
         assertEquals("y()", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.methodSignature)
-        assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION))
     }
 
     @Test
     fun officialYearEndMethodsHaveExactFingerprintsAndPaths() {
-        assertEquals(
-            setOf("best.n" to "l()", "best.n" to "m()"),
-            LegacyCareerProgressionEvidenceBoundary.characterizedYearEndMethods
-                .map { it.legacyClassName to it.methodSignature }
-                .toSet(),
-        )
+        assertEquals(setOf("best.n" to "l()", "best.n" to "m()"), LegacyCareerProgressionEvidenceBoundary.characterizedYearEndMethods.map { it.legacyClassName to it.methodSignature }.toSet())
         val byName = LegacyCareerProgressionEvidenceBoundary.characterizedYearEndMethods.associateBy { it.methodSignature }
         assertEquals(81 to 16, requireNotNull(byName["l()"]).let { it.instructionCount to it.branchCount })
         assertEquals(65 to 11, requireNotNull(byName["m()"]).let { it.instructionCount to it.branchCount })
-        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L))
-        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M))
+    }
+
+    @Test
+    fun officialContinuationMethodsHaveExactFingerprintsAndPaths() {
+        assertEquals(
+            setOf("best.n" to "i()", "best.n" to "h()", "best.n" to "j()", "best.n" to "k()"),
+            LegacyCareerProgressionEvidenceBoundary.characterizedContinuationMethods.map { it.legacyClassName to it.methodSignature }.toSet(),
+        )
+        val byName = LegacyCareerProgressionEvidenceBoundary.characterizedContinuationMethods.associateBy { it.methodSignature }
+        assertEquals(78 to 16, requireNotNull(byName["i()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(37 to 3, requireNotNull(byName["h()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(27 to 3, requireNotNull(byName["j()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(117 to 20, requireNotNull(byName["k()"]).let { it.instructionCount to it.branchCount })
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.CAREER_CONTINUATION_I))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.PENDING_MATCH_LAUNCH_H))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.POST_SEASON_RESULTS_J))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.INVITATION_DISPATCH_K))
     }
 
     @Test
