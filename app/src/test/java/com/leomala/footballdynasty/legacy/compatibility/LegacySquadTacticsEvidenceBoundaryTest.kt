@@ -9,6 +9,20 @@ import org.junit.Test
 
 class LegacySquadTacticsEvidenceBoundaryTest {
     @Test
+    fun provenSquadPrimitivesStayNarrowerThanLineupAndTacticsSemantics() {
+        assertEquals(
+            setOf(
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.SENIOR_ROSTER_MEMBERSHIP,
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.SOURCE_ORDER_PRESERVATION,
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_POSITION_CODE,
+                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_STATUS_CODE,
+            ),
+            LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives,
+        )
+        assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
+    }
+
+    @Test
     fun onlyRecoveredLineupAndTacticsMethodsEnterThePhase11Boundary() {
         assertEquals(
             setOf(
