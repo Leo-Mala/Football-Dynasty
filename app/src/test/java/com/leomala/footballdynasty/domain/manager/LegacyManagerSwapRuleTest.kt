@@ -6,7 +6,7 @@ import org.junit.Test
 class LegacyManagerSwapRuleTest {
     @Test
     fun capturesBothClubsThenRunsBothDeparturesBeforeEitherArrival() {
-        val clubs = mutableMapOf("a" to "club-a", "b" to "club-b")
+        val clubs = mutableMapOf<String, String?>("a" to "club-a", "b" to "club-b")
         val events = mutableListOf<String>()
 
         LegacyManagerSwapRule.execute(
