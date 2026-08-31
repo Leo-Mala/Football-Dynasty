@@ -18,6 +18,8 @@ object LegacySquadTacticsEvidenceBoundary {
         val legacyClassName: String,
         val methodSignature: String,
         val surfaceRole: String,
+        val observedLayoutName: String?,
+        val surfaceIsDynamicallyConstructed: Boolean,
         val smaliFileName: String,
         val instructionCount: Int,
         val branchCount: Int,
@@ -26,8 +28,9 @@ object LegacySquadTacticsEvidenceBoundary {
 
     /**
      * Exact Phase 11 targets jointly proven by `ACTIVITY_MAP.md` (surface exists) and
-     * `SMALI_RECOVERY.md` (method body recovered). The instruction/branch counts are copied from
-     * that versioned recovery inventory and deliberately do not assign gameplay meaning.
+     * `SMALI_RECOVERY.md` (method body recovered). Layout metadata is copied from the versioned
+     * activity inventory; a null layout is allowed only where that inventory explicitly records
+     * dynamic construction. None of this surface evidence assigns gameplay meaning.
      *
      * No target may leave RECOVERED_BODY_ONLY until the actual Java↔SMALI call path has been read
      * semantically and its claimed behavior has characterization tests.
@@ -37,6 +40,8 @@ object LegacySquadTacticsEvidenceBoundary {
             legacyClassName = "ActivityEscala",
             methodSignature = "gL()",
             surfaceRole = "lineup",
+            observedLayoutName = "activity_escala",
+            surfaceIsDynamicallyConstructed = false,
             smaliFileName = "ActivityEscala.smali",
             instructionCount = 223,
             branchCount = 22,
@@ -46,6 +51,8 @@ object LegacySquadTacticsEvidenceBoundary {
             legacyClassName = "DialogTatics",
             methodSignature = "onCreate(Bundle)",
             surfaceRole = "tactics",
+            observedLayoutName = null,
+            surfaceIsDynamicallyConstructed = true,
             smaliFileName = "DialogTatics.smali",
             instructionCount = 172,
             branchCount = 20,
@@ -55,6 +62,8 @@ object LegacySquadTacticsEvidenceBoundary {
             legacyClassName = "ActivitySavedTatics",
             methodSignature = "sa()",
             surfaceRole = "saved-tactics",
+            observedLayoutName = "activity_savedtatics",
+            surfaceIsDynamicallyConstructed = false,
             smaliFileName = "ActivitySavedTatics.smali",
             instructionCount = 115,
             branchCount = 9,
@@ -95,6 +104,12 @@ object LegacySquadTacticsEvidenceBoundary {
                 evidence.branchCount == target.branchCount
         } ?: false
 
+    fun surfaceEvidenceIsInternallyConsistent(target: SemanticTarget): Boolean =
+        when {
+            target.surfaceIsDynamicallyConstructed -> target.observedLayoutName == null
+            else -> !target.observedLayoutName.isNullOrBlank()
+        }
+
     fun isSemanticRuntimeBlocked(
         legacyClassName: String,
         methodSignature: String,
@@ -107,6 +122,9 @@ object LegacySquadTacticsEvidenceBoundary {
         isRecoveredPhase11Method(target.legacyClassName, target.methodSignature) &&
             recoveryMetadataMatchesInventory(target)
     }
+
+    fun allRequiredTargetsHaveConsistentSurfaceEvidence(): Boolean =
+        requiredSemanticTargets.all(::surfaceEvidenceIsInternallyConsistent)
 
     fun allRequiredTargetsAreSemanticallyCharacterized(): Boolean = requiredSemanticTargets.all { target ->
         target.characterizationState == CharacterizationState.SEMANTICS_CHARACTERIZED

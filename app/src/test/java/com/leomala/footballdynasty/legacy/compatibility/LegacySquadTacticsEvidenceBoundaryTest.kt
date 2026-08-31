@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -38,7 +39,33 @@ class LegacySquadTacticsEvidenceBoundaryTest {
         )
         assertTrue(targets.all(LegacySquadTacticsEvidenceBoundary::recoveryMetadataMatchesInventory))
         assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveRecoveredBodies())
+        assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveConsistentSurfaceEvidence())
         assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
+    }
+
+    @Test
+    fun activityMapSurfaceEvidenceIsLockedWithoutInventingTacticalSemantics() {
+        val lineup = requireNotNull(
+            LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscala", "gL()"),
+        )
+        val tactics = requireNotNull(
+            LegacySquadTacticsEvidenceBoundary.findTarget("DialogTatics", "onCreate(Bundle)"),
+        )
+        val saved = requireNotNull(
+            LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "sa()"),
+        )
+
+        assertEquals("lineup", lineup.surfaceRole)
+        assertEquals("activity_escala", lineup.observedLayoutName)
+        assertFalse(lineup.surfaceIsDynamicallyConstructed)
+
+        assertEquals("tactics", tactics.surfaceRole)
+        assertNull(tactics.observedLayoutName)
+        assertTrue(tactics.surfaceIsDynamicallyConstructed)
+
+        assertEquals("saved-tactics", saved.surfaceRole)
+        assertEquals("activity_savedtatics", saved.observedLayoutName)
+        assertFalse(saved.surfaceIsDynamicallyConstructed)
     }
 
     @Test
