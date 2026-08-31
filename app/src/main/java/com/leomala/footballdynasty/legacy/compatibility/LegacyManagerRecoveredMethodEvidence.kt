@@ -1,16 +1,6 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
-/**
- * Method-level evidence anchored to the official Phase 4R Brasfoot corpus.
- *
- * The class name is retained for compatibility with existing Marco B boundaries, but these entries
- * are no longer copied from the historical Phase 1 `SMALI_RECOVERY.md`. They are revalidated
- * against the official `com.brasfoot.v2020` corpus documented in
- * `docs/phase4r/MANAGER_METHOD_EVIDENCE.md`.
- *
- * Structural recovery is not a behavior map. A method still needs Java↔SMALI semantic
- * characterization before unproven gameplay may be migrated.
- */
+/** Method-level structural evidence revalidated against the official Phase 4R corpus. */
 data class LegacyRecoveredManagerMethod(
     val legacyClassName: String,
     val methodSignature: String,
@@ -24,119 +14,29 @@ object LegacyManagerRecoveredMethodEvidence {
     const val officialLegacyPackage: String = "com.brasfoot.v2020"
 
     val confirmed: List<LegacyRecoveredManagerMethod> = listOf(
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityEstadio",
-            methodSignature = "onCreate(Bundle)",
-            smaliFileName = "ActivityEstadio.smali",
-            instructionCount = 259,
-            branchCount = 11,
-            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "DialogTatics",
-            methodSignature = "onCreate(Bundle)",
-            smaliFileName = "DialogTatics.smali",
-            instructionCount = 171,
-            branchCount = 19,
-            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityEscalacao",
-            methodSignature = "B()",
-            smaliFileName = "ActivityEscalacao.smali",
-            instructionCount = 212,
-            branchCount = 22,
-            smaliMethodSignature = "y()V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityProcura",
-            methodSignature = "t(best.o,best.c0,int)",
-            smaliFileName = "ActivityProcura.smali",
-            instructionCount = 136,
-            branchCount = 14,
-            smaliMethodSignature = "t(Lbest/o;Lbest/c0;I)I",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityEscolhaTimes",
-            methodSignature = "i(String)",
-            smaliFileName = "ActivityEscolhaTimes.smali",
-            instructionCount = 38,
-            branchCount = 9,
-            smaliMethodSignature = "i(Ljava/lang/String;)Z",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "DialogIgrokInfo",
-            methodSignature = "onCreate(Bundle)",
-            smaliFileName = "DialogIgrokInfo.smali",
-            instructionCount = 530,
-            branchCount = 28,
-            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityTimes",
-            methodSignature = "s(best.o,best.c0,int)",
-            smaliFileName = "ActivityTimes.smali",
-            instructionCount = 133,
-            branchCount = 14,
-            smaliMethodSignature = "s(Lbest/o;Lbest/c0;I)I",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityMainTeam",
-            methodSignature = "onStart()",
-            smaliFileName = "ActivityMainTeam.smali",
-            instructionCount = 93,
-            branchCount = 15,
-            smaliMethodSignature = "onStart()V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivitySavedTatics",
-            methodSignature = "g()",
-            smaliFileName = "ActivitySavedTatics.smali",
-            instructionCount = 103,
-            branchCount = 8,
-            smaliMethodSignature = "g()V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "best.b",
-            methodSignature = "G(best.c0,best.f0,best.f0)",
-            smaliFileName = "best/b.smali",
-            instructionCount = 5,
-            branchCount = 2,
-            smaliMethodSignature = "G(Lbest/c0;Lbest/f0;Lbest/f0;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "best.f0",
-            methodSignature = "l(best.f0)",
-            smaliFileName = "best/f0.smali",
-            instructionCount = 100,
-            branchCount = 5,
-            smaliMethodSignature = "l(Lbest/f0;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "best.f0",
-            methodSignature = "e(best.c0)",
-            smaliFileName = "best/f0.smali",
-            instructionCount = 38,
-            branchCount = 3,
-            smaliMethodSignature = "e(Lbest/c0;)V",
-        ),
-        LegacyRecoveredManagerMethod(
-            legacyClassName = "best.c0",
-            methodSignature = "y()",
-            smaliFileName = "best/c0.smali",
-            instructionCount = 103,
-            branchCount = 22,
-            smaliMethodSignature = "y()Lbest/f0;",
-        ),
+        LegacyRecoveredManagerMethod("ActivityEstadio", "onCreate(Bundle)", "ActivityEstadio.smali", 259, 11, "onCreate(Landroid/os/Bundle;)V"),
+        LegacyRecoveredManagerMethod("DialogTatics", "onCreate(Bundle)", "DialogTatics.smali", 171, 19, "onCreate(Landroid/os/Bundle;)V"),
+        LegacyRecoveredManagerMethod("ActivityEscalacao", "B()", "ActivityEscalacao.smali", 212, 22, "y()V"),
+        LegacyRecoveredManagerMethod("ActivityProcura", "t(best.o,best.c0,int)", "ActivityProcura.smali", 136, 14, "t(Lbest/o;Lbest/c0;I)I"),
+        LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "i(String)", "ActivityEscolhaTimes.smali", 38, 9, "i(Ljava/lang/String;)Z"),
+        LegacyRecoveredManagerMethod("DialogIgrokInfo", "onCreate(Bundle)", "DialogIgrokInfo.smali", 530, 28, "onCreate(Landroid/os/Bundle;)V"),
+        LegacyRecoveredManagerMethod("ActivityTimes", "s(best.o,best.c0,int)", "ActivityTimes.smali", 133, 14, "s(Lbest/o;Lbest/c0;I)I"),
+        LegacyRecoveredManagerMethod("ActivityMainTeam", "onStart()", "ActivityMainTeam.smali", 93, 15, "onStart()V"),
+        LegacyRecoveredManagerMethod("ActivitySavedTatics", "g()", "ActivitySavedTatics.smali", 103, 8, "g()V"),
+        LegacyRecoveredManagerMethod("best.b", "G(best.c0,best.f0,best.f0)", "best/b.smali", 5, 2, "G(Lbest/c0;Lbest/f0;Lbest/f0;)V"),
+        LegacyRecoveredManagerMethod("best.f0", "l(best.f0)", "best/f0.smali", 100, 5, "l(Lbest/f0;)V"),
+        LegacyRecoveredManagerMethod("best.f0", "e(best.c0)", "best/f0.smali", 38, 3, "e(Lbest/c0;)V"),
+        LegacyRecoveredManagerMethod("best.c0", "y()", "best/c0.smali", 103, 22, "y()Lbest/f0;"),
+        LegacyRecoveredManagerMethod("best.b", "t(best.c0,int)", "best/b.smali", 120, 20, "t(Lbest/c0;I)Lbest/f0;"),
+        LegacyRecoveredManagerMethod("best.b", "u()", "best/b.smali", 30, 4, "u()Lbest/f0;"),
+        LegacyRecoveredManagerMethod("best.b", "b4(best.f0,best.f0)", "best/b.smali", 9, 0, "b4(Lbest/f0;Lbest/f0;)V"),
     )
 
     private val byExactMethod: Map<Pair<String, String>, LegacyRecoveredManagerMethod> =
         confirmed.associateBy { it.legacyClassName to it.methodSignature }
 
-    fun findExact(
-        legacyClassName: String,
-        methodSignature: String,
-    ): LegacyRecoveredManagerMethod? = byExactMethod[legacyClassName to methodSignature]
+    fun findExact(legacyClassName: String, methodSignature: String): LegacyRecoveredManagerMethod? =
+        byExactMethod[legacyClassName to methodSignature]
 
     fun forLegacyClass(legacyClassName: String): List<LegacyRecoveredManagerMethod> =
         confirmed.filter { it.legacyClassName == legacyClassName }

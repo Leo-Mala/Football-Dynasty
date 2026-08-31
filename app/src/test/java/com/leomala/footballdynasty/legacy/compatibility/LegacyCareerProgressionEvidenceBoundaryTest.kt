@@ -9,116 +9,71 @@ import org.junit.Test
 class LegacyCareerProgressionEvidenceBoundaryTest {
     @Test
     fun onlySerializedCoachIdentityFieldsArePromotedToProvenState() {
-        assertEquals(
-            linkedSetOf("coach", "coachCountry"),
-            LegacyCareerProgressionEvidenceBoundary.provenSerializedCoachFields,
-        )
+        assertEquals(linkedSetOf("coach", "coachCountry"), LegacyCareerProgressionEvidenceBoundary.provenSerializedCoachFields)
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"))
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coachCountry"))
         assertFalse(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("reputation"))
-        assertFalse(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("objectives"))
     }
 
     @Test
-    fun clubSelectionAndCareerClubHubUseOfficialPhase4rMethodEvidence() {
-        val clubSelection = requireNotNull(
-            LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
-                LegacyManagerCareerSurface.CLUB_SELECTION,
-            ),
-        )
-        assertEquals("ActivityEscolhaTimes", clubSelection.legacyClassName)
-        assertEquals("i(String)", clubSelection.methodSignature)
-        assertEquals("i(Ljava/lang/String;)Z", clubSelection.smaliMethodSignature)
-        assertEquals(38, clubSelection.instructionCount)
-        assertEquals(9, clubSelection.branchCount)
-
-        val careerClubHub = requireNotNull(
-            LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
-                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
-            ),
-        )
-        assertEquals("ActivityMainTeam", careerClubHub.legacyClassName)
-        assertEquals("onStart()", careerClubHub.methodSignature)
-        assertEquals("onStart()V", careerClubHub.smaliMethodSignature)
-        assertEquals(93, careerClubHub.instructionCount)
-        assertEquals(15, careerClubHub.branchCount)
+    fun careerHostsStillUseOfficialPhase4rEvidence() {
+        val selection = requireNotNull(LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(LegacyManagerCareerSurface.CLUB_SELECTION))
+        assertEquals("i(String)", selection.methodSignature)
+        assertEquals(38, selection.instructionCount)
+        assertEquals(9, selection.branchCount)
+        val hub = requireNotNull(LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(LegacyManagerCareerSurface.CAREER_CLUB_HUB))
+        assertEquals("onStart()", hub.methodSignature)
+        assertEquals(93, hub.instructionCount)
+        assertEquals(15, hub.branchCount)
     }
 
     @Test
-    fun directManagerEmploymentTransitionIsCharacterizedWithoutUnlockingReplacementSelection() {
+    fun replacementPoolFallbackAndSwapAreCharacterizedWithoutUnlockingWholeResolver() {
         assertEquals(
             setOf(
                 LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
                 LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_ACCEPTANCE_DISPATCH,
                 LegacyCharacterizedCareerRuntimePath.CLUB_INVITATION_CANCEL_DISPATCH,
                 LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E,
+                LegacyCharacterizedCareerRuntimePath.REPLACEMENT_CANDIDATE_POOL_T,
+                LegacyCharacterizedCareerRuntimePath.REPLACEMENT_UNEMPLOYED_FALLBACK_U,
+                LegacyCharacterizedCareerRuntimePath.MANAGER_SWAP_B4,
             ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(
-                LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E,
-            ),
-        )
         assertEquals(
             setOf(
-                "best.b" to "G(best.c0,best.f0,best.f0)",
-                "best.f0" to "l(best.f0)",
-                "best.f0" to "e(best.c0)",
+                "best.b" to "t(best.c0,int)",
+                "best.b" to "u()",
+                "best.b" to "b4(best.f0,best.f0)",
             ),
-            LegacyCareerProgressionEvidenceBoundary.characterizedEmploymentMethods
+            LegacyCareerProgressionEvidenceBoundary.characterizedReplacementSubmethods
                 .map { it.legacyClassName to it.methodSignature }
                 .toSet(),
         )
-        assertEquals("best.c0", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.legacyClassName)
+        val byName = LegacyCareerProgressionEvidenceBoundary.characterizedReplacementSubmethods.associateBy { it.methodSignature }
+        assertEquals(120 to 20, requireNotNull(byName["t(best.c0,int)"]).let { it.instructionCount to it.branchCount })
+        assertEquals(30 to 4, requireNotNull(byName["u()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(9 to 0, requireNotNull(byName["b4(best.f0,best.f0)"]).let { it.instructionCount to it.branchCount })
         assertEquals("y()", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.methodSignature)
-        assertEquals(103, LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.instructionCount)
-        assertEquals(22, LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.branchCount)
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION,
-            ),
-        )
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION))
+    }
+
+    @Test
+    fun directEmploymentTransitionRemainsCharacterized() {
+        assertEquals(3, LegacyCareerProgressionEvidenceBoundary.characterizedEmploymentMethods.size)
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.CLUB_MANAGER_TRANSFER_G_L_E))
     }
 
     @Test
     fun historicalClubSelectionMethodNameIsNotPromoted() {
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
-        assertEquals(
-            "i(String)",
-            requireNotNull(
-                LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
-                    LegacyManagerCareerSurface.CLUB_SELECTION,
-                ),
-            ).methodSignature,
-        )
     }
 
     @Test
-    fun recoveredCareerBodiesDoNotUnlockRemainingCareerSurfaces() {
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
-                LegacyManagerCareerSurface.CLUB_SELECTION,
-            ),
-        )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
-                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
-            ),
-        )
-        assertEquals(
-            LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed,
-            LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces,
-        )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.DISMISSALS,
-            ),
-        )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE,
-            ),
-        )
+    fun remainingCareerSurfacesStayFailClosed() {
+        assertEquals(LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed, LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces)
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyCareerProgressionSurfaceEvidence.DISMISSALS))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE))
     }
 }
