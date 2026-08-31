@@ -41,7 +41,7 @@ class LegacyReplacementManagerResolutionRuleTest {
         val incoming = Manager("in", human = false)
         val calls = mutableListOf<String>()
 
-        val result = LegacyReplacementManagerResolutionRule.resolve(
+        val result = LegacyReplacementManagerResolutionRule.resolve<Manager, Club>(
             currentManager = { calls += "y0"; outgoing },
             refreshCurrentManager = { calls += "k:${it.id}" },
             isHumanManager = { calls += "K:${it.id}"; it.human },
@@ -80,7 +80,7 @@ class LegacyReplacementManagerResolutionRuleTest {
         var rawLevel = 9
         val modes = mutableListOf<Int>()
 
-        val result = LegacyReplacementManagerResolutionRule.resolve(
+        val result = LegacyReplacementManagerResolutionRule.resolve<Manager, Club>(
             currentManager = { current },
             refreshCurrentManager = {},
             isHumanManager = { it.human },
@@ -111,7 +111,7 @@ class LegacyReplacementManagerResolutionRuleTest {
         val modes = mutableListOf<Int>()
         var uCalls = 0
 
-        val result = LegacyReplacementManagerResolutionRule.resolve(
+        val result = LegacyReplacementManagerResolutionRule.resolve<Manager, Club>(
             currentManager = { current },
             refreshCurrentManager = {},
             isHumanManager = { it.human },
@@ -142,7 +142,7 @@ class LegacyReplacementManagerResolutionRuleTest {
         val replacementClub = Club("other", replacement)
         val calls = mutableListOf<String>()
 
-        val result = LegacyReplacementManagerResolutionRule.resolve(
+        val result = LegacyReplacementManagerResolutionRule.resolve<Manager, Club>(
             currentManager = { calls += "y0"; current },
             refreshCurrentManager = { calls += "k" },
             isHumanManager = { it.human },
@@ -170,7 +170,7 @@ class LegacyReplacementManagerResolutionRuleTest {
     fun sameReferenceCandidateDoesNotTransferOrSwap() {
         val current = Manager("same", human = false)
         var transferCalls = 0
-        val result = LegacyReplacementManagerResolutionRule.resolve(
+        val result = LegacyReplacementManagerResolutionRule.resolve<Manager, Club>(
             currentManager = { current },
             refreshCurrentManager = {},
             isHumanManager = { it.human },
