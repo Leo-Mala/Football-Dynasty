@@ -37,12 +37,16 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun subroleCandidateSelectionAndSavedTacticCreationAreCharacterized() {
+    fun characterizedTacticsPathsIncludeSavedTacticCrudAndResultDispatch() {
         assertEquals(
             setOf(
                 LegacyCharacterizedTacticsRuntimePath.PLAYER_SUBROLE_DERIVATION_R1,
                 LegacyCharacterizedTacticsRuntimePath.ACTION_CANDIDATE_SELECTION_E,
                 LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_CREATE_G,
+                LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_LIST_REFRESH_E,
+                LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_DELETE_B,
+                LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_LOAD_F,
+                LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_RESULT_CONSUME,
             ),
             LegacySquadTacticsEvidenceBoundary.characterizedTacticsRuntimePaths,
         )
@@ -107,7 +111,6 @@ class LegacySquadTacticsEvidenceBoundaryTest {
         val saved = requireNotNull(
             LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "g()"),
         )
-
         assertEquals("activity_escala", lineup.observedLayoutName)
         assertEquals("y()V", lineup.smaliMethodSignature)
         assertNull(tactics.observedLayoutName)
@@ -120,7 +123,6 @@ class LegacySquadTacticsEvidenceBoundaryTest {
         val lineup = LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscalacao", "B()")
         val tactics = LegacySquadTacticsEvidenceBoundary.findTarget("DialogTatics", "onCreate(Bundle)")
         val saved = LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "g()")
-
         assertNotNull(lineup)
         assertNotNull(tactics)
         assertNotNull(saved)

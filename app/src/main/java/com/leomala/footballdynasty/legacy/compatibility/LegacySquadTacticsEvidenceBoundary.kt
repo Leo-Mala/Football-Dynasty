@@ -12,6 +12,10 @@ enum class LegacyCharacterizedTacticsRuntimePath {
     PLAYER_SUBROLE_DERIVATION_R1,
     ACTION_CANDIDATE_SELECTION_E,
     SAVED_TACTIC_CREATE_G,
+    SAVED_TACTIC_LIST_REFRESH_E,
+    SAVED_TACTIC_DELETE_B,
+    SAVED_TACTIC_LOAD_F,
+    SAVED_TACTIC_RESULT_CONSUME,
 }
 
 /**
@@ -42,22 +46,20 @@ object LegacySquadTacticsEvidenceBoundary {
         ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
     )
 
-    /** U/V/W are readable and verified in the current official corpus. */
     val characterizedLineupRuntimePaths: Set<LegacyCharacterizedLineupRuntimePath> = setOf(
         LegacyCharacterizedLineupRuntimePath.BENCH_REORDER_U,
         LegacyCharacterizedLineupRuntimePath.STARTER_BENCH_SWAP_V,
         LegacyCharacterizedLineupRuntimePath.STARTER_REORDER_W,
     )
 
-    /**
-     * These narrower paths are fully readable even though their surrounding Activities still have
-     * larger bodies awaiting characterization. `ActivitySavedTatics.g()` itself is fully recovered
-     * and characterized, so that exact target is no longer blocked.
-     */
     val characterizedTacticsRuntimePaths: Set<LegacyCharacterizedTacticsRuntimePath> = setOf(
         LegacyCharacterizedTacticsRuntimePath.PLAYER_SUBROLE_DERIVATION_R1,
         LegacyCharacterizedTacticsRuntimePath.ACTION_CANDIDATE_SELECTION_E,
         LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_CREATE_G,
+        LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_LIST_REFRESH_E,
+        LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_DELETE_B,
+        LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_LOAD_F,
+        LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_RESULT_CONSUME,
     )
 
     data class SemanticTarget(
