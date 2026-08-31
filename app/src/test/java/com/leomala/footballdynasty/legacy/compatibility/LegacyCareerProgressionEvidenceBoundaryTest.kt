@@ -62,6 +62,24 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
+    fun managerNameValidationIsCharacterizedWithoutUnlockingWholeClubSelection() {
+        assertEquals(
+            setOf(LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION),
+            LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
+        )
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(
+                LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
+            ),
+        )
+        assertTrue(
+            LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyCareerProgressionSurfaceEvidence.CLUB_SELECTION,
+            ),
+        )
+    }
+
+    @Test
     fun historicalClubSelectionMethodNameIsNotPromoted() {
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
         assertEquals(
@@ -75,7 +93,7 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun recoveredCareerBodiesDoNotUnlockCareerSemantics() {
+    fun recoveredCareerBodiesDoNotUnlockUncharacterizedCareerSemantics() {
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
                 LegacyManagerCareerSurface.CLUB_SELECTION,
@@ -90,9 +108,6 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
             LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed,
             LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces,
         )
-        LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed.forEach { surface ->
-            assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(surface))
-        }
     }
 
     @Test

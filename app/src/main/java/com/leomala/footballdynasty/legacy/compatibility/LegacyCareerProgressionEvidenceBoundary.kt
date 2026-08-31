@@ -2,6 +2,11 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import com.leomala.footballdynasty.domain.manager.LegacyCoachProfileProjection
 
+/** Narrow Phase 14 subpaths whose behavior is already characterized from the official corpus. */
+enum class LegacyCharacterizedCareerRuntimePath {
+    MANAGER_NAME_VALIDATION,
+}
+
 /**
  * Fail-closed boundary between proven coach identity and career behavior.
  */
@@ -51,6 +56,14 @@ object LegacyCareerProgressionEvidenceBoundary {
             },
         )
 
+    /**
+     * `ActivityEscolhaTimes.i(String)` is now semantically characterized as manager-name validation.
+     * This intentionally does not unlock the complete CLUB_SELECTION surface: club choice,
+     * randomized choice, career initialization and persistence are separate call paths.
+     */
+    val characterizedCareerRuntimePaths: Set<LegacyCharacterizedCareerRuntimePath> =
+        setOf(LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION)
+
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =
         LegacyManagerCareerSurfaces.confirmed - recoveredCareerHostMethods.keys
 
@@ -66,6 +79,9 @@ object LegacyCareerProgressionEvidenceBoundary {
 
     fun hasRecoveredCareerHostBody(surface: LegacyManagerCareerSurface): Boolean =
         surface in recoveredCareerHostMethods
+
+    fun isCharacterizedCareerRuntimePath(path: LegacyCharacterizedCareerRuntimePath): Boolean =
+        path in characterizedCareerRuntimePaths
 
     fun isReachableCareerSurfaceAwaitingRecoveredHostBody(
         surface: LegacyManagerCareerSurface,
