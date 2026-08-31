@@ -10,32 +10,86 @@ package com.leomala.footballdynasty.legacy.compatibility
  * control flow is semantically characterized.
  */
 object LegacyManagerInteractionEvidenceBoundary {
-    private val requiredRecoveredHostMethod: Map<LegacyManagerInteractionEvidence, Pair<String, String>> =
+    private data class ExpectedRecoveredHostMethod(
+        val legacyClassName: String,
+        val methodSignature: String,
+        val smaliFileName: String,
+        val instructionCount: Int,
+        val branchCount: Int,
+    )
+
+    private val requiredRecoveredHostMethod: Map<LegacyManagerInteractionEvidence, ExpectedRecoveredHostMethod> =
         mapOf(
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL to
-                ("ActivityProcura" to "a(a.p,a.ac,int)"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "ActivityProcura",
+                    methodSignature = "a(a.p,a.ac,int)",
+                    smaliFileName = "ActivityProcura.smali",
+                    instructionCount = 2,
+                    branchCount = 0,
+                ),
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT to
-                ("DialogIgrokInfo" to "onCreate(Bundle)"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "DialogIgrokInfo",
+                    methodSignature = "onCreate(Bundle)",
+                    smaliFileName = "DialogIgrokInfo.smali",
+                    instructionCount = 554,
+                    branchCount = 28,
+                ),
             LegacyManagerInteractionEvidence.PLAYER_SALE to
-                ("DialogIgrokInfo" to "onCreate(Bundle)"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "DialogIgrokInfo",
+                    methodSignature = "onCreate(Bundle)",
+                    smaliFileName = "DialogIgrokInfo.smali",
+                    instructionCount = 554,
+                    branchCount = 28,
+                ),
             LegacyManagerInteractionEvidence.PLAYER_RETIREMENT to
-                ("DialogIgrokInfo" to "onCreate(Bundle)"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "DialogIgrokInfo",
+                    methodSignature = "onCreate(Bundle)",
+                    smaliFileName = "DialogIgrokInfo.smali",
+                    instructionCount = 554,
+                    branchCount = 28,
+                ),
             LegacyManagerInteractionEvidence.TEAM_PROPOSAL to
-                ("ActivityTimes" to "a(a.p,a.ac,int)"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "ActivityTimes",
+                    methodSignature = "a(a.p,a.ac,int)",
+                    smaliFileName = "ActivityTimes.smali",
+                    instructionCount = 2,
+                    branchCount = 0,
+                ),
             LegacyManagerInteractionEvidence.CAREER_CLUB_OFFER to
-                ("ActivityMainTeam" to "onStart()"),
+                ExpectedRecoveredHostMethod(
+                    legacyClassName = "ActivityMainTeam",
+                    methodSignature = "onStart()",
+                    smaliFileName = "ActivityMainTeam.smali",
+                    instructionCount = 97,
+                    branchCount = 15,
+                ),
         )
 
     val recoveredHostMethods: Map<LegacyManagerInteractionEvidence, LegacyRecoveredManagerMethod> =
-        requiredRecoveredHostMethod.mapValues { (_, exactMethod) ->
-            requireNotNull(
+        requiredRecoveredHostMethod.mapValues { (interaction, expected) ->
+            val recovered = requireNotNull(
                 LegacyManagerRecoveredMethodEvidence.findExact(
-                    legacyClassName = exactMethod.first,
-                    methodSignature = exactMethod.second,
+                    legacyClassName = expected.legacyClassName,
+                    methodSignature = expected.methodSignature,
                 ),
             ) {
-                "Missing recovered SMALI host method for ${exactMethod.first}.${exactMethod.second}"
+                "Missing recovered SMALI host method for ${expected.legacyClassName}.${expected.methodSignature}"
             }
+            require(
+                recovered.smaliFileName == expected.smaliFileName &&
+                    recovered.instructionCount == expected.instructionCount &&
+                    recovered.branchCount == expected.branchCount,
+            ) {
+                "Recovered SMALI structure changed for $interaction: expected " +
+                    "${expected.smaliFileName} ${expected.instructionCount}/${expected.branchCount}, got " +
+                    "${recovered.smaliFileName} ${recovered.instructionCount}/${recovered.branchCount}"
+            }
+            recovered
         }
 
     val semanticRuntimeBlockedInteractions: Set<LegacyManagerInteractionEvidence> =
