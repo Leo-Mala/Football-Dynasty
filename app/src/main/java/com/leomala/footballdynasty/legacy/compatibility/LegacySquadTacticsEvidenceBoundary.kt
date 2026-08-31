@@ -14,6 +14,24 @@ object LegacySquadTacticsEvidenceBoundary {
         SEMANTICS_CHARACTERIZED,
     }
 
+    /**
+     * Phase 11 squad facts already supported by legacy model evidence and existing runtime
+     * projections. These are deliberately narrower than lineup/tactics semantics.
+     */
+    enum class ProvenSquadPrimitive {
+        SENIOR_ROSTER_MEMBERSHIP,
+        SOURCE_ORDER_PRESERVATION,
+        OPAQUE_POSITION_CODE,
+        OPAQUE_STATUS_CODE,
+    }
+
+    val provenSquadPrimitives: Set<ProvenSquadPrimitive> = setOf(
+        ProvenSquadPrimitive.SENIOR_ROSTER_MEMBERSHIP,
+        ProvenSquadPrimitive.SOURCE_ORDER_PRESERVATION,
+        ProvenSquadPrimitive.OPAQUE_POSITION_CODE,
+        ProvenSquadPrimitive.OPAQUE_STATUS_CODE,
+    )
+
     data class SemanticTarget(
         val legacyClassName: String,
         val methodSignature: String,
