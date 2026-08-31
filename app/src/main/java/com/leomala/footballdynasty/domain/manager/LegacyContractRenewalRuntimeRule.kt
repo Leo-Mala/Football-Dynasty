@@ -4,9 +4,10 @@ package com.leomala.footballdynasty.domain.manager
  * Runtime composition for the contract-renewal path characterized from
  * `DialogIgrokInfo.s/f/e/l`.
  *
- * This intentionally stops at the exact legacy calls that are proven. In
- * particular, `p.c(days, false)` is represented as an invocation instead of
- * guessing how that legacy method stores/calculates the resulting end date.
+ * Accepted renewals preserve the exact `p.c(days, false)` invocation. The previously fail-closed
+ * date-write body is now separately reconstructed by [LegacyContractDateWriteRule] from official
+ * Java + SMALI (`best.o.c(long, boolean)`, 25 instructions / 2 branches), so persistence layers can
+ * compose the invocation without guessing calendar semantics.
  */
 data class LegacyContractRenewalRuntimeState(
     val salaryCode: Int,
