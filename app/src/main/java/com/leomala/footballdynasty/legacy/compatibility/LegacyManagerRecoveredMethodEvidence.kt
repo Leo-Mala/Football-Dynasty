@@ -1,17 +1,15 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 /**
- * Method-level SMALI recovery evidence for the manager loop.
+ * Method-level evidence anchored to the official Phase 4R Brasfoot corpus.
  *
- * Every entry below is copied from the versioned `SMALI_RECOVERY.md` inventory,
- * where the corresponding decompiler stub was matched to its SMALI body and its
- * control-flow structure was verified. This is deliberately not a behavior map:
- * instruction and branch counts prove that a body was recovered, not what a
- * finance, transfer, tactic, lineup, stadium, or career rule means.
+ * The class name is retained for compatibility with existing Marco B boundaries, but these entries
+ * are no longer copied from the historical Phase 1 `SMALI_RECOVERY.md`. They are revalidated
+ * against the official `com.brasfoot.v2020` corpus documented in
+ * `docs/phase4r/MANAGER_METHOD_EVIDENCE.md`.
  *
- * A recovered method must still receive a semantic Java↔SMALI read plus
- * characterization tests before its behavior may be migrated into the modern
- * runtime.
+ * Structural recovery is not a behavior map. A method still needs Java↔SMALI semantic
+ * characterization before unproven gameplay may be migrated.
  */
 data class LegacyRecoveredManagerMethod(
     val legacyClassName: String,
@@ -19,72 +17,84 @@ data class LegacyRecoveredManagerMethod(
     val smaliFileName: String,
     val instructionCount: Int,
     val branchCount: Int,
+    val smaliMethodSignature: String = methodSignature,
 )
 
 object LegacyManagerRecoveredMethodEvidence {
+    const val officialLegacyPackage: String = "com.brasfoot.v2020"
+
     val confirmed: List<LegacyRecoveredManagerMethod> = listOf(
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivityEstadio",
             methodSignature = "onCreate(Bundle)",
             smaliFileName = "ActivityEstadio.smali",
-            instructionCount = 281,
-            branchCount = 12,
+            instructionCount = 259,
+            branchCount = 11,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "DialogTatics",
             methodSignature = "onCreate(Bundle)",
             smaliFileName = "DialogTatics.smali",
-            instructionCount = 172,
-            branchCount = 20,
+            instructionCount = 171,
+            branchCount = 19,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
         ),
         LegacyRecoveredManagerMethod(
-            legacyClassName = "ActivityEscala",
-            methodSignature = "gL()",
-            smaliFileName = "ActivityEscala.smali",
-            instructionCount = 223,
+            legacyClassName = "ActivityEscalacao",
+            methodSignature = "B()",
+            smaliFileName = "ActivityEscalacao.smali",
+            instructionCount = 212,
             branchCount = 22,
+            smaliMethodSignature = "y()V",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivityProcura",
-            methodSignature = "a(a.p,a.ac,int)",
+            methodSignature = "t(best.o,best.c0,int)",
             smaliFileName = "ActivityProcura.smali",
-            instructionCount = 2,
-            branchCount = 0,
+            instructionCount = 136,
+            branchCount = 14,
+            smaliMethodSignature = "t(Lbest/o;Lbest/c0;I)I",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivityEscolhaTimes",
-            methodSignature = "E(String)",
+            methodSignature = "i(String)",
             smaliFileName = "ActivityEscolhaTimes.smali",
             instructionCount = 38,
             branchCount = 9,
+            smaliMethodSignature = "i(Ljava/lang/String;)Z",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "DialogIgrokInfo",
             methodSignature = "onCreate(Bundle)",
             smaliFileName = "DialogIgrokInfo.smali",
-            instructionCount = 554,
+            instructionCount = 530,
             branchCount = 28,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivityTimes",
-            methodSignature = "a(a.p,a.ac,int)",
+            methodSignature = "s(best.o,best.c0,int)",
             smaliFileName = "ActivityTimes.smali",
-            instructionCount = 2,
-            branchCount = 0,
+            instructionCount = 133,
+            branchCount = 14,
+            smaliMethodSignature = "s(Lbest/o;Lbest/c0;I)I",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivityMainTeam",
             methodSignature = "onStart()",
             smaliFileName = "ActivityMainTeam.smali",
-            instructionCount = 97,
+            instructionCount = 93,
             branchCount = 15,
+            smaliMethodSignature = "onStart()V",
         ),
         LegacyRecoveredManagerMethod(
             legacyClassName = "ActivitySavedTatics",
-            methodSignature = "sa()",
+            methodSignature = "g()",
             smaliFileName = "ActivitySavedTatics.smali",
-            instructionCount = 115,
-            branchCount = 9,
+            instructionCount = 103,
+            branchCount = 8,
+            smaliMethodSignature = "g()V",
         ),
     )
 

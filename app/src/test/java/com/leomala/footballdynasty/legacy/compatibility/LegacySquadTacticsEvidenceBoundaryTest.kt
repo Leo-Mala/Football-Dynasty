@@ -25,38 +25,19 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun opaqueSideAndTraitEvidenceDoesNotUnlockLineupOrTactics() {
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives.contains(
-                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_SIDE_CODE,
-            ),
-        )
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.provenSquadPrimitives.contains(
-                LegacySquadTacticsEvidenceBoundary.ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
-            ),
-        )
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
-                "ActivityEscala",
-                "gL()",
-            ),
-        )
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
-                "DialogTatics",
-                "onCreate(Bundle)",
-            ),
-        )
+    fun historicalLineupNamesAreRejectedByTheOfficialBoundary() {
+        assertNull(LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscala", "gL()"))
+        assertFalse(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscala", "gL()"))
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscalacao", "B()"))
     }
 
     @Test
-    fun onlyRecoveredLineupAndTacticsMethodsEnterThePhase11Boundary() {
+    fun onlyCurrentOfficialLineupAndTacticsMethodsEnterThePhase11Boundary() {
         assertEquals(
             setOf(
                 "DialogTatics" to "onCreate(Bundle)",
-                "ActivityEscala" to "gL()",
-                "ActivitySavedTatics" to "sa()",
+                "ActivityEscalacao" to "B()",
+                "ActivitySavedTatics" to "g()",
             ),
             LegacySquadTacticsEvidenceBoundary.recoveredMethodsAwaitingSemanticCharacterization
                 .map { evidence -> evidence.legacyClassName to evidence.methodSignature }
@@ -65,12 +46,12 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun semanticTargetsCarryOnlyRecoveredStructuralEvidence() {
+    fun semanticTargetsCarryCurrentOfficialStructuralEvidence() {
         val targets = LegacySquadTacticsEvidenceBoundary.requiredSemanticTargets
 
         assertEquals(3, targets.size)
         assertEquals(
-            listOf("ActivityEscala", "DialogTatics", "ActivitySavedTatics"),
+            listOf("ActivityEscalacao", "DialogTatics", "ActivitySavedTatics"),
             targets.map { it.legacyClassName },
         )
         assertTrue(
@@ -86,20 +67,21 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun activityMapSurfaceEvidenceIsLockedWithoutInventingTacticalSemantics() {
+    fun officialSurfaceEvidenceIsLockedWithoutInventingTacticalSemantics() {
         val lineup = requireNotNull(
-            LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscala", "gL()"),
+            LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscalacao", "B()"),
         )
         val tactics = requireNotNull(
             LegacySquadTacticsEvidenceBoundary.findTarget("DialogTatics", "onCreate(Bundle)"),
         )
         val saved = requireNotNull(
-            LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "sa()"),
+            LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "g()"),
         )
 
         assertEquals("lineup", lineup.surfaceRole)
         assertEquals("activity_escala", lineup.observedLayoutName)
         assertFalse(lineup.surfaceIsDynamicallyConstructed)
+        assertEquals("y()V", lineup.smaliMethodSignature)
 
         assertEquals("tactics", tactics.surfaceRole)
         assertNull(tactics.observedLayoutName)
@@ -111,48 +93,34 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun recoveredMetadataMatchesTheVersionedSmaliInventoryExactly() {
-        val lineup = LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscala", "gL()")
+    fun recoveredMetadataMatchesTheOfficialPhase4rCorpusExactly() {
+        val lineup = LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscalacao", "B()")
         val tactics = LegacySquadTacticsEvidenceBoundary.findTarget("DialogTatics", "onCreate(Bundle)")
-        val saved = LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "sa()")
+        val saved = LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "g()")
 
         assertNotNull(lineup)
         assertNotNull(tactics)
         assertNotNull(saved)
 
-        assertEquals("ActivityEscala.smali", lineup!!.smaliFileName)
-        assertEquals(223, lineup.instructionCount)
+        assertEquals("ActivityEscalacao.smali", lineup!!.smaliFileName)
+        assertEquals("y()V", lineup.smaliMethodSignature)
+        assertEquals(212, lineup.instructionCount)
         assertEquals(22, lineup.branchCount)
 
         assertEquals("DialogTatics.smali", tactics!!.smaliFileName)
-        assertEquals(172, tactics.instructionCount)
-        assertEquals(20, tactics.branchCount)
+        assertEquals(171, tactics.instructionCount)
+        assertEquals(19, tactics.branchCount)
 
         assertEquals("ActivitySavedTatics.smali", saved!!.smaliFileName)
-        assertEquals(115, saved.instructionCount)
-        assertEquals(9, saved.branchCount)
+        assertEquals(103, saved.instructionCount)
+        assertEquals(8, saved.branchCount)
     }
 
     @Test
     fun recoveredBodiesStayBlockedUntilGameplaySemanticsAreCharacterized() {
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
-                "DialogTatics",
-                "onCreate(Bundle)",
-            ),
-        )
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
-                "ActivityEscala",
-                "gL()",
-            ),
-        )
-        assertTrue(
-            LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked(
-                "ActivitySavedTatics",
-                "sa()",
-            ),
-        )
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("DialogTatics", "onCreate(Bundle)"))
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscalacao", "B()"))
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivitySavedTatics", "g()"))
     }
 
     @Test

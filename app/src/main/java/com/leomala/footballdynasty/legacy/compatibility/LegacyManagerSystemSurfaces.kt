@@ -1,17 +1,17 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 /**
- * Exact manager-loop surfaces proven by the versioned legacy system map.
+ * Exact manager-loop surfaces proven by the official Phase 4R corpus.
  *
- * This catalog records reachability/provenance only. It deliberately does not
- * infer lineup eligibility, formation semantics, transfer rules, contract rules,
- * finance formulas, stadium prices, navigation order, or any other gameplay
- * behavior that still requires method-level Java/SMALI evidence.
+ * This catalog records reachability/provenance only. It deliberately does not infer lineup
+ * eligibility, formation semantics, transfer rules, contract rules, finance formulas, stadium
+ * prices, navigation order, or any other gameplay behavior that still requires Java/SMALI
+ * evidence.
  */
 enum class LegacyManagerSystemSurface(
     val legacyClassName: String,
 ) {
-    LINEUP("ActivityEscala"),
+    LINEUP("ActivityEscalacao"),
     TACTICS("DialogTatics"),
     SAVED_TACTICS("ActivitySavedTatics"),
     PLAYER_SEARCH("ActivityProcura"),

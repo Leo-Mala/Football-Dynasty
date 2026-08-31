@@ -1,31 +1,21 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
-/**
- * Semantically characterized subpaths hosted by the legacy player-info dialog.
- *
- * These are narrower than [LegacyManagerInteractionEvidence]: they identify recovered control
- * flows that already have executable modern rules even when the activity/layout catalog groups
- * several actions under the same host dialog.
- */
+/** Semantically characterized subpaths hosted by the legacy player-info dialog. */
 enum class LegacyCharacterizedPlayerDialogRuntimePath {
     CONTRACT_RENEWAL,
     LOAN_MANAGEMENT,
 }
 
 /**
- * Fail-closed bridge between manager interactions proven reachable in the legacy UI and
- * recovered SMALI host methods.
- *
- * A matching recovered method proves that executable legacy code exists behind the host
- * Activity, but does not by itself prove proposal validation, retirement, sale, contract,
- * invitation, or club-switch semantics. Runtime migration remains blocked until the relevant
- * control flow is semantically characterized.
+ * Fail-closed bridge between reachable manager interactions and current official Phase 4R host
+ * methods. Historical Phase 1 method aliases are deliberately rejected.
  */
 object LegacyManagerInteractionEvidenceBoundary {
     private data class ExpectedRecoveredHostMethod(
         val legacyClassName: String,
         val methodSignature: String,
         val smaliFileName: String,
+        val smaliMethodSignature: String,
         val instructionCount: Int,
         val branchCount: Int,
     )
@@ -35,17 +25,19 @@ object LegacyManagerInteractionEvidenceBoundary {
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL to
                 ExpectedRecoveredHostMethod(
                     legacyClassName = "ActivityProcura",
-                    methodSignature = "a(a.p,a.ac,int)",
+                    methodSignature = "t(best.o,best.c0,int)",
                     smaliFileName = "ActivityProcura.smali",
-                    instructionCount = 2,
-                    branchCount = 0,
+                    smaliMethodSignature = "t(Lbest/o;Lbest/c0;I)I",
+                    instructionCount = 136,
+                    branchCount = 14,
                 ),
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT to
                 ExpectedRecoveredHostMethod(
                     legacyClassName = "DialogIgrokInfo",
                     methodSignature = "onCreate(Bundle)",
                     smaliFileName = "DialogIgrokInfo.smali",
-                    instructionCount = 554,
+                    smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+                    instructionCount = 530,
                     branchCount = 28,
                 ),
             LegacyManagerInteractionEvidence.PLAYER_SALE to
@@ -53,7 +45,8 @@ object LegacyManagerInteractionEvidenceBoundary {
                     legacyClassName = "DialogIgrokInfo",
                     methodSignature = "onCreate(Bundle)",
                     smaliFileName = "DialogIgrokInfo.smali",
-                    instructionCount = 554,
+                    smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+                    instructionCount = 530,
                     branchCount = 28,
                 ),
             LegacyManagerInteractionEvidence.PLAYER_RETIREMENT to
@@ -61,23 +54,26 @@ object LegacyManagerInteractionEvidenceBoundary {
                     legacyClassName = "DialogIgrokInfo",
                     methodSignature = "onCreate(Bundle)",
                     smaliFileName = "DialogIgrokInfo.smali",
-                    instructionCount = 554,
+                    smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+                    instructionCount = 530,
                     branchCount = 28,
                 ),
             LegacyManagerInteractionEvidence.TEAM_PROPOSAL to
                 ExpectedRecoveredHostMethod(
                     legacyClassName = "ActivityTimes",
-                    methodSignature = "a(a.p,a.ac,int)",
+                    methodSignature = "s(best.o,best.c0,int)",
                     smaliFileName = "ActivityTimes.smali",
-                    instructionCount = 2,
-                    branchCount = 0,
+                    smaliMethodSignature = "s(Lbest/o;Lbest/c0;I)I",
+                    instructionCount = 133,
+                    branchCount = 14,
                 ),
             LegacyManagerInteractionEvidence.CAREER_CLUB_OFFER to
                 ExpectedRecoveredHostMethod(
                     legacyClassName = "ActivityMainTeam",
                     methodSignature = "onStart()",
                     smaliFileName = "ActivityMainTeam.smali",
-                    instructionCount = 97,
+                    smaliMethodSignature = "onStart()V",
+                    instructionCount = 93,
                     branchCount = 15,
                 ),
         )
@@ -90,46 +86,25 @@ object LegacyManagerInteractionEvidenceBoundary {
                     methodSignature = expected.methodSignature,
                 ),
             ) {
-                "Missing recovered SMALI host method for ${expected.legacyClassName}.${expected.methodSignature}"
+                "Missing official SMALI host method for ${expected.legacyClassName}.${expected.methodSignature}"
             }
             require(
                 recovered.smaliFileName == expected.smaliFileName &&
+                    recovered.smaliMethodSignature == expected.smaliMethodSignature &&
                     recovered.instructionCount == expected.instructionCount &&
                     recovered.branchCount == expected.branchCount,
             ) {
-                "Recovered SMALI structure changed for $interaction: expected " +
-                    "${expected.smaliFileName} ${expected.instructionCount}/${expected.branchCount}, got " +
-                    "${recovered.smaliFileName} ${recovered.instructionCount}/${recovered.branchCount}"
+                "Official SMALI structure changed for $interaction"
             }
             recovered
         }
 
-    /**
-     * Interactions whose behavioral dispatch has progressed beyond reachability-only evidence.
-     *
-     * `PLAYER_SEARCH_PROPOSAL` is backed by the characterized `ActivityProcura.u(int)` action
-     * dispatch and the executable purchase/loan composition in `LegacySearchTransferRuntimeRule`.
-     * `PLAYER_CONTRACT` is backed by the characterized `DialogIgrokInfo.s/f/e/l` renewal path and
-     * `LegacyContractRenewalRuntimeRule`. The unresolved internal storage behavior of
-     * `p.c(days, false)` remains represented as an invocation, so this unlocks only the proven
-     * renewal interaction and does not guess contract-end persistence semantics.
-     *
-     * No other dialog hosted by the same or another recovered Activity is unlocked here.
-     */
     val semanticRuntimeCharacterizedInteractions: Set<LegacyManagerInteractionEvidence> =
         setOf(
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
         )
 
-    /**
-     * Narrow player-dialog subpaths whose Java↔SMALI behavior has already been characterized and
-     * wired to executable modern rules.
-     *
-     * Loan management is backed by `DialogIgrokInfo.q()/i()/h()` plus
-     * `LegacyLoanManagementRuntimeRule`. This does not unlock `PLAYER_SALE` or
-     * `PLAYER_RETIREMENT`, which share the same host dialog but remain semantically unproven.
-     */
     val characterizedPlayerDialogRuntimePaths: Set<LegacyCharacterizedPlayerDialogRuntimePath> =
         setOf(
             LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,

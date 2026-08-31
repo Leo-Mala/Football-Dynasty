@@ -1,12 +1,8 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 /**
- * Fail-closed Phase 11 boundary for lineup/tactics methods whose SMALI bodies are recovered
- * but whose gameplay semantics have not yet been characterized Java↔SMALI.
- *
- * Recovery proves that a legacy method body exists and is reachable evidence. It does not prove
- * formation, eligibility, injury/suspension, automatic-lineup or tactical mutation rules. Those
- * semantics must remain blocked until a method-level read is backed by characterization tests.
+ * Fail-closed Phase 11 boundary for lineup/tactics methods whose current official SMALI bodies are
+ * recovered but whose gameplay semantics have not yet been fully characterized Java↔SMALI.
  */
 object LegacySquadTacticsEvidenceBoundary {
     enum class CharacterizationState {
@@ -14,15 +10,6 @@ object LegacySquadTacticsEvidenceBoundary {
         SEMANTICS_CHARACTERIZED,
     }
 
-    /**
-     * Phase 11 squad facts already supported by legacy model evidence and existing runtime
-     * projections. These are deliberately narrower than lineup/tactics semantics.
-     *
-     * Position, status, side and trait fields are intentionally opaque here. Their raw presence is
-     * proven and preserved, but no football meaning (eligibility, role, preferred side, injury,
-     * suspension, lineup priority or tactical effect) is assigned until the Java↔SMALI call path
-     * proves it.
-     */
     enum class ProvenSquadPrimitive {
         SENIOR_ROSTER_MEMBERSHIP,
         SOURCE_ORDER_PRESERVATION,
@@ -48,29 +35,27 @@ object LegacySquadTacticsEvidenceBoundary {
         val observedLayoutName: String?,
         val surfaceIsDynamicallyConstructed: Boolean,
         val smaliFileName: String,
+        val smaliMethodSignature: String,
         val instructionCount: Int,
         val branchCount: Int,
         val characterizationState: CharacterizationState,
     )
 
     /**
-     * Exact Phase 11 targets jointly proven by `ACTIVITY_MAP.md` (surface exists) and
-     * `SMALI_RECOVERY.md` (method body recovered). Layout metadata is copied from the versioned
-     * activity inventory; a null layout is allowed only where that inventory explicitly records
-     * dynamic construction. None of this surface evidence assigns gameplay meaning.
-     *
-     * No target may leave RECOVERED_BODY_ONLY until the actual Java↔SMALI call path has been read
-     * semantically and its claimed behavior has characterization tests.
+     * Exact Phase 11 targets revalidated against the official `com.brasfoot.v2020` corpus.
+     * `ActivityEscalacao.B()` is the Java/decompiler-facing method; jadx records its bytecode name
+     * as `y`, which is why the matching SMALI signature is `y()V`.
      */
     val requiredSemanticTargets: List<SemanticTarget> = listOf(
         SemanticTarget(
-            legacyClassName = "ActivityEscala",
-            methodSignature = "gL()",
+            legacyClassName = "ActivityEscalacao",
+            methodSignature = "B()",
             surfaceRole = "lineup",
             observedLayoutName = "activity_escala",
             surfaceIsDynamicallyConstructed = false,
-            smaliFileName = "ActivityEscala.smali",
-            instructionCount = 223,
+            smaliFileName = "ActivityEscalacao.smali",
+            smaliMethodSignature = "y()V",
+            instructionCount = 212,
             branchCount = 22,
             characterizationState = CharacterizationState.RECOVERED_BODY_ONLY,
         ),
@@ -81,19 +66,21 @@ object LegacySquadTacticsEvidenceBoundary {
             observedLayoutName = null,
             surfaceIsDynamicallyConstructed = true,
             smaliFileName = "DialogTatics.smali",
-            instructionCount = 172,
-            branchCount = 20,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+            instructionCount = 171,
+            branchCount = 19,
             characterizationState = CharacterizationState.RECOVERED_BODY_ONLY,
         ),
         SemanticTarget(
             legacyClassName = "ActivitySavedTatics",
-            methodSignature = "sa()",
+            methodSignature = "g()",
             surfaceRole = "saved-tactics",
             observedLayoutName = "activity_savedtatics",
             surfaceIsDynamicallyConstructed = false,
             smaliFileName = "ActivitySavedTatics.smali",
-            instructionCount = 115,
-            branchCount = 9,
+            smaliMethodSignature = "g()V",
+            instructionCount = 103,
+            branchCount = 8,
             characterizationState = CharacterizationState.RECOVERED_BODY_ONLY,
         ),
     )
@@ -127,6 +114,7 @@ object LegacySquadTacticsEvidenceBoundary {
             target.methodSignature,
         )?.let { evidence ->
             evidence.smaliFileName == target.smaliFileName &&
+                evidence.smaliMethodSignature == target.smaliMethodSignature &&
                 evidence.instructionCount == target.instructionCount &&
                 evidence.branchCount == target.branchCount
         } ?: false

@@ -7,48 +7,53 @@ import org.junit.Test
 
 class LegacyManagerRecoveredMethodEvidenceTest {
     @Test
-    fun matchesVersionedManagerSmaliRecoveryInventoryExactly() {
+    fun matchesOfficialPhase4rManagerMethodInventoryExactly() {
+        assertEquals("com.brasfoot.v2020", LegacyManagerRecoveredMethodEvidence.officialLegacyPackage)
         assertEquals(
             listOf(
-                LegacyRecoveredManagerMethod("ActivityEstadio", "onCreate(Bundle)", "ActivityEstadio.smali", 281, 12),
-                LegacyRecoveredManagerMethod("DialogTatics", "onCreate(Bundle)", "DialogTatics.smali", 172, 20),
-                LegacyRecoveredManagerMethod("ActivityEscala", "gL()", "ActivityEscala.smali", 223, 22),
-                LegacyRecoveredManagerMethod("ActivityProcura", "a(a.p,a.ac,int)", "ActivityProcura.smali", 2, 0),
-                LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "E(String)", "ActivityEscolhaTimes.smali", 38, 9),
-                LegacyRecoveredManagerMethod("DialogIgrokInfo", "onCreate(Bundle)", "DialogIgrokInfo.smali", 554, 28),
-                LegacyRecoveredManagerMethod("ActivityTimes", "a(a.p,a.ac,int)", "ActivityTimes.smali", 2, 0),
-                LegacyRecoveredManagerMethod("ActivityMainTeam", "onStart()", "ActivityMainTeam.smali", 97, 15),
-                LegacyRecoveredManagerMethod("ActivitySavedTatics", "sa()", "ActivitySavedTatics.smali", 115, 9),
+                LegacyRecoveredManagerMethod("ActivityEstadio", "onCreate(Bundle)", "ActivityEstadio.smali", 259, 11, "onCreate(Landroid/os/Bundle;)V"),
+                LegacyRecoveredManagerMethod("DialogTatics", "onCreate(Bundle)", "DialogTatics.smali", 171, 19, "onCreate(Landroid/os/Bundle;)V"),
+                LegacyRecoveredManagerMethod("ActivityEscalacao", "B()", "ActivityEscalacao.smali", 212, 22, "y()V"),
+                LegacyRecoveredManagerMethod("ActivityProcura", "t(best.o,best.c0,int)", "ActivityProcura.smali", 136, 14, "t(Lbest/o;Lbest/c0;I)I"),
+                LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "i(String)", "ActivityEscolhaTimes.smali", 38, 9, "i(Ljava/lang/String;)Z"),
+                LegacyRecoveredManagerMethod("DialogIgrokInfo", "onCreate(Bundle)", "DialogIgrokInfo.smali", 530, 28, "onCreate(Landroid/os/Bundle;)V"),
+                LegacyRecoveredManagerMethod("ActivityTimes", "s(best.o,best.c0,int)", "ActivityTimes.smali", 133, 14, "s(Lbest/o;Lbest/c0;I)I"),
+                LegacyRecoveredManagerMethod("ActivityMainTeam", "onStart()", "ActivityMainTeam.smali", 93, 15, "onStart()V"),
+                LegacyRecoveredManagerMethod("ActivitySavedTatics", "g()", "ActivitySavedTatics.smali", 103, 8, "g()V"),
             ),
             LegacyManagerRecoveredMethodEvidence.confirmed,
         )
     }
 
     @Test
-    fun resolvesOnlyExactRecoveredMethodSignatures() {
+    fun resolvesOnlyCurrentOfficialCorpusSignatures() {
         assertEquals(
-            LegacyRecoveredManagerMethod("ActivityEscala", "gL()", "ActivityEscala.smali", 223, 22),
-            LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gL()"),
+            "y()V",
+            requireNotNull(
+                LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscalacao", "B()"),
+            ).smaliMethodSignature,
         )
         assertEquals(
-            LegacyRecoveredManagerMethod("ActivityEscolhaTimes", "E(String)", "ActivityEscolhaTimes.smali", 38, 9),
-            LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"),
+            "i(Ljava/lang/String;)Z",
+            requireNotNull(
+                LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "i(String)"),
+            ).smaliMethodSignature,
         )
-        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gl()"))
-        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "onCreate(Bundle)"))
-        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "e(String)"))
+        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gL()"))
+        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
+        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivitySavedTatics", "sa()"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityTactics", "onCreate(Bundle)"))
     }
 
     @Test
-    fun retainsRecoveredStructureWithoutAssigningBehavior() {
+    fun retainsCurrentRecoveredStructureWithoutAssigningBehavior() {
         val playerInfo = LegacyManagerRecoveredMethodEvidence.findExact(
             "DialogIgrokInfo",
             "onCreate(Bundle)",
         )
         requireNotNull(playerInfo)
 
-        assertEquals(554, playerInfo.instructionCount)
+        assertEquals(530, playerInfo.instructionCount)
         assertEquals(28, playerInfo.branchCount)
         assertTrue(playerInfo.instructionCount > playerInfo.branchCount)
     }
@@ -59,10 +64,11 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             listOf(
                 LegacyRecoveredManagerMethod(
                     "ActivityProcura",
-                    "a(a.p,a.ac,int)",
+                    "t(best.o,best.c0,int)",
                     "ActivityProcura.smali",
-                    2,
-                    0,
+                    136,
+                    14,
+                    "t(Lbest/o;Lbest/c0;I)I",
                 ),
             ),
             LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivityProcura"),

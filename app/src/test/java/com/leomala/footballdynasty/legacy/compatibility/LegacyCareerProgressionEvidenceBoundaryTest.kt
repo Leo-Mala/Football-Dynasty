@@ -13,37 +13,24 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
             linkedSetOf("coach", "coachCountry"),
             LegacyCareerProgressionEvidenceBoundary.provenSerializedCoachFields,
         )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"),
-        )
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coachCountry"),
-        )
-        assertFalse(
-            LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("reputation"),
-        )
-        assertFalse(
-            LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("objectives"),
-        )
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coachCountry"))
+        assertFalse(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("reputation"))
+        assertFalse(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("objectives"))
     }
 
     @Test
-    fun clubSelectionAndCareerClubHubHaveRecoveredMethodLevelEvidence() {
+    fun clubSelectionAndCareerClubHubUseOfficialPhase4rMethodEvidence() {
         val clubSelection = requireNotNull(
             LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
                 LegacyManagerCareerSurface.CLUB_SELECTION,
             ),
         )
         assertEquals("ActivityEscolhaTimes", clubSelection.legacyClassName)
-        assertEquals("E(String)", clubSelection.methodSignature)
-        assertEquals("ActivityEscolhaTimes.smali", clubSelection.smaliFileName)
+        assertEquals("i(String)", clubSelection.methodSignature)
+        assertEquals("i(Ljava/lang/String;)Z", clubSelection.smaliMethodSignature)
         assertEquals(38, clubSelection.instructionCount)
         assertEquals(9, clubSelection.branchCount)
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
-                LegacyManagerCareerSurface.CLUB_SELECTION,
-            ),
-        )
 
         val careerClubHub = requireNotNull(
             LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
@@ -52,14 +39,9 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
         )
         assertEquals("ActivityMainTeam", careerClubHub.legacyClassName)
         assertEquals("onStart()", careerClubHub.methodSignature)
-        assertEquals("ActivityMainTeam.smali", careerClubHub.smaliFileName)
-        assertEquals(97, careerClubHub.instructionCount)
+        assertEquals("onStart()V", careerClubHub.smaliMethodSignature)
+        assertEquals(93, careerClubHub.instructionCount)
         assertEquals(15, careerClubHub.branchCount)
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.hasRecoveredCareerHostBody(
-                LegacyManagerCareerSurface.CAREER_CLUB_HUB,
-            ),
-        )
 
         val recoveredSurfaces = setOf(
             LegacyManagerCareerSurface.CLUB_SELECTION,
@@ -75,10 +57,21 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
                 LegacyCareerProgressionEvidenceBoundary
                     .isReachableCareerSurfaceAwaitingRecoveredHostBody(surface),
             )
-            assertNull(
-                LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(surface),
-            )
+            assertNull(LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(surface))
         }
+    }
+
+    @Test
+    fun historicalClubSelectionMethodNameIsNotPromoted() {
+        assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
+        assertEquals(
+            "i(String)",
+            requireNotNull(
+                LegacyCareerProgressionEvidenceBoundary.recoveredCareerHostMethodFor(
+                    LegacyManagerCareerSurface.CLUB_SELECTION,
+                ),
+            ).methodSignature,
+        )
     }
 
     @Test
@@ -98,17 +91,13 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
             LegacyCareerProgressionEvidenceBoundary.semanticRuntimeBlockedSurfaces,
         )
         LegacyCareerProgressionSurfaceEvidenceCatalog.confirmed.forEach { surface ->
-            assertTrue(
-                LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(surface),
-            )
+            assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(surface))
         }
     }
 
     @Test
     fun provenCoachIdentityDoesNotUnlockCoachProfileCareerMutations() {
-        assertTrue(
-            LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"),
-        )
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isProvenSerializedCoachField("coach"))
         assertTrue(
             LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(
                 LegacyCareerProgressionSurfaceEvidence.COACH_PROFILE,

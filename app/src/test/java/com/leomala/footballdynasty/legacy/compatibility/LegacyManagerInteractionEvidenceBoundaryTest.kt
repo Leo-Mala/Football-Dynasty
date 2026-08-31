@@ -7,7 +7,7 @@ import org.junit.Test
 
 class LegacyManagerInteractionEvidenceBoundaryTest {
     @Test
-    fun everyReachableManagerInteractionHasItsRecoveredHostMethodBound() {
+    fun everyReachableManagerInteractionHasItsCurrentOfficialHostMethodBound() {
         assertEquals(
             LegacyManagerInteractionEvidenceCatalog.confirmed,
             LegacyManagerInteractionEvidenceBoundary.recoveredHostMethods.keys,
@@ -27,31 +27,17 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
             LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
         )
-        assertEquals(
-            characterized,
-            LegacyManagerInteractionEvidenceBoundary.semanticRuntimeCharacterizedInteractions,
-        )
+        assertEquals(characterized, LegacyManagerInteractionEvidenceBoundary.semanticRuntimeCharacterizedInteractions)
         characterized.forEach { interaction ->
-            assertTrue(
-                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction),
-            )
-            assertFalse(
-                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction),
-            )
+            assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction))
+            assertFalse(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction))
         }
 
         val stillBlocked = LegacyManagerInteractionEvidenceCatalog.confirmed - characterized
-        assertEquals(
-            stillBlocked,
-            LegacyManagerInteractionEvidenceBoundary.semanticRuntimeBlockedInteractions,
-        )
+        assertEquals(stillBlocked, LegacyManagerInteractionEvidenceBoundary.semanticRuntimeBlockedInteractions)
         stillBlocked.forEach { interaction ->
-            assertFalse(
-                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction),
-            )
-            assertTrue(
-                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction),
-            )
+            assertFalse(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction))
+            assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction))
         }
     }
 
@@ -61,70 +47,56 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
             LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,
             LegacyCharacterizedPlayerDialogRuntimePath.LOAN_MANAGEMENT,
         )
-        assertEquals(
-            characterizedPaths,
-            LegacyManagerInteractionEvidenceBoundary.characterizedPlayerDialogRuntimePaths,
-        )
+        assertEquals(characterizedPaths, LegacyManagerInteractionEvidenceBoundary.characterizedPlayerDialogRuntimePaths)
         characterizedPaths.forEach { path ->
-            assertTrue(
-                LegacyManagerInteractionEvidenceBoundary.isCharacterizedPlayerDialogRuntimePath(path),
-            )
+            assertTrue(LegacyManagerInteractionEvidenceBoundary.isCharacterizedPlayerDialogRuntimePath(path))
         }
-
-        assertTrue(
-            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyManagerInteractionEvidence.PLAYER_SALE,
-            ),
-        )
-        assertTrue(
-            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyManagerInteractionEvidence.PLAYER_RETIREMENT,
-            ),
-        )
+        assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.PLAYER_SALE))
+        assertTrue(LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyManagerInteractionEvidence.PLAYER_RETIREMENT))
     }
 
     @Test
-    fun exactRecoveredMethodsMatchTheVersionedSmaliInventory() {
+    fun exactRecoveredMethodsMatchTheOfficialPhase4rCorpus() {
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
-            methodSignature = "a(a.p,a.ac,int)",
-            smaliFileName = "ActivityProcura.smali",
-            instructionCount = 2,
-            branchCount = 0,
+            methodSignature = "t(best.o,best.c0,int)",
+            smaliMethodSignature = "t(Lbest/o;Lbest/c0;I)I",
+            instructionCount = 136,
+            branchCount = 14,
         )
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
             methodSignature = "onCreate(Bundle)",
-            smaliFileName = "DialogIgrokInfo.smali",
-            instructionCount = 554,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+            instructionCount = 530,
             branchCount = 28,
         )
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.PLAYER_SALE,
             methodSignature = "onCreate(Bundle)",
-            smaliFileName = "DialogIgrokInfo.smali",
-            instructionCount = 554,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+            instructionCount = 530,
             branchCount = 28,
         )
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.PLAYER_RETIREMENT,
             methodSignature = "onCreate(Bundle)",
-            smaliFileName = "DialogIgrokInfo.smali",
-            instructionCount = 554,
+            smaliMethodSignature = "onCreate(Landroid/os/Bundle;)V",
+            instructionCount = 530,
             branchCount = 28,
         )
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.TEAM_PROPOSAL,
-            methodSignature = "a(a.p,a.ac,int)",
-            smaliFileName = "ActivityTimes.smali",
-            instructionCount = 2,
-            branchCount = 0,
+            methodSignature = "s(best.o,best.c0,int)",
+            smaliMethodSignature = "s(Lbest/o;Lbest/c0;I)I",
+            instructionCount = 133,
+            branchCount = 14,
         )
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.CAREER_CLUB_OFFER,
             methodSignature = "onStart()",
-            smaliFileName = "ActivityMainTeam.smali",
-            instructionCount = 97,
+            smaliMethodSignature = "onStart()V",
+            instructionCount = 93,
             branchCount = 15,
         )
     }
@@ -132,7 +104,7 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
     private fun assertRecovered(
         interaction: LegacyManagerInteractionEvidence,
         methodSignature: String,
-        smaliFileName: String,
+        smaliMethodSignature: String,
         instructionCount: Int,
         branchCount: Int,
     ) {
@@ -140,7 +112,7 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
             LegacyManagerInteractionEvidenceBoundary.recoveredHostMethodFor(interaction),
         )
         assertEquals(methodSignature, recovered.methodSignature)
-        assertEquals(smaliFileName, recovered.smaliFileName)
+        assertEquals(smaliMethodSignature, recovered.smaliMethodSignature)
         assertEquals(instructionCount, recovered.instructionCount)
         assertEquals(branchCount, recovered.branchCount)
     }

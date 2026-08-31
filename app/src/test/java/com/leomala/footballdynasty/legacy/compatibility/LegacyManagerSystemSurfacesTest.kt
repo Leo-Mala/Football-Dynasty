@@ -8,7 +8,7 @@ import org.junit.Test
 
 class LegacyManagerSystemSurfacesTest {
     @Test
-    fun confirmedCatalogMatchesOnlyVersionedManagerLoopSurfaces() {
+    fun confirmedCatalogMatchesOnlyOfficialManagerLoopSurfaces() {
         assertEquals(
             linkedSetOf(
                 LegacyManagerSystemSurface.LINEUP,
@@ -24,10 +24,10 @@ class LegacyManagerSystemSurfacesTest {
     }
 
     @Test
-    fun resolvesExactLegacyClassNamesWithoutAliasesOrFallbacks() {
+    fun resolvesExactOfficialLegacyClassNamesWithoutAliasesOrFallbacks() {
         assertEquals(
             LegacyManagerSystemSurface.LINEUP,
-            LegacyManagerSystemSurfaces.fromLegacyClassName("ActivityEscala"),
+            LegacyManagerSystemSurfaces.fromLegacyClassName("ActivityEscalacao"),
         )
         assertEquals(
             LegacyManagerSystemSurface.TACTICS,
@@ -56,7 +56,8 @@ class LegacyManagerSystemSurfacesTest {
     }
 
     @Test
-    fun rejectsPlausibleButUnprovenAliasesAndWildcardHelpers() {
+    fun rejectsHistoricalOrPlausibleAliasesAndWildcardHelpers() {
+        assertFalse(LegacyManagerSystemSurfaces.isConfirmedLegacyClassName("ActivityEscala"))
         assertFalse(LegacyManagerSystemSurfaces.isConfirmedLegacyClassName("ActivityTactics"))
         assertFalse(LegacyManagerSystemSurfaces.isConfirmedLegacyClassName("ActivityFinance"))
         assertFalse(LegacyManagerSystemSurfaces.isConfirmedLegacyClassName("RcTransfer"))
