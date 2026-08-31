@@ -1,10 +1,17 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
-/** Characterized readable Phase 11 subpaths from the current official corpus. */
+/** Characterized readable Phase 11 lineup subpaths from the current official corpus. */
 enum class LegacyCharacterizedLineupRuntimePath {
     BENCH_REORDER_U,
     STARTER_BENCH_SWAP_V,
     STARTER_REORDER_W,
+}
+
+/** Characterized Phase 11 squad/tactics subpaths from the current official corpus. */
+enum class LegacyCharacterizedTacticsRuntimePath {
+    PLAYER_SUBROLE_DERIVATION_R1,
+    ACTION_CANDIDATE_SELECTION_E,
+    SAVED_TACTIC_CREATE_G,
 }
 
 /**
@@ -35,14 +42,22 @@ object LegacySquadTacticsEvidenceBoundary {
         ProvenSquadPrimitive.OPAQUE_TRAIT_FIELDS,
     )
 
-    /**
-     * U/V/W are independently readable and verified in SMALI, so their slot mutations may advance
-     * without pretending that the large `ActivityEscalacao.B()`/bytecode `y()` path is understood.
-     */
+    /** U/V/W are readable and verified in the current official corpus. */
     val characterizedLineupRuntimePaths: Set<LegacyCharacterizedLineupRuntimePath> = setOf(
         LegacyCharacterizedLineupRuntimePath.BENCH_REORDER_U,
         LegacyCharacterizedLineupRuntimePath.STARTER_BENCH_SWAP_V,
         LegacyCharacterizedLineupRuntimePath.STARTER_REORDER_W,
+    )
+
+    /**
+     * These narrower paths are fully readable even though their surrounding Activities still have
+     * larger bodies awaiting characterization. `ActivitySavedTatics.g()` itself is fully recovered
+     * and characterized, so that exact target is no longer blocked.
+     */
+    val characterizedTacticsRuntimePaths: Set<LegacyCharacterizedTacticsRuntimePath> = setOf(
+        LegacyCharacterizedTacticsRuntimePath.PLAYER_SUBROLE_DERIVATION_R1,
+        LegacyCharacterizedTacticsRuntimePath.ACTION_CANDIDATE_SELECTION_E,
+        LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_CREATE_G,
     )
 
     data class SemanticTarget(
@@ -93,7 +108,7 @@ object LegacySquadTacticsEvidenceBoundary {
             smaliMethodSignature = "g()V",
             instructionCount = 103,
             branchCount = 8,
-            characterizationState = CharacterizationState.RECOVERED_BODY_ONLY,
+            characterizationState = CharacterizationState.SEMANTICS_CHARACTERIZED,
         ),
     )
 
@@ -102,7 +117,14 @@ object LegacySquadTacticsEvidenceBoundary {
 
     val recoveredMethodsAwaitingSemanticCharacterization: Set<LegacyRecoveredManagerMethod> =
         LegacyManagerRecoveredMethodEvidence.confirmed
-            .filter { evidence -> evidence.legacyClassName in phase11LegacyClasses }
+            .filter { evidence ->
+                evidence.legacyClassName in phase11LegacyClasses &&
+                    requiredSemanticTargets.any { target ->
+                        target.legacyClassName == evidence.legacyClassName &&
+                            target.methodSignature == evidence.methodSignature &&
+                            target.characterizationState != CharacterizationState.SEMANTICS_CHARACTERIZED
+                    }
+            }
             .toSet()
 
     fun findTarget(
@@ -115,12 +137,20 @@ object LegacySquadTacticsEvidenceBoundary {
     fun isCharacterizedLineupRuntimePath(path: LegacyCharacterizedLineupRuntimePath): Boolean =
         path in characterizedLineupRuntimePaths
 
+    fun isCharacterizedTacticsRuntimePath(path: LegacyCharacterizedTacticsRuntimePath): Boolean =
+        path in characterizedTacticsRuntimePaths
+
     fun isRecoveredPhase11Method(
         legacyClassName: String,
         methodSignature: String,
     ): Boolean = LegacyManagerRecoveredMethodEvidence
         .findExact(legacyClassName, methodSignature)
-        ?.let { evidence -> evidence in recoveredMethodsAwaitingSemanticCharacterization }
+        ?.let { evidence ->
+            requiredSemanticTargets.any { target ->
+                target.legacyClassName == evidence.legacyClassName &&
+                    target.methodSignature == evidence.methodSignature
+            }
+        }
         ?: false
 
     fun recoveryMetadataMatchesInventory(target: SemanticTarget): Boolean =

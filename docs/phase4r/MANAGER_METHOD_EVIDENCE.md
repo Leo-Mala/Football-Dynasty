@@ -40,6 +40,18 @@ The official corpus class is `ActivityEscalacao`, not the historical `ActivityEs
 
 The official `ActivityEscolhaTimes` validation stub is `i(String): boolean`; the historical `E(String)` name belongs to the superseded corpus. `ActivityMainTeam.onStart()` remains reachable, but its current body fingerprint is 93/15 under the counting rule above.
 
+## Phase 11 characterized subpaths
+
+The following paths are now semantically characterized directly from the official corpus and have executable modern rules:
+
+- `ActivityEscalacao.U/V/W`: bench reorder, starter↔bench swap and starter↔starter reorder, including the legacy `Q()` snapshot-write counts 0/1/2.
+- `best.o.r1()`: derives the runtime subrole code `F` from position plus the preserved `cr1/cr2` codes. Position codes outside the handled 0–4 range return without overwriting the previous value.
+- `DialogTatics.e(String,best.o)`: `bEscanteios` excludes only position code 0; `fNove` admits position code 4 plus position code 3 with subrole code 1; all other keys use the whole roster. Candidate order is captured before the separate roster sort.
+- `components.f3.s`: the sort used by `DialogTatics.e` orders position ascending, subrole ascending, skill descending, then star=true first; exact ties remain stable.
+- `ActivitySavedTatics.g()`: rejects only exact empty names or names longer than 30 Java/Kotlin UTF-16 code units; otherwise copies the current player/slot parallel lists, stores null player IDs as `-1`, prefixes the typed name with the formation label, appends the snapshot, clears the input and refreshes the saved-tactics list. A short parallel slot list or invalid formation index is not silently repaired.
+
+Because `ActivitySavedTatics.g()` is fully characterized end-to-end, that exact method may leave the fail-closed state. `ActivityEscalacao.B()`/SMALI `y()` and `DialogTatics.onCreate(Bundle)` remain blocked until their larger control flows are characterized.
+
 ## Behavioral rule
 
 Structural recovery does not unlock gameplay semantics. A method may only be promoted to runtime after Java↔SMALI characterization of its inputs, branches, state mutations, ordering and reachable callers. Existing runtime rules already characterized from the current corpus remain valid; this file corrects their host/method provenance so future work cannot silently regress to the old baseline.

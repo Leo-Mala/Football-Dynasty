@@ -34,6 +34,28 @@ class LegacySquadTacticsEvidenceBoundaryTest {
             LegacySquadTacticsEvidenceBoundary.characterizedLineupRuntimePaths,
         )
         assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscalacao", "B()"))
+    }
+
+    @Test
+    fun subroleCandidateSelectionAndSavedTacticCreationAreCharacterized() {
+        assertEquals(
+            setOf(
+                LegacyCharacterizedTacticsRuntimePath.PLAYER_SUBROLE_DERIVATION_R1,
+                LegacyCharacterizedTacticsRuntimePath.ACTION_CANDIDATE_SELECTION_E,
+                LegacyCharacterizedTacticsRuntimePath.SAVED_TACTIC_CREATE_G,
+            ),
+            LegacySquadTacticsEvidenceBoundary.characterizedTacticsRuntimePaths,
+        )
+        LegacySquadTacticsEvidenceBoundary.characterizedTacticsRuntimePaths.forEach { path ->
+            assertTrue(LegacySquadTacticsEvidenceBoundary.isCharacterizedTacticsRuntimePath(path))
+        }
+    }
+
+    @Test
+    fun savedTacticsGIsFullyCharacterizedWhileLargeLineupAndTacticsHostsRemainBlocked() {
+        assertFalse(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivitySavedTatics", "g()"))
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscalacao", "B()"))
+        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("DialogTatics", "onCreate(Bundle)"))
         assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
     }
 
@@ -45,12 +67,11 @@ class LegacySquadTacticsEvidenceBoundaryTest {
     }
 
     @Test
-    fun onlyCurrentOfficialLineupAndTacticsMethodsEnterThePhase11Boundary() {
+    fun onlyUncharacterizedCurrentOfficialHostsRemainInAwaitingSet() {
         assertEquals(
             setOf(
                 "DialogTatics" to "onCreate(Bundle)",
                 "ActivityEscalacao" to "B()",
-                "ActivitySavedTatics" to "g()",
             ),
             LegacySquadTacticsEvidenceBoundary.recoveredMethodsAwaitingSemanticCharacterization
                 .map { evidence -> evidence.legacyClassName to evidence.methodSignature }
@@ -69,11 +90,14 @@ class LegacySquadTacticsEvidenceBoundaryTest {
         assertTrue(targets.all(LegacySquadTacticsEvidenceBoundary::recoveryMetadataMatchesInventory))
         assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveRecoveredBodies())
         assertTrue(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsHaveConsistentSurfaceEvidence())
-        assertFalse(LegacySquadTacticsEvidenceBoundary.allRequiredTargetsAreSemanticallyCharacterized())
+        assertEquals(
+            LegacySquadTacticsEvidenceBoundary.CharacterizationState.SEMANTICS_CHARACTERIZED,
+            requireNotNull(LegacySquadTacticsEvidenceBoundary.findTarget("ActivitySavedTatics", "g()")).characterizationState,
+        )
     }
 
     @Test
-    fun officialSurfaceEvidenceIsLockedWithoutInventingTacticalSemantics() {
+    fun officialSurfaceEvidenceIsLockedWithoutInventingRemainingTacticalSemantics() {
         val lineup = requireNotNull(
             LegacySquadTacticsEvidenceBoundary.findTarget("ActivityEscalacao", "B()"),
         )
@@ -106,12 +130,5 @@ class LegacySquadTacticsEvidenceBoundaryTest {
         assertEquals(19, tactics.branchCount)
         assertEquals(103, saved!!.instructionCount)
         assertEquals(8, saved.branchCount)
-    }
-
-    @Test
-    fun recoveredBodiesStayBlockedUntilGameplaySemanticsAreCharacterized() {
-        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("DialogTatics", "onCreate(Bundle)"))
-        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivityEscalacao", "B()"))
-        assertTrue(LegacySquadTacticsEvidenceBoundary.isSemanticRuntimeBlocked("ActivitySavedTatics", "g()"))
     }
 }
