@@ -56,6 +56,34 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
     }
 
     @Test
+    fun characterizedPlayerDialogSubpathsDoNotUnlockSiblingInteractions() {
+        val characterizedPaths = setOf(
+            LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,
+            LegacyCharacterizedPlayerDialogRuntimePath.LOAN_MANAGEMENT,
+        )
+        assertEquals(
+            characterizedPaths,
+            LegacyManagerInteractionEvidenceBoundary.characterizedPlayerDialogRuntimePaths,
+        )
+        characterizedPaths.forEach { path ->
+            assertTrue(
+                LegacyManagerInteractionEvidenceBoundary.isCharacterizedPlayerDialogRuntimePath(path),
+            )
+        }
+
+        assertTrue(
+            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyManagerInteractionEvidence.PLAYER_SALE,
+            ),
+        )
+        assertTrue(
+            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyManagerInteractionEvidence.PLAYER_RETIREMENT,
+            ),
+        )
+    }
+
+    @Test
     fun exactRecoveredMethodsMatchTheVersionedSmaliInventory() {
         assertRecovered(
             interaction = LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,

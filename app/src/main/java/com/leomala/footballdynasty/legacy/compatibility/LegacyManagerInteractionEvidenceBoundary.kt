@@ -1,6 +1,18 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 /**
+ * Semantically characterized subpaths hosted by the legacy player-info dialog.
+ *
+ * These are narrower than [LegacyManagerInteractionEvidence]: they identify recovered control
+ * flows that already have executable modern rules even when the activity/layout catalog groups
+ * several actions under the same host dialog.
+ */
+enum class LegacyCharacterizedPlayerDialogRuntimePath {
+    CONTRACT_RENEWAL,
+    LOAN_MANAGEMENT,
+}
+
+/**
  * Fail-closed bridge between manager interactions proven reachable in the legacy UI and
  * recovered SMALI host methods.
  *
@@ -110,6 +122,20 @@ object LegacyManagerInteractionEvidenceBoundary {
             LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
         )
 
+    /**
+     * Narrow player-dialog subpaths whose Java↔SMALI behavior has already been characterized and
+     * wired to executable modern rules.
+     *
+     * Loan management is backed by `DialogIgrokInfo.q()/i()/h()` plus
+     * `LegacyLoanManagementRuntimeRule`. This does not unlock `PLAYER_SALE` or
+     * `PLAYER_RETIREMENT`, which share the same host dialog but remain semantically unproven.
+     */
+    val characterizedPlayerDialogRuntimePaths: Set<LegacyCharacterizedPlayerDialogRuntimePath> =
+        setOf(
+            LegacyCharacterizedPlayerDialogRuntimePath.CONTRACT_RENEWAL,
+            LegacyCharacterizedPlayerDialogRuntimePath.LOAN_MANAGEMENT,
+        )
+
     val semanticRuntimeBlockedInteractions: Set<LegacyManagerInteractionEvidence> =
         LegacyManagerInteractionEvidenceCatalog.confirmed - semanticRuntimeCharacterizedInteractions
 
@@ -119,6 +145,10 @@ object LegacyManagerInteractionEvidenceBoundary {
 
     fun isSemanticRuntimeCharacterized(interaction: LegacyManagerInteractionEvidence): Boolean =
         interaction in semanticRuntimeCharacterizedInteractions
+
+    fun isCharacterizedPlayerDialogRuntimePath(
+        path: LegacyCharacterizedPlayerDialogRuntimePath,
+    ): Boolean = path in characterizedPlayerDialogRuntimePaths
 
     fun isSemanticRuntimeBlocked(interaction: LegacyManagerInteractionEvidence): Boolean =
         interaction in semanticRuntimeBlockedInteractions
