@@ -6,6 +6,8 @@ import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeResult
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitResult
+import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
+import com.leomala.footballdynasty.domain.manager.LegacyTacticsRawState
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
@@ -13,9 +15,10 @@ import com.leomala.footballdynasty.foundation.random.RandomSource
  * End-to-end Phase 9 persistence seam around the certified Phase 8 runtime.
  *
  * Phase 11 now supplies the previously unresolved lineup-only `g0` state through the characterized
- * ActivityEscalacao.y()/B() commit result. The lower-level explicit transient-evidence overload is
- * retained for characterization and specialized callers. All proven post-match effects are committed
- * atomically with score, calendar and career RNG.
+ * ActivityEscalacao.y()/B() commit result. The manager execution path also carries the raw tactic
+ * index proven by `best.s.k(...)` (`best.c0.i0()[2]`). The lower-level explicit transient-evidence
+ * overload remains available for characterization and specialized callers. All proven post-match
+ * effects are committed atomically with score, calendar and career RNG.
  */
 class CareerMatchExecutionCoordinator(
     database: FootballDynastyDatabase,
@@ -25,7 +28,48 @@ class CareerMatchExecutionCoordinator(
     private val store = CareerMatchStore(database, clockMillis)
     private val resolver = CareerMatchPersistedRuntimeResolver(database)
 
-    /** Normal manager path: characterized lineups feed the persisted match bridge directly. */
+    /**
+     * Complete manager entry point for characterized pre-match lineup + tactics state.
+     * The callback receives the exact raw tactic indexes consumed by the legacy match engine.
+     */
+    suspend fun executeManagerMatch(
+        careerId: String,
+        matchId: String,
+        homeLineup: LegacyLineupCommitResult<String>,
+        awayLineup: LegacyLineupCommitResult<String>,
+        homeTactics: LegacyTacticsRawState,
+        awayTactics: LegacyTacticsRawState,
+        homeSubstitutionsRemaining: Int,
+        awaySubstitutionsRemaining: Int,
+        homeLegacyModeFlag: Boolean,
+        awayLegacyModeFlag: Boolean,
+        simulate: (
+            scheduled: ScheduledCareerMatch,
+            state: PersistedState,
+            homeTacticIndex: Int,
+            awayTacticIndex: Int,
+            random: RandomSource,
+        ) -> Match,
+    ): CareerMatchRuntimeResult = execute(
+        careerId = careerId,
+        matchId = matchId,
+        homeLineup = homeLineup,
+        awayLineup = awayLineup,
+        homeSubstitutionsRemaining = homeSubstitutionsRemaining,
+        awaySubstitutionsRemaining = awaySubstitutionsRemaining,
+        homeLegacyModeFlag = homeLegacyModeFlag,
+        awayLegacyModeFlag = awayLegacyModeFlag,
+    ) { scheduled, state, random ->
+        simulate(
+            scheduled,
+            state,
+            LegacyTacticsMatchRuntimeRule.matchEngineTacticIndex(homeTactics),
+            LegacyTacticsMatchRuntimeRule.matchEngineTacticIndex(awayTactics),
+            random,
+        )
+    }
+
+    /** Normal lineup-aware path when tactics are owned by a more specialized match caller. */
     suspend fun execute(
         careerId: String,
         matchId: String,

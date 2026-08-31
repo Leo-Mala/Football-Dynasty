@@ -26,6 +26,8 @@ enum class LegacyCharacterizedTacticsRuntimePath {
     SPECIAL_PLAYER_ASSIGNMENT_K,
     SPECIAL_PLAYER_REFERENCE_CLEANUP,
     PLAYER_PICKER_V2,
+    MATCH_ENGINE_OPTION_SLOT_2,
+    HALFTIME_DIALOG_SHARED_CLUB_STATE,
 }
 
 object LegacySquadTacticsEvidenceBoundary {
@@ -34,6 +36,10 @@ object LegacySquadTacticsEvidenceBoundary {
     val provenSquadPrimitives = ProvenSquadPrimitive.entries.toSet()
     val characterizedLineupRuntimePaths = LegacyCharacterizedLineupRuntimePath.entries.toSet()
     val characterizedTacticsRuntimePaths = LegacyCharacterizedTacticsRuntimePath.entries.toSet()
+
+    const val matchEngineTacticOptionSlot: Int = 2
+    const val matchEngineMethodSignature: String = "best.s.k(best.s,int,int)"
+    const val halftimeTacticsHostMethod: String = "ActivityIntervalo.k()"
 
     data class SemanticTarget(
         val legacyClassName:String,val methodSignature:String,val surfaceRole:String,val observedLayoutName:String?,val surfaceIsDynamicallyConstructed:Boolean,
