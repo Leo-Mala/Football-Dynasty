@@ -10,6 +10,8 @@ enum class LegacyCharacterizedCareerRuntimePath {
     REPLACEMENT_CANDIDATE_POOL_T,
     REPLACEMENT_UNEMPLOYED_FALLBACK_U,
     MANAGER_SWAP_B4,
+    DISMISSAL_GATE_L,
+    END_OF_YEAR_DISPATCH_M,
 }
 
 /** Fail-closed boundary between proven coach behavior and remaining career progression semantics. */
@@ -45,10 +47,17 @@ object LegacyCareerProgressionEvidenceBoundary {
         require(methods.map { it.instructionCount to it.branchCount } == listOf(120 to 20, 30 to 4, 9 to 0))
     }
 
+    val characterizedYearEndMethods: Set<LegacyRecoveredManagerMethod> = linkedSetOf(
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "l()")),
+        requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "m()")),
+    ).also { methods ->
+        require(methods.map { it.instructionCount to it.branchCount } == listOf(81 to 16, 65 to 11))
+    }
+
     /**
-     * The host resolver remains blocked: its `best.b.B -> best.x.H0` fallback has additional
-     * list-building/shuffle behavior that must be characterized before `best.c0.y()` can leave the
-     * fail-closed state.
+     * Structural fingerprint for the replacement resolver host. Its persistence-independent
+     * orchestration and the `best.b.B -> best.x.H0/G0 -> konrent.t.H0` discovery chain are now
+     * executable domain rules; deeper helper semantics remain separately fail-closed as needed.
      */
     val recoveredReplacementManagerResolver: LegacyRecoveredManagerMethod = requireNotNull(
         LegacyManagerRecoveredMethodEvidence.findExact("best.c0", "y()"),
@@ -64,6 +73,8 @@ object LegacyCareerProgressionEvidenceBoundary {
         LegacyCharacterizedCareerRuntimePath.REPLACEMENT_CANDIDATE_POOL_T,
         LegacyCharacterizedCareerRuntimePath.REPLACEMENT_UNEMPLOYED_FALLBACK_U,
         LegacyCharacterizedCareerRuntimePath.MANAGER_SWAP_B4,
+        LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L,
+        LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M,
     )
 
     val reachableCareerSurfacesWithoutRecoveredHostBody: Set<LegacyManagerCareerSurface> =

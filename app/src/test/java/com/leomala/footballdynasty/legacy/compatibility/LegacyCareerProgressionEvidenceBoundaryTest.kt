@@ -28,7 +28,7 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
     }
 
     @Test
-    fun replacementPoolFallbackAndSwapAreCharacterizedWithoutUnlockingWholeResolver() {
+    fun replacementPoolFallbackSwapAndYearEndHostsAreCharacterized() {
         assertEquals(
             setOf(
                 LegacyCharacterizedCareerRuntimePath.MANAGER_NAME_VALIDATION,
@@ -38,6 +38,8 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
                 LegacyCharacterizedCareerRuntimePath.REPLACEMENT_CANDIDATE_POOL_T,
                 LegacyCharacterizedCareerRuntimePath.REPLACEMENT_UNEMPLOYED_FALLBACK_U,
                 LegacyCharacterizedCareerRuntimePath.MANAGER_SWAP_B4,
+                LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L,
+                LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M,
             ),
             LegacyCareerProgressionEvidenceBoundary.characterizedCareerRuntimePaths,
         )
@@ -57,6 +59,21 @@ class LegacyCareerProgressionEvidenceBoundaryTest {
         assertEquals(9 to 0, requireNotNull(byName["b4(best.f0,best.f0)"]).let { it.instructionCount to it.branchCount })
         assertEquals("y()", LegacyCareerProgressionEvidenceBoundary.recoveredReplacementManagerResolver.methodSignature)
         assertTrue(LegacyCareerProgressionEvidenceBoundary.isSemanticRuntimeBlocked(LegacyCareerProgressionSurfaceEvidence.CLUB_INVITATION))
+    }
+
+    @Test
+    fun officialYearEndMethodsHaveExactFingerprintsAndPaths() {
+        assertEquals(
+            setOf("best.n" to "l()", "best.n" to "m()"),
+            LegacyCareerProgressionEvidenceBoundary.characterizedYearEndMethods
+                .map { it.legacyClassName to it.methodSignature }
+                .toSet(),
+        )
+        val byName = LegacyCareerProgressionEvidenceBoundary.characterizedYearEndMethods.associateBy { it.methodSignature }
+        assertEquals(81 to 16, requireNotNull(byName["l()"]).let { it.instructionCount to it.branchCount })
+        assertEquals(65 to 11, requireNotNull(byName["m()"]).let { it.instructionCount to it.branchCount })
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.DISMISSAL_GATE_L))
+        assertTrue(LegacyCareerProgressionEvidenceBoundary.isCharacterizedCareerRuntimePath(LegacyCharacterizedCareerRuntimePath.END_OF_YEAR_DISPATCH_M))
     }
 
     @Test

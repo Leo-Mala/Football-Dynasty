@@ -27,6 +27,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
                 LegacyRecoveredManagerMethod("best.b", "t(best.c0,int)", "best/b.smali", 120, 20, "t(Lbest/c0;I)Lbest/f0;"),
                 LegacyRecoveredManagerMethod("best.b", "u()", "best/b.smali", 30, 4, "u()Lbest/f0;"),
                 LegacyRecoveredManagerMethod("best.b", "b4(best.f0,best.f0)", "best/b.smali", 9, 0, "b4(Lbest/f0;Lbest/f0;)V"),
+                LegacyRecoveredManagerMethod("best.n", "l()", "best/n.smali", 81, 16, "l()V"),
+                LegacyRecoveredManagerMethod("best.n", "m()", "best/n.smali", 65, 11, "m()V"),
             ),
             LegacyManagerRecoveredMethodEvidence.confirmed,
         )
@@ -61,6 +63,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
                 LegacyManagerRecoveredMethodEvidence.findExact("best.c0", "y()"),
             ).smaliMethodSignature,
         )
+        assertEquals("l()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "l()")).smaliMethodSignature)
+        assertEquals("m()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "m()")).smaliMethodSignature)
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscala", "gL()"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "E(String)"))
         assertNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivitySavedTatics", "sa()"))
@@ -93,6 +97,14 @@ class LegacyManagerRecoveredMethodEvidenceTest {
     }
 
     @Test
+    fun recoveredYearEndMethodsKeepOfficialStructuralFingerprints() {
+        val l = requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "l()"))
+        val m = requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "m()"))
+        assertEquals(81 to 16, l.instructionCount to l.branchCount)
+        assertEquals(65 to 11, m.instructionCount to m.branchCount)
+    }
+
+    @Test
     fun canLocateAllRecoveredMethodsForAnExactLegacyClass() {
         assertEquals(
             listOf(
@@ -108,6 +120,7 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivityProcura"),
         )
         assertEquals(2, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.f0").size)
+        assertEquals(2, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.n").size)
         assertTrue(LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivitySearch").isEmpty())
     }
 }
