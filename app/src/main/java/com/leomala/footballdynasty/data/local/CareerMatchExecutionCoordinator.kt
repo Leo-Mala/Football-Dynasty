@@ -5,15 +5,17 @@ import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeBridge
 import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeResult
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitResult
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
 /**
  * End-to-end Phase 9 persistence seam around the certified Phase 8 runtime.
  *
- * Lineup-only transient evidence stays explicit because its authoritative producer belongs to the
- * later lineup/tactics boundary. Everything already proven persistent is loaded from Room and all
- * proven post-match effects are committed atomically with score, calendar and career RNG.
+ * Phase 11 now supplies the previously unresolved lineup-only `g0` state through the characterized
+ * ActivityEscalacao.y()/B() commit result. The lower-level explicit transient-evidence overload is
+ * retained for characterization and specialized callers. All proven post-match effects are committed
+ * atomically with score, calendar and career RNG.
  */
 class CareerMatchExecutionCoordinator(
     database: FootballDynastyDatabase,
@@ -23,6 +25,36 @@ class CareerMatchExecutionCoordinator(
     private val store = CareerMatchStore(database, clockMillis)
     private val resolver = CareerMatchPersistedRuntimeResolver(database)
 
+    /** Normal manager path: characterized lineups feed the persisted match bridge directly. */
+    suspend fun execute(
+        careerId: String,
+        matchId: String,
+        homeLineup: LegacyLineupCommitResult<String>,
+        awayLineup: LegacyLineupCommitResult<String>,
+        homeSubstitutionsRemaining: Int,
+        awaySubstitutionsRemaining: Int,
+        homeLegacyModeFlag: Boolean,
+        awayLegacyModeFlag: Boolean,
+        simulate: (
+            scheduled: ScheduledCareerMatch,
+            state: PersistedState,
+            random: RandomSource,
+        ) -> Match,
+    ): CareerMatchRuntimeResult = execute(
+        careerId = careerId,
+        matchId = matchId,
+        transientEvidence = CareerLineupMatchEvidenceMapper.fromLineups(
+            home = homeLineup,
+            away = awayLineup,
+            homeSubstitutionsRemaining = homeSubstitutionsRemaining,
+            awaySubstitutionsRemaining = awaySubstitutionsRemaining,
+            homeLegacyModeFlag = homeLegacyModeFlag,
+            awayLegacyModeFlag = awayLegacyModeFlag,
+        ),
+        simulate = simulate,
+    )
+
+    /** Low-level seam retained for exact transient-state characterization and specialized callers. */
     suspend fun execute(
         careerId: String,
         matchId: String,
