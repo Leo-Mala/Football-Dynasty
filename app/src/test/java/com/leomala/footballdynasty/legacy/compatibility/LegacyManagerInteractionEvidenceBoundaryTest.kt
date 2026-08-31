@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -21,12 +22,32 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
     }
 
     @Test
-    fun recoveredHostBodiesDoNotUnlockUncharacterizedManagerSemantics() {
+    fun onlySemanticallyCharacterizedInteractionsAreUnlockedFromTheBoundary() {
         assertEquals(
-            LegacyManagerInteractionEvidenceCatalog.confirmed,
+            setOf(LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL),
+            LegacyManagerInteractionEvidenceBoundary.semanticRuntimeCharacterizedInteractions,
+        )
+        assertTrue(
+            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(
+                LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
+            ),
+        )
+        assertFalse(
+            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
+                LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
+            ),
+        )
+
+        val stillBlocked = LegacyManagerInteractionEvidenceCatalog.confirmed -
+            LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL
+        assertEquals(
+            stillBlocked,
             LegacyManagerInteractionEvidenceBoundary.semanticRuntimeBlockedInteractions,
         )
-        LegacyManagerInteractionEvidenceCatalog.confirmed.forEach { interaction ->
+        stillBlocked.forEach { interaction ->
+            assertFalse(
+                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction),
+            )
             assertTrue(
                 LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction),
             )

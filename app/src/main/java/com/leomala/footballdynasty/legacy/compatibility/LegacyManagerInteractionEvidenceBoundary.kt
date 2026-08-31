@@ -92,12 +92,25 @@ object LegacyManagerInteractionEvidenceBoundary {
             recovered
         }
 
+    /**
+     * Interactions whose behavioral dispatch has progressed beyond reachability-only evidence.
+     *
+     * `PLAYER_SEARCH_PROPOSAL` is backed by the characterized `ActivityProcura.u(int)` action
+     * dispatch and the executable purchase/loan composition in `LegacySearchTransferRuntimeRule`.
+     * This does not unlock any other dialog hosted by the same or another recovered Activity.
+     */
+    val semanticRuntimeCharacterizedInteractions: Set<LegacyManagerInteractionEvidence> =
+        setOf(LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL)
+
     val semanticRuntimeBlockedInteractions: Set<LegacyManagerInteractionEvidence> =
-        LegacyManagerInteractionEvidenceCatalog.confirmed.toSet()
+        LegacyManagerInteractionEvidenceCatalog.confirmed - semanticRuntimeCharacterizedInteractions
 
     fun recoveredHostMethodFor(
         interaction: LegacyManagerInteractionEvidence,
     ): LegacyRecoveredManagerMethod? = recoveredHostMethods[interaction]
+
+    fun isSemanticRuntimeCharacterized(interaction: LegacyManagerInteractionEvidence): Boolean =
+        interaction in semanticRuntimeCharacterizedInteractions
 
     fun isSemanticRuntimeBlocked(interaction: LegacyManagerInteractionEvidence): Boolean =
         interaction in semanticRuntimeBlockedInteractions
