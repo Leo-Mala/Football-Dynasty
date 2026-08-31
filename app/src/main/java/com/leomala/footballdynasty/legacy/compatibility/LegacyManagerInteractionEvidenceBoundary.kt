@@ -97,10 +97,18 @@ object LegacyManagerInteractionEvidenceBoundary {
      *
      * `PLAYER_SEARCH_PROPOSAL` is backed by the characterized `ActivityProcura.u(int)` action
      * dispatch and the executable purchase/loan composition in `LegacySearchTransferRuntimeRule`.
-     * This does not unlock any other dialog hosted by the same or another recovered Activity.
+     * `PLAYER_CONTRACT` is backed by the characterized `DialogIgrokInfo.s/f/e/l` renewal path and
+     * `LegacyContractRenewalRuntimeRule`. The unresolved internal storage behavior of
+     * `p.c(days, false)` remains represented as an invocation, so this unlocks only the proven
+     * renewal interaction and does not guess contract-end persistence semantics.
+     *
+     * No other dialog hosted by the same or another recovered Activity is unlocked here.
      */
     val semanticRuntimeCharacterizedInteractions: Set<LegacyManagerInteractionEvidence> =
-        setOf(LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL)
+        setOf(
+            LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
+            LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
+        )
 
     val semanticRuntimeBlockedInteractions: Set<LegacyManagerInteractionEvidence> =
         LegacyManagerInteractionEvidenceCatalog.confirmed - semanticRuntimeCharacterizedInteractions

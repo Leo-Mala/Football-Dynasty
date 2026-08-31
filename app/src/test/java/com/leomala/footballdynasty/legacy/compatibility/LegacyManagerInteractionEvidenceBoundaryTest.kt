@@ -23,23 +23,24 @@ class LegacyManagerInteractionEvidenceBoundaryTest {
 
     @Test
     fun onlySemanticallyCharacterizedInteractionsAreUnlockedFromTheBoundary() {
+        val characterized = setOf(
+            LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
+            LegacyManagerInteractionEvidence.PLAYER_CONTRACT,
+        )
         assertEquals(
-            setOf(LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL),
+            characterized,
             LegacyManagerInteractionEvidenceBoundary.semanticRuntimeCharacterizedInteractions,
         )
-        assertTrue(
-            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(
-                LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
-            ),
-        )
-        assertFalse(
-            LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(
-                LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL,
-            ),
-        )
+        characterized.forEach { interaction ->
+            assertTrue(
+                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeCharacterized(interaction),
+            )
+            assertFalse(
+                LegacyManagerInteractionEvidenceBoundary.isSemanticRuntimeBlocked(interaction),
+            )
+        }
 
-        val stillBlocked = LegacyManagerInteractionEvidenceCatalog.confirmed -
-            LegacyManagerInteractionEvidence.PLAYER_SEARCH_PROPOSAL
+        val stillBlocked = LegacyManagerInteractionEvidenceCatalog.confirmed - characterized
         assertEquals(
             stillBlocked,
             LegacyManagerInteractionEvidenceBoundary.semanticRuntimeBlockedInteractions,
