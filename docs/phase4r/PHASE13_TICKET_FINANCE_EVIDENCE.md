@@ -11,7 +11,7 @@ SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`
 
 ## `best.k.b` structural fingerprint
 
-The calculation consumes the stadium's four raw capacities (`best.k.b:[I`) independently. It cannot be reconstructed from a single aggregate capacity without losing behavior.
+The calculation consumes the stadium's four raw capacities (`best.k.b:[I`) independently. It cannot be reconstructed from a single aggregate capacity after career mutations without losing behavior.
 
 For each match it:
 
@@ -28,12 +28,41 @@ For each match it:
 
 SMALI confirms the Java structure and exact table values, including the type `6/8` second price row `[20,25,40,120]`.
 
+## Proven initial sector materialization
+
+The corpus also proves how a fresh club obtains the four capacities. `best.c0.c(String,int)` constructs `new best.k(stadiumName, aggregateCapacity, club)`. The constructor immediately calls private `best.k.a(int)`.
+
+`best.k.a(int)`:
+
+1. replaces aggregate capacity outside `1000..120000` with `10000`;
+2. computes sector 0 as `round(capacity * 0.15)`;
+3. computes sector 2 as `round(capacity * 0.09)`;
+4. computes sector 3 as `round(capacity * 0.009)`;
+5. computes sector 1 as the remaining aggregate capacity;
+6. individually caps the sectors at `[18000,80000,9000,700]` without redistributing capacity removed by those caps.
+
+`LegacyStadiumInitialSectorRule` is the modern pure reconstruction. `CareerStadiumRuntimeStore.materializeFromSourceClub(...)` replays that constructor from immutable `ClubEntity.capacity` for newly initialized career state.
+
+This does **not** change the V7→V8 migration rule: an already-running V7 career may contain stadium expansions that changed individual sectors, so the current sector vector cannot be reconstructed from the immutable aggregate source capacity. Migration therefore remains additive and fail-closed with no synthesized rows.
+
 ## Persistence consequence
 
-The previous V7 schema stores only aggregate immutable source `ClubEntity.capacity` plus construction records. That is insufficient for this reachable legacy calculation because expansions and match revenue depend on each of the four sectors separately.
+V8 adds `career_stadium_runtime(careerId, clubId, sector0Capacity..sector3Capacity)` as additive career-local state. Match revenue reads this durable vector rather than splitting aggregate capacity heuristically.
 
-V8 therefore adds `career_stadium_runtime(careerId, clubId, sector0Capacity..sector3Capacity)` as additive career-local state. Migration V7→V8 intentionally creates no rows: no mathematically valid inverse exists from aggregate capacity to the four legacy sectors, so synthesizing them would invent gameplay. Materialization is explicit and fail-closed from proven source/runtime values.
+## Match/RNG atomic integration
 
-## Remaining integration seam
+The modern match path now uses `CareerMatchTicketRuntimeInput` on the low-level `CareerMatchExecutionCoordinator.execute(...)` seam. When supplied:
 
-The pure calculation and durable sector state are reconstructed here. Final match integration must execute this calculation with the same persisted career `RandomSource` used for the match and commit the resulting ticket finance mutation in the same Room transaction as the match result/RNG advance. A separate RNG or a post-commit finance write would violate `AGENTS.md` atomicity and is not permitted.
+1. persisted home finance state is required;
+2. persisted four-sector stadium state is required;
+3. the match simulation runs on the career `RandomSource`;
+4. `LegacyTicketFinanceRule.calculate(...)` then consumes the same `RandomSource`, using the persisted sector vector;
+5. `LegacyTicketFinanceRule.applyHomeTicketIncome(...)` applies the proven type/Q0 credit gate;
+6. `CareerMatchAtomicCommitter` commits score, calendar, career/RNG state, player effects and ticket finance inside one outer Room transaction;
+7. `CareerManagerRuntimeStore.commitFinanceState(...)` keeps its expected-before stale-state guard inside that transaction, so a rejected finance mutation rolls the match/RNG writes back as well.
+
+No secondary RNG and no post-match finance transaction are introduced.
+
+## Remaining boundary
+
+The ticket calculation, initial sector derivation, durable sector state and atomic match/RNG/finance persistence are reconstructed. Callers still must supply the non-stadium raw legacy match/club inputs (`competition type`, `O`, `p0`, `J`, regional percentage, `a0` flag and `Q0`) from already-proven source/runtime projections; the coordinator does not infer or invent those values.
