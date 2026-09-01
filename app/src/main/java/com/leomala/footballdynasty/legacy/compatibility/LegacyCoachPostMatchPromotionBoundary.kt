@@ -1,6 +1,21 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 /**
+ * Exact recovered-method evidence required before the coach post-match lifecycle can leave the
+ * fail-closed boundary.
+ *
+ * These signatures come from the reachable legacy caller chain. Instruction/branch counts are
+ * intentionally not guessed: they must first be recovered from the official Java+SMALI corpus and
+ * added to [LegacyManagerRecoveredMethodEvidence].
+ */
+data class LegacyRequiredCoachPostMatchMethod(
+    val legacyClassName: String,
+    val methodSignature: String,
+    val smaliFileName: String,
+    val smaliMethodSignature: String,
+)
+
+/**
  * Fail-closed promotion boundary for the reachable legacy coach post-match lifecycle.
  *
  * The official Brasfoot 2026/27 corpus proves the caller chain
@@ -23,8 +38,47 @@ object LegacyCoachPostMatchPromotionBoundary {
     /** The H-only projection is characterized and tested by `LegacyCoachRawHRule`. */
     const val hProjectionCharacterized: Boolean = true
 
-    /** Additional mutations/effects and their ordering in i/j are still an explicit evidence gap. */
-    const val completeLifecycleCharacterized: Boolean = false
+    val requiredRecoveredManagerMethods: List<LegacyRequiredCoachPostMatchMethod> =
+        listOf(
+            LegacyRequiredCoachPostMatchMethod(
+                legacyClassName = "best.f0",
+                methodSignature = homeManagerMethod.substringAfter("best.f0."),
+                smaliFileName = "best/f0.smali",
+                smaliMethodSignature = "i(Lbest/s;)V",
+            ),
+            LegacyRequiredCoachPostMatchMethod(
+                legacyClassName = "best.f0",
+                methodSignature = pairedManagerMethod.substringAfter("best.f0."),
+                smaliFileName = "best/f0.smali",
+                smaliMethodSignature = "j(Lbest/s;)V",
+            ),
+        )
+
+    /**
+     * Structural Java↔SMALI recovery is a mandatory prerequisite. This remains false while i/j are
+     * absent from the exact recovered-method catalog rather than being manually toggled to green.
+     */
+    val recoveredManagerMethodEvidenceComplete: Boolean
+        get() =
+            requiredRecoveredManagerMethods.all { required ->
+                LegacyManagerRecoveredMethodEvidence.findExact(
+                    legacyClassName = required.legacyClassName,
+                    methodSignature = required.methodSignature,
+                )?.let { recovered ->
+                    recovered.smaliFileName == required.smaliFileName &&
+                        recovered.smaliMethodSignature == required.smaliMethodSignature
+                } == true
+            }
+
+    /**
+     * Additional mutations/effects and their ordering still require semantic reconstruction after
+     * the exact i/j method bodies have been recovered. Keep this separate from structural recovery
+     * so neither prerequisite can silently stand in for the other.
+     */
+    const val semanticLifecycleCharacterized: Boolean = false
+
+    val completeLifecycleCharacterized: Boolean
+        get() = recoveredManagerMethodEvidenceComplete && semanticLifecycleCharacterized
 
     /**
      * Never allow an H-only production post-match write to masquerade as the complete legacy

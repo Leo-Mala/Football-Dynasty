@@ -19,7 +19,25 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
     }
 
     @Test
-    fun `keeps production persistence fail closed until complete i j lifecycle is characterized`() {
+    fun `requires exact recovered i j Java smali evidence before lifecycle promotion`() {
+        assertEquals(
+            listOf("i(best.s)", "j(best.s)"),
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.methodSignature },
+        )
+        assertEquals(
+            listOf("i(Lbest/s;)V", "j(Lbest/s;)V"),
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.smaliMethodSignature },
+        )
+        assertEquals(
+            listOf("best/f0.smali", "best/f0.smali"),
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.smaliFileName },
+        )
+        assertFalse(LegacyCoachPostMatchPromotionBoundary.recoveredManagerMethodEvidenceComplete)
+    }
+
+    @Test
+    fun `keeps production persistence fail closed until structural and semantic i j evidence is complete`() {
+        assertFalse(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
         assertFalse(LegacyCoachPostMatchPromotionBoundary.completeLifecycleCharacterized)
         assertFalse(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
     }
