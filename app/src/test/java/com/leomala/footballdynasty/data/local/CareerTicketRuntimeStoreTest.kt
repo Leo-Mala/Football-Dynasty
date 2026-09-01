@@ -65,7 +65,7 @@ class CareerTicketRuntimeStoreTest {
     }
 
     @Test
-    fun `annual recovery and main team floor mutate only first duplicate manager and survive reopen`() = runBlocking {
+    fun `employment annual recovery and main team floor mutate only first duplicate manager and survive reopen`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase14-coach-h-v9-reopen"
         context.deleteDatabase(name)
@@ -83,15 +83,17 @@ class CareerTicketRuntimeStoreTest {
 
         assertEquals(30, store.applyCoachMainTeamRefresh(CAREER, 7, legacyFloorEnabled = true))
         assertEquals(listOf(30, 91, 70), store.managersInWorldOrder(CAREER).map { it.rawH })
-        assertEquals(80, store.applyCoachAnnualRecovery(CAREER, 7))
+        assertEquals(80, store.applyCoachEmployment(CAREER, 7))
         assertEquals(listOf(80, 91, 70), store.managersInWorldOrder(CAREER).map { it.rawH })
+        assertEquals(100, store.applyCoachAnnualRecovery(CAREER, 7))
+        assertEquals(listOf(100, 91, 70), store.managersInWorldOrder(CAREER).map { it.rawH })
         assertEquals(100, store.applyCoachAnnualRecovery(CAREER, 8))
 
         database.close()
         database = database(context, name)
         store = CareerTicketRuntimeStore(database)
-        assertEquals(listOf(80, 91, 100), store.managersInWorldOrder(CAREER).map { it.rawH })
-        assertEquals(80, store.resolveCoachRawH(CAREER, 7))
+        assertEquals(listOf(100, 91, 100), store.managersInWorldOrder(CAREER).map { it.rawH })
+        assertEquals(100, store.resolveCoachRawH(CAREER, 7))
         assertEquals(100, store.resolveCoachRawH(CAREER, 8))
 
         database.close()
@@ -111,6 +113,8 @@ class CareerTicketRuntimeStoreTest {
 
         assertEquals(12, store.applyCoachMainTeamRefresh(CAREER, 7, legacyFloorEnabled = false))
         assertEquals(12, store.resolveCoachRawH(CAREER, 7))
+        assertNotNull(runCatching { store.applyCoachEmployment(CAREER, 77) }.exceptionOrNull())
+        assertNotNull(runCatching { store.applyCoachEmployment(CAREER, -1) }.exceptionOrNull())
         assertNotNull(runCatching { store.applyCoachAnnualRecovery(CAREER, 77) }.exceptionOrNull())
         assertNotNull(runCatching { store.applyCoachAnnualRecovery(CAREER, -1) }.exceptionOrNull())
 

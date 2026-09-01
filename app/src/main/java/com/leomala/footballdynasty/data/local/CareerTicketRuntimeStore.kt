@@ -77,6 +77,18 @@ class CareerTicketRuntimeStore(private val database: FootballDynastyDatabase) {
     }
 
     /**
+     * Persists the independently characterized `best.f0.e(c0)` employment reset for H.
+     *
+     * This method deliberately models only the H slice already present in V9. Other employment
+     * effects remain owned by their characterized manager transition boundary and are not invented
+     * here. Duplicate manager ids preserve `best.b.b1(id)` first-match ArrayList semantics.
+     */
+    suspend fun applyCoachEmployment(careerId: String, legacyManagerId: Int): Int =
+        mutateFirstCoachRawH(careerId, legacyManagerId) {
+            LegacyCoachRawHRule.afterEmployment()
+        }
+
+    /**
      * Persists only the independently characterized annual `best.b.s()` H mutation.
      *
      * Duplicate legacy manager ids are intentionally supported: `best.b.b1(id)` observes the first
