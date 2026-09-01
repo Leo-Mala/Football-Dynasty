@@ -10,8 +10,10 @@ import com.leomala.footballdynasty.data.local.entity.CareerMetadataEntity
 import com.leomala.footballdynasty.data.local.entity.CareerScheduledMatchEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.manager.LegacyMatchConstructionSource
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,72 +24,32 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchTicketInputResolverTest {
     @Test
-    fun `persisted competition source clubs and Q0 replace caller supplied ticket fields`() = runBlocking {
+    fun `all mutable ticket fields resolve from V9 instead of caller evidence`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
             .allowMainThreadQueries()
             .build()
         try {
-            database.clubDao().upsertAll(
-                listOf(
-                    club("home", country = 29, reputation = 9),
-                    club("away", country = 11, reputation = -2),
-                )
+            seedBase(database)
+            val ticketStore = CareerTicketRuntimeStore(database)
+            ticketStore.materializeClubState(
+                "career",
+                "home",
+                CareerClubTicketRuntimeState(rawDivisionCode = 2, legacyManagerId = 44),
             )
-            database.careerMetadataDao().upsert(
-                CareerMetadataEntity("career", 1, "Career", null, null, 1L, 1L)
+            ticketStore.materializeManagers(
+                "career",
+                listOf(CareerManagerTicketRuntimeState(0, legacyManagerId = 44, rawH = 73)),
             )
-            database.careerScheduledMatchDao().upsert(
-                CareerScheduledMatchEntity(
-                    careerId = "career",
-                    matchId = "match",
-                    dayIndex = 5,
-                    eventTypeCode = 1,
-                    homeClubId = "home",
-                    awayClubId = "away",
-                    processed = false,
-                    homeGoals = null,
-                    awayGoals = null,
-                )
-            )
-            database.careerCompetitionDao().upsertCompetition(
-                CareerCompetitionEntity("career", "competition", 6, 44, 1, 1)
-            )
-            database.careerCompetitionDao().upsertMatches(
-                listOf(CareerCompetitionMatchEntity("career", "competition", "match", 1, 0))
-            )
-            database.careerManagerRuntimeDao().upsertClubRuntime(
-                CareerClubManagerRuntimeEntity(
-                    careerId = "career",
-                    clubId = "home",
-                    active = true,
-                    cash = 1_000L,
-                    primarySlotPlayerCode = null,
-                    secondarySlotPlayerCode = null,
-                    rawStateFlag = false,
-                    ticketIncome = 0,
-                    playerSaleIncome = 0L,
-                    prizeIncome = 0,
-                    sponsorIncome = 0,
-                    playerPurchaseExpense = 0L,
-                    stadiumExpense = 0,
-                    salaryExpense = 0L,
-                    borrowingChargeExpense = 0,
-                    fineExpense = 0,
-                    miscellaneousExpense = 0,
-                    borrowed = 0,
-                    monthlyBorrowingCharge = 0,
-                )
+            ticketStore.materializeMatchConstructionSource(
+                "career",
+                "match",
+                LegacyMatchConstructionSource.KNOCKOUT_F0,
             )
 
             val resolved = CareerMatchTicketInputResolver(database).resolve(
                 careerId = "career",
                 scheduled = ScheduledCareerMatch("match", 5, 1, "home", "away"),
-                evidence = CareerMatchTicketUnpersistedEvidence(
-                    homeRawO = 2,
-                    homeLegacyCoachHOrNull = 73,
-                    parentCompetitionIsA0 = true,
-                ),
             )
 
             assertTrue(resolved.calculation.capacities.isEmpty())
@@ -102,6 +64,80 @@ class CareerMatchTicketInputResolverTest {
         } finally {
             database.close()
         }
+    }
+
+    @Test
+    fun `missing V9 club ticket state fails closed`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            seedBase(database)
+            val error = runCatching {
+                CareerMatchTicketInputResolver(database).resolve(
+                    "career",
+                    ScheduledCareerMatch("match", 5, 1, "home", "away"),
+                )
+            }.exceptionOrNull()
+            assertNotNull(error)
+        } finally {
+            database.close()
+        }
+    }
+
+    private suspend fun seedBase(database: FootballDynastyDatabase) {
+        database.clubDao().upsertAll(
+            listOf(
+                club("home", country = 29, reputation = 9),
+                club("away", country = 11, reputation = -2),
+            )
+        )
+        database.careerMetadataDao().upsert(
+            CareerMetadataEntity("career", 1, "Career", null, null, 1L, 1L)
+        )
+        database.careerScheduledMatchDao().upsert(
+            CareerScheduledMatchEntity(
+                careerId = "career",
+                matchId = "match",
+                dayIndex = 5,
+                eventTypeCode = 1,
+                homeClubId = "home",
+                awayClubId = "away",
+                processed = false,
+                homeGoals = null,
+                awayGoals = null,
+            )
+        )
+        database.careerCompetitionDao().upsertCompetition(
+            CareerCompetitionEntity("career", "competition", 6, 44, 1, 1)
+        )
+        database.careerCompetitionDao().upsertMatches(
+            listOf(CareerCompetitionMatchEntity("career", "competition", "match", 1, 0))
+        )
+        database.careerManagerRuntimeDao().upsertClubRuntime(
+            CareerClubManagerRuntimeEntity(
+                careerId = "career",
+                clubId = "home",
+                active = true,
+                cash = 1_000L,
+                primarySlotPlayerCode = null,
+                secondarySlotPlayerCode = null,
+                rawStateFlag = false,
+                ticketIncome = 0,
+                playerSaleIncome = 0L,
+                prizeIncome = 0,
+                sponsorIncome = 0,
+                playerPurchaseExpense = 0L,
+                stadiumExpense = 0,
+                salaryExpense = 0L,
+                borrowingChargeExpense = 0,
+                fineExpense = 0,
+                miscellaneousExpense = 0,
+                borrowed = 0,
+                monthlyBorrowingCharge = 0,
+            )
+        )
     }
 
     private fun club(id: String, country: Int, reputation: Int) = ClubEntity(

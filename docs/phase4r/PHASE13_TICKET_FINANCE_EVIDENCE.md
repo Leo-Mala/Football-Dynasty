@@ -5,13 +5,13 @@ SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`
 
 ## Proven call chain
 
-`best.k.n(best.s)` → `match.H().b(match)` → `best.k.b(best.s)` → `best.s.f1(int[4])` + `best.s.h1(int)` → `best.s.h()` → `home.B(ticketIncome, 5)` → `best.m.a(ticketIncome, 5)`.
+`best.k.n(best.s)` → `match.H().b(match)` → `best.k.b(best.s)` → `best.s.f1(int[4])` + `best.s.h1(int)` → later post-match `best.s.h()` → `home.B(ticketIncome, 5)` → `best.m.a(ticketIncome, 5)`.
 
 `best.s.h()` skips the credit when `competition.E()` is `7` or `5`, and also skips it when the home club `Q0()` flag is false. Otherwise `best.c0.B` increments cash without a balance clamp and routes category `5` to the ticket-income accumulator.
 
 ## `best.k.b` structural fingerprint
 
-The calculation consumes the stadium's four raw capacities (`best.k.b:[I`) independently. It cannot be reconstructed from a single aggregate capacity after career mutations without losing behavior.
+The calculation consumes the stadium's four raw capacities independently. It cannot be reconstructed from a single aggregate capacity after career mutations without losing behavior.
 
 For each match it:
 
@@ -24,67 +24,54 @@ For each match it:
 7. performs sector-ordered RNG draws using the home `O()` row (invalid → `3`), consuming no draw only where that sector's bound is zero;
 8. clamps each attendance to `[0, sectorCapacity]`;
 9. selects the exact `best.j0.z0` price row according to competition type and raw home fields;
-10. computes `sum(attendance[i] * price[i])`, stores attendance in `best.s.j` and gross ticket income in `best.s.l`.
+10. computes `sum(attendance[i] * price[i])`, stores attendance in the match and stores gross ticket income for the later finance credit.
 
 SMALI confirms the Java structure and exact table values, including the type `6/8` second price row `[20,25,40,120]`.
 
-## Proven persisted/source input provenance
+## Persisted/source provenance of every input
 
-Java + SMALI now close four of the non-stadium inputs that were previously caller-owned:
+The modern resolver now has a durable provenance for every characterized input:
 
-- **competition type** — `best.s.B()` returns the actual `best.k0` competition and ticket logic calls `B().E()`. The modern match→competition link already resolves a single `CareerCompetitionEntity`, whose `legacyCompetitionType` is the persisted `E()` projection.
-- **home/away `p0()`** — `best.c0` initializes its raw reputation field from `e.t.getReputacao()`. `p0()` clamps that field to `[0,5]`. Modern immutable `ClubEntity.reputation` comes from the same official `.ban` source, so `LegacyTicketClubSourceRule` replays exactly this read-time clamp.
-- **home `J()`** — SMALI confirms `best.c0.J()` evaluates `best.y.valueOf("P" + country).g()`. `ClubEntity.country` is the same serialized source country and `LegacyCountryAssetCodes.groupForLegacyCountry()` already contains the exact 221-row `best.y.g()` table.
-- **home `Q0()`** — SMALI confirms `Q0()` returns the club Boolean control flag and `t1(Boolean)` writes it. The same flag is already represented by `CareerClubManagerRuntimeEntity.active`; this is also the flag used by the characterized legacy transfer finance path.
+- **competition type** — single persisted match→competition link → `CareerCompetitionEntity.legacyCompetitionType`;
+- **home/away `p0()`** — immutable official `.ban` reputation replayed by `LegacyTicketClubSourceRule` with the legacy read clamp;
+- **home `J()`** — official club country projected through the exact 221-row country-group table;
+- **home `Q0()`** — `CareerClubManagerRuntimeEntity.active`;
+- **four stadium capacities** — V8 `career_stadium_runtime`;
+- **home `O()`** — V9 `career_club_ticket_runtime.rawDivisionCode`, preserving the career-mutable raw value instead of source `level`;
+- **home manager identity / `H`** — V9 club numeric manager id plus ordered `career_manager_ticket_runtime`; duplicate ids are allowed and the first source ordinal wins exactly like `best.b.b1(id)`. Stored `-1` means no manager; any other dangling id fails closed;
+- **`match.A() instanceof konrent.a0`** — V9 `career_match_construction_source`, mapped from the proven constructor origin: `LEAGUE_T=false`, `KNOCKOUT_F0=true`, `FRIENDLY_A=false`.
 
-`CareerMatchTicketInputResolver` now resolves these four fields from persisted/source state and requires exactly one persisted competition link for a ticket-bearing match. Callers can no longer override them with arbitrary raw values.
-
-Three inputs remain explicitly fail-closed because the V8 model does not yet prove their complete durable representation:
-
-- **home `O()`** — `best.c0.O()` returns raw field `j`; `konrent.t.f1()` writes it with league field `F` through `c0.s1(F)`. This is career-mutable division state and is **not** the immutable `.ban` `level` field.
-- **home coach `H`** — ticket logic reads `home.y0()?.o()`, where `best.f0.o()` returns mutable `H`. Constructors initialize `H=80`, manager employment resets it to `80`, and legacy match/year logic mutates it through `h(int)`/`N(int)`. Therefore using a constant `80` for every non-null coach would be incorrect.
-- **parent `a0` class identity** — ticket logic tests `best.s.A() instanceof konrent.a0`, while `best.s.B()` is the actual competition. Current competition persistence retains type/format but does not yet prove a lossless parent runtime-class discriminator.
+Room V9 is additive and fail-closed. Migration 8→9 creates these state tables without synthesizing rows for old careers. See `PHASE13_TICKET_RUNTIME_V9_EVIDENCE.md`.
 
 ## Proven initial sector materialization
 
-The corpus also proves how a fresh club obtains the four capacities. `best.c0.c(String,int)` constructs `new best.k(stadiumName, aggregateCapacity, club)`. The constructor immediately calls private `best.k.a(int)`.
+`best.c0.c(String,int)` constructs `new best.k(stadiumName, aggregateCapacity, club)`, whose constructor immediately computes four sectors:
 
-`best.k.a(int)`:
+1. aggregate outside `1000..120000` becomes `10000`;
+2. sector 0 = `round(capacity * 0.15)`;
+3. sector 2 = `round(capacity * 0.09)`;
+4. sector 3 = `round(capacity * 0.009)`;
+5. sector 1 = exact remaining aggregate;
+6. sector caps `[18000,80000,9000,700]` are applied independently without redistribution.
 
-1. replaces aggregate capacity outside `1000..120000` with `10000`;
-2. computes sector 0 as `round(capacity * 0.15)`;
-3. computes sector 2 as `round(capacity * 0.09)`;
-4. computes sector 3 as `round(capacity * 0.009)`;
-5. computes sector 1 as the remaining aggregate capacity;
-6. individually caps the sectors at `[18000,80000,9000,700]` without redistributing capacity removed by those caps.
-
-`LegacyStadiumInitialSectorRule` is the modern pure reconstruction. `CareerStadiumRuntimeStore.materializeFromSourceClub(...)` replays that constructor from immutable `ClubEntity.capacity` for newly initialized career state.
-
-This does **not** change the V7→V8 migration rule: an already-running V7 career may contain stadium expansions that changed individual sectors, so the current sector vector cannot be reconstructed from the immutable aggregate source capacity. Migration therefore remains additive and fail-closed with no synthesized rows.
-
-## Persistence consequence
-
-V8 adds `career_stadium_runtime(careerId, clubId,sector0Capacity..sector3Capacity)` as additive career-local state. Match revenue reads this durable vector rather than splitting aggregate capacity heuristically.
+`CareerStadiumRuntimeStore.materializeFromSourceClub(...)` replays this only for newly initialized proven state. V7→V8 never backfills old careers because past per-sector expansions cannot be inferred from immutable aggregate capacity.
 
 ## Match/RNG order and atomic integration
 
-The modern match path accepts only `CareerMatchTicketUnpersistedEvidence` for the three still-unmaterialized inputs. `CareerMatchTicketInputResolver` joins that evidence with the persisted/source fields above before calculation.
+SMALI `best.s.Q0()` proves that stadium attendance/ticket calculation runs before later match RNG sites. The later `best.s.h()` only credits the already-computed gross and consumes no RNG.
 
-SMALI `best.s.Q0()` proves the ordering constraint that was previously missing from the modern coordinator: it calls `H().b(this)` — the stadium attendance/ticket calculation — before the subsequent `java.util.Random.nextInt(...)` sites used by the match. The later `best.s.h()` only credits the already-computed gross and consumes no RNG.
+The modern order therefore is:
 
-The modern order is therefore:
+1. resolve every ticket input from V9/source persistence and require home finance + four-sector stadium state;
+2. `LegacyTicketFinanceRule.calculate(...)` consumes the career `RandomSource` before match simulation;
+3. match simulation uses that same already-advanced `RandomSource`;
+4. after simulation, `LegacyTicketFinanceRule.applyHomeTicketIncome(...)` applies the type/Q0 credit gate without consuming RNG;
+5. `CareerMatchAtomicCommitter` commits score, calendar, RNG, player effects and ticket finance inside one Room transaction.
 
-1. persisted home finance state and four-sector stadium state are required;
-2. `LegacyTicketFinanceRule.calculate(...)` runs first on the career `RandomSource` and stores the gross ticket income;
-3. the match simulation runs on that **same already-advanced** `RandomSource`;
-4. after simulation, `LegacyTicketFinanceRule.applyHomeTicketIncome(...)` applies the proven type/Q0 credit gate to the saved gross without consuming RNG;
-5. `CareerMatchAtomicCommitter` commits score, calendar, career/RNG state, player effects and ticket finance inside one outer Room transaction;
-6. `CareerManagerRuntimeStore.commitFinanceState(...)` keeps its expected-before stale-state guard inside that transaction, so a rejected finance mutation rolls the match/RNG writes back as well.
+`CareerMatchTicketRngOrderTest` locks the order. For raw `O=0`, bounds `[10,20,5,0]` require exactly three ticket draws before the match callback; a fourth callback draw must be present in persisted career RNG state.
 
-`CareerMatchTicketRngOrderTest` locks this sequence at the persistence boundary. With raw `O=0`, `best.k.b` has bounds `[10,20,5,0]`, so exactly three draws must already have been consumed when the match callback starts; a fourth draw made by the simulated match must then appear in the persisted career RNG state.
+No secondary RNG, guessed manager H, immutable-level substitution or inferred parent class is used.
 
-No secondary RNG and no post-match finance transaction are introduced.
+## Next manager lifecycle seam
 
-## Remaining boundary
-
-The unresolved ticket inputs are now only the three genuinely career-mutable/class-identity fields above: `O()`, coach `H`, and `A() instanceof konrent.a0`. They must be connected to durable modern state only after their complete legacy lifecycle/materialization is proved. Until then the boundary remains explicit rather than substituting source `level`, constant `80`, or a guessed competition-type mapping.
+Ticket demand consumes the manager's **pre-match** raw `H`. Post-match legacy flow is separate: `best.s.g()` invokes each match's `f(); i(); h(); e();`, and `best.s.f()` calls manager `j(match)` for both coaches and conditionally `i(match)` for competition types 1,2,3,4,5,6,8 before later ticket cash credit. Those `best.f0.i/j` methods mutate more than a simple ±1 H delta and must be characterized completely before V9 manager-state mutation is connected. Until that characterization is complete, ticket input persistence is valid but post-match manager mutation remains intentionally fail-closed/outside this checkpoint.

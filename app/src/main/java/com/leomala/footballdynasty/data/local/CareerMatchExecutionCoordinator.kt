@@ -14,27 +14,13 @@ import com.leomala.footballdynasty.domain.manager.LegacyTicketFinanceRule
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
-/**
- * Resolved ticket input after persisted competition/club/Q0 fields and the remaining explicitly
- * characterized career-mutable evidence have been joined.
- *
- * The coordinator still replaces [LegacyTicketCalculationInput.capacities] with the durable career
- * stadium sectors before calculation, so no caller can bypass the fail-closed V8 state.
- */
+/** Fully resolved ticket input. V9 owns every mutable/class-identity field consumed by calculation. */
 data class CareerMatchTicketRuntimeInput(
     val calculation: LegacyTicketCalculationInput,
     val homeLegacyQ0: Boolean,
 )
 
-/**
- * End-to-end Phase 9 persistence seam around the certified Phase 8 runtime.
- *
- * Phase 11 now supplies the previously unresolved lineup-only `g0` state through the characterized
- * ActivityEscalacao.y()/B() commit result. The manager execution path also carries the raw tactic
- * index proven by `best.s.k(...)` (`best.c0.i0()[2]`). The lower-level explicit transient-evidence
- * overload remains available for characterization and specialized callers. All proven post-match
- * effects are committed atomically with score, calendar and career RNG.
- */
+/** End-to-end persisted match execution seam around the certified Phase 8 runtime. */
 class CareerMatchExecutionCoordinator(
     database: FootballDynastyDatabase,
     clockMillis: () -> Long = System::currentTimeMillis,
@@ -47,10 +33,6 @@ class CareerMatchExecutionCoordinator(
     private val ticketInputResolver = CareerMatchTicketInputResolver(database)
     private val atomicCommitter = CareerMatchAtomicCommitter(database, clockMillis)
 
-    /**
-     * Complete manager entry point for characterized pre-match lineup + tactics state.
-     * The callback receives the exact raw tactic indexes consumed by the legacy match engine.
-     */
     suspend fun executeManagerMatch(
         careerId: String,
         matchId: String,
@@ -62,6 +44,7 @@ class CareerMatchExecutionCoordinator(
         awaySubstitutionsRemaining: Int,
         homeLegacyModeFlag: Boolean,
         awayLegacyModeFlag: Boolean,
+        includeTicketFinance: Boolean = false,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
@@ -78,6 +61,7 @@ class CareerMatchExecutionCoordinator(
         awaySubstitutionsRemaining = awaySubstitutionsRemaining,
         homeLegacyModeFlag = homeLegacyModeFlag,
         awayLegacyModeFlag = awayLegacyModeFlag,
+        includeTicketFinance = includeTicketFinance,
     ) { scheduled, state, random ->
         simulate(
             scheduled,
@@ -88,7 +72,6 @@ class CareerMatchExecutionCoordinator(
         )
     }
 
-    /** Normal lineup-aware path when tactics are owned by a more specialized match caller. */
     suspend fun execute(
         careerId: String,
         matchId: String,
@@ -98,6 +81,7 @@ class CareerMatchExecutionCoordinator(
         awaySubstitutionsRemaining: Int,
         homeLegacyModeFlag: Boolean,
         awayLegacyModeFlag: Boolean,
+        includeTicketFinance: Boolean = false,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
@@ -114,24 +98,24 @@ class CareerMatchExecutionCoordinator(
             homeLegacyModeFlag = homeLegacyModeFlag,
             awayLegacyModeFlag = awayLegacyModeFlag,
         ),
+        includeTicketFinance = includeTicketFinance,
         simulate = simulate,
     )
 
     /**
      * Low-level seam retained for exact transient-state characterization and specialized callers.
      *
-     * When [ticketEvidence] is present, [CareerMatchTicketInputResolver] first obtains competition
-     * type, p0, J and Q0 from persisted/source state. Legacy `best.s.Q0()` calls
-     * `best.k.b(best.s)` before the subsequent match RNG sites, so the ticket calculation consumes
-     * the exact career [RandomSource] before [simulate]. The already-computed gross is credited only
-     * after simulation, matching `best.s.h()`. Finance, score, player effects, calendar and the
-     * advanced RNG state are then committed by [CareerMatchAtomicCommitter] in one Room transaction.
+     * When [includeTicketFinance] is true, every ticket input is resolved from persisted V9/source
+     * state. Legacy `best.s.Q0()` performs stadium attendance before its later match RNG sites, so
+     * ticket calculation consumes the exact career [RandomSource] before [simulate]. The gross is
+     * credited only after simulation, matching the later `best.s.h()` step. Finance, score, player
+     * effects, calendar and advanced RNG are committed by [CareerMatchAtomicCommitter] atomically.
      */
     suspend fun execute(
         careerId: String,
         matchId: String,
         transientEvidence: CareerMatchPersistedRuntimeResolver.TransientMatchEvidence,
-        ticketEvidence: CareerMatchTicketUnpersistedEvidence? = null,
+        includeTicketFinance: Boolean = false,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
@@ -156,8 +140,10 @@ class CareerMatchExecutionCoordinator(
             state.calendar.copy(currentDayIndex = scheduled.dayIndex)
         )
 
-        val ticketRuntimeInput = ticketEvidence?.let {
-            ticketInputResolver.resolve(careerId, scheduled, it)
+        val ticketRuntimeInput = if (includeTicketFinance) {
+            ticketInputResolver.resolve(careerId, scheduled)
+        } else {
+            null
         }
         val financeBefore: LegacyFinanceRuntimeState? = ticketRuntimeInput?.let {
             requireNotNull(managerStore.clubFinanceState(careerId, scheduled.homeClubId)) {
@@ -178,8 +164,6 @@ class CareerMatchExecutionCoordinator(
         ) { event, random ->
             require(event == scheduled) { "Career bridge changed scheduled match identity" }
 
-            // `best.s.Q0()` performs `H().b(this)` before its later match Random.nextInt sites.
-            // Preserve that draw order while deferring the cash/ledger credit until after simulation.
             val grossTicketIncome = ticketRuntimeInput?.let { ticket ->
                 LegacyTicketFinanceRule.calculate(
                     input = ticket.calculation.copy(

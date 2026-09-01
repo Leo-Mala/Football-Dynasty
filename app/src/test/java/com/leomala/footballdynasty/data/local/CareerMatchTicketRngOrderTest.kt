@@ -12,6 +12,7 @@ import com.leomala.footballdynasty.domain.career.CareerStateFactory
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyFinanceLedgerState
 import com.leomala.footballdynasty.domain.manager.LegacyFinanceRuntimeState
+import com.leomala.footballdynasty.domain.manager.LegacyMatchConstructionSource
 import com.leomala.footballdynasty.domain.manager.LegacyTransferClubRuntimeState
 import com.leomala.footballdynasty.domain.model.Career
 import com.leomala.footballdynasty.domain.model.Match
@@ -27,7 +28,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchTicketRngOrderTest {
     @Test
-    fun `ticket attendance consumes career rng before match simulation and final state persists both`() = runBlocking {
+    fun `V9 ticket state consumes career rng before match simulation and final state persists both`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase13-ticket-rng-order"
         context.deleteDatabase(name)
@@ -76,6 +77,18 @@ class CareerMatchTicketRngOrderTest {
             HOME,
             CareerStadiumRuntimeState(listOf(1_000, 5_000, 1_200, 20)),
         )
+        val ticketStore = CareerTicketRuntimeStore(database)
+        ticketStore.materializeClubState(
+            CAREER,
+            HOME,
+            CareerClubTicketRuntimeState(rawDivisionCode = 0, legacyManagerId = -1),
+        )
+        ticketStore.materializeManagers(CAREER, emptyList())
+        ticketStore.materializeMatchConstructionSource(
+            CAREER,
+            MATCH,
+            LegacyMatchConstructionSource.LEAGUE_T,
+        )
 
         var drawsAtSimulationEntry = -1L
         val coordinator = CareerMatchExecutionCoordinator(database) { 77L }
@@ -83,18 +96,13 @@ class CareerMatchTicketRngOrderTest {
             careerId = CAREER,
             matchId = MATCH,
             transientEvidence = transientEvidence(),
-            ticketEvidence = CareerMatchTicketUnpersistedEvidence(
-                homeRawO = 0,
-                homeLegacyCoachHOrNull = null,
-                parentCompetitionIsA0 = false,
-            ),
+            includeTicketFinance = true,
         ) { event, _, random ->
             drawsAtSimulationEntry = random.draws
             random.nextInt(100)
             Match(event.matchId, event.homeClubId, event.awayClubId, 0, 0)
         }
 
-        // `best.k.b` O=0 bounds are [10,20,5,0]: exactly three draws before later match RNG.
         assertEquals(initial.random.draws + 3L, drawsAtSimulationEntry)
         assertEquals(initial.random.draws + 4L, result.state.random.draws)
         val financeAfter = requireNotNull(managerStore.clubFinanceState(CAREER, HOME))
@@ -132,9 +140,7 @@ class CareerMatchTicketRngOrderTest {
                 club(AWAY, 202, reputation = 1),
             )
         )
-        database.playerDao().upsertAll(
-            listOf(player(HOME_PLAYER), player(AWAY_PLAYER))
-        )
+        database.playerDao().upsertAll(listOf(player(HOME_PLAYER), player(AWAY_PLAYER)))
         RoomCareerRepository(database) { 10L }.save(Career(CAREER, "Ticket RNG", null, null))
         val dao = database.careerPlayerRuntimeDao()
         dao.upsertRuntime(runtime(HOME_PLAYER))
@@ -167,13 +173,7 @@ class CareerMatchTicketRngOrderTest {
     )
 
     private fun membership(playerId: String, clubId: String, ordinal: Int) =
-        CareerSquadMembershipEntity(
-            careerId = CAREER,
-            playerId = playerId,
-            clubId = clubId,
-            rosterKind = "SENIOR",
-            sourceOrdinal = ordinal,
-        )
+        CareerSquadMembershipEntity(CAREER, playerId, clubId, "SENIOR", ordinal)
 
     private fun player(id: String) = PlayerEntity(
         id = id,
