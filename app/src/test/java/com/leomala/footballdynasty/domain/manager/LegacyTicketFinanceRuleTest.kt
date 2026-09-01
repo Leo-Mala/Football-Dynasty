@@ -7,7 +7,7 @@ import org.junit.Test
 class LegacyTicketFinanceRuleTest {
     @Test
     fun `four sector calculation preserves draw order clamp and price multiplication`() {
-        val random = QueueRandom(9, 99, 199, 0)
+        val random = QueueRandom(9, 19, 4)
         val result = LegacyTicketFinanceRule.calculate(
             LegacyTicketCalculationInput(
                 capacities = listOf(1_000, 5_000, 1_200, 20),
@@ -36,7 +36,7 @@ class LegacyTicketFinanceRuleTest {
     }
 
     @Test
-    fun `eligible home credits cash and category five ledger even from zero income`() {
+    fun `eligible home credits cash and category five ledger`() {
         val before = LegacyFinanceRuntimeState(100L, LegacyFinanceLedgerState(ticketIncome = 7))
         val after = LegacyTicketFinanceRule.applyHomeTicketIncome(before, 1, true, 500)
         assertEquals(600L, after.cash)
