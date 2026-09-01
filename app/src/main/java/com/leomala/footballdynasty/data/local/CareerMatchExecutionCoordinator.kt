@@ -5,11 +5,24 @@ import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeBridge
 import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeResult
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.manager.LegacyFinanceRuntimeState
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitResult
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsRawState
+import com.leomala.footballdynasty.domain.manager.LegacyTicketCalculationInput
+import com.leomala.footballdynasty.domain.manager.LegacyTicketFinanceRule
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.random.RandomSource
+
+/**
+ * Proven ticket inputs that are not derivable from the persisted four-sector stadium state itself.
+ * The coordinator deliberately replaces [LegacyTicketCalculationInput.capacities] with the durable
+ * career stadium sectors before calculation, so callers cannot bypass the fail-closed V8 state.
+ */
+data class CareerMatchTicketRuntimeInput(
+    val calculation: LegacyTicketCalculationInput,
+    val homeLegacyQ0: Boolean,
+)
 
 /**
  * End-to-end Phase 9 persistence seam around the certified Phase 8 runtime.
@@ -27,6 +40,9 @@ class CareerMatchExecutionCoordinator(
     private val stateRepository = RoomCareerStateRepository(database)
     private val store = CareerMatchStore(database, clockMillis)
     private val resolver = CareerMatchPersistedRuntimeResolver(database)
+    private val managerStore = CareerManagerRuntimeStore(database)
+    private val stadiumStore = CareerStadiumRuntimeStore(database)
+    private val atomicCommitter = CareerMatchAtomicCommitter(database, clockMillis)
 
     /**
      * Complete manager entry point for characterized pre-match lineup + tactics state.
@@ -98,11 +114,19 @@ class CareerMatchExecutionCoordinator(
         simulate = simulate,
     )
 
-    /** Low-level seam retained for exact transient-state characterization and specialized callers. */
+    /**
+     * Low-level seam retained for exact transient-state characterization and specialized callers.
+     *
+     * When [ticketRuntimeInput] is present, the legacy `best.k.b(best.s)` attendance calculation
+     * runs after the match simulation on the exact same career [RandomSource]. Its finance mutation
+     * is then committed by [CareerMatchAtomicCommitter] in the same Room transaction as score,
+     * player effects, calendar progression and the advanced RNG state.
+     */
     suspend fun execute(
         careerId: String,
         matchId: String,
         transientEvidence: CareerMatchPersistedRuntimeResolver.TransientMatchEvidence,
+        ticketRuntimeInput: CareerMatchTicketRuntimeInput? = null,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
@@ -127,16 +151,43 @@ class CareerMatchExecutionCoordinator(
             state.calendar.copy(currentDayIndex = scheduled.dayIndex)
         )
 
+        val financeBefore: LegacyFinanceRuntimeState? = ticketRuntimeInput?.let {
+            requireNotNull(managerStore.clubFinanceState(careerId, scheduled.homeClubId)) {
+                "Missing materialized home finance state $careerId/${scheduled.homeClubId}"
+            }
+        }
+        val stadiumBefore: CareerStadiumRuntimeState? = ticketRuntimeInput?.let {
+            requireNotNull(stadiumStore.find(careerId, scheduled.homeClubId)) {
+                "Missing materialized four-sector stadium state $careerId/${scheduled.homeClubId}"
+            }
+        }
+        var financeAfter: LegacyFinanceRuntimeState? = null
+
         val result = CareerMatchRuntimeBridge.run(
             state = state,
             schedule = schedule,
             matchId = matchId,
         ) { event, random ->
             require(event == scheduled) { "Career bridge changed scheduled match identity" }
-            simulate(event, transientState, random)
+            val match = simulate(event, transientState, random)
+            ticketRuntimeInput?.let { ticket ->
+                val calculation = LegacyTicketFinanceRule.calculate(
+                    input = ticket.calculation.copy(
+                        capacities = requireNotNull(stadiumBefore).capacities,
+                    ),
+                    random = random,
+                )
+                financeAfter = LegacyTicketFinanceRule.applyHomeTicketIncome(
+                    state = requireNotNull(financeBefore),
+                    rawCompetitionType = ticket.calculation.rawCompetitionType,
+                    homeLegacyQ0 = ticket.homeLegacyQ0,
+                    grossTicketIncome = calculation.grossTicketIncome,
+                )
+            }
+            match
         }
 
-        store.commitMatch(
+        atomicCommitter.commit(
             result = result,
             playerRuntimeUpdates = CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(
                 transientState,
@@ -144,6 +195,13 @@ class CareerMatchExecutionCoordinator(
             ),
             playerClubSeasonStatUpdates =
                 CareerMatchPersistedEffectsMapper.playerClubSeasonStatUpdates(transientState),
+            financeUpdate = financeAfter?.let { after ->
+                CareerMatchFinanceUpdate(
+                    clubId = scheduled.homeClubId,
+                    expectedBefore = requireNotNull(financeBefore),
+                    after = after,
+                )
+            },
         )
         return result
     }
