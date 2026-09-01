@@ -29,6 +29,7 @@ class Migration6To7Test {
             Phase10CompetitionMigration.MIGRATION_5_6,
             Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
+            Phase13TicketRuntimeMigration.MIGRATION_8_9,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         val expectedTables = setOf(
@@ -36,12 +37,15 @@ class Migration6To7Test {
             "career_active_loans", "career_stadium_constructions",
         )
         db.query("SELECT name FROM sqlite_master WHERE type='table'").use { c ->
-            val actual=mutableSetOf<String>(); while(c.moveToNext()) actual+=c.getString(0); assertTrue(actual.containsAll(expectedTables)); assertTrue(actual.contains("career_stadium_runtime"))
+            val actual=mutableSetOf<String>(); while(c.moveToNext()) actual+=c.getString(0); assertTrue(actual.containsAll(expectedTables)); assertTrue(actual.contains("career_stadium_runtime")); assertTrue(actual.contains("career_club_ticket_runtime"))
         }
         expectedTables.forEach { table ->
             db.query("SELECT COUNT(*) FROM `$table`").use { c -> assertTrue(c.moveToFirst()); assertEquals("Migration must not synthesize $table rows",0,c.getInt(0)) }
         }
         db.query("SELECT COUNT(*) FROM career_stadium_runtime").use { c -> assertTrue(c.moveToFirst()); assertEquals("V8 must not synthesize stadium sectors",0,c.getInt(0)) }
+        for (table in listOf("career_club_ticket_runtime","career_manager_ticket_runtime","career_match_construction_source")) {
+            db.query("SELECT COUNT(*) FROM `$table`").use { c -> assertTrue(c.moveToFirst()); assertEquals("V9 must not synthesize $table rows",0,c.getInt(0)) }
+        }
         db.query("SELECT displayName FROM career_metadata WHERE id='career-v7'").use { c -> assertTrue(c.moveToFirst()); assertEquals("Migration V7 probe",c.getString(0)) }
         db.execSQL("DELETE FROM career_metadata WHERE id='career-v7'")
         db.close()

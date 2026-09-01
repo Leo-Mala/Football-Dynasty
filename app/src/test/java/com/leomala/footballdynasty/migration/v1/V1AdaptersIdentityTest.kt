@@ -77,12 +77,7 @@ class V1AdaptersIdentityTest {
             legacyMetadataFingerprint = "metadata-fingerprint-probe",
             legacyCareerFingerprint = "career-fingerprint-probe",
         )
-        val entity = V1RoomAdapter.careerEntity(
-            data = data,
-            createdAtEpochMillis = 10L,
-            updatedAtEpochMillis = 20L,
-        )
-
+        val entity = V1RoomAdapter.careerEntity(data, createdAtEpochMillis = 10L, updatedAtEpochMillis = 20L)
         assertEquals(data, V1RoomAdapter.careerData(entity))
         assertEquals(data, V1DomainAdapter.careerData(V1DomainAdapter.career(data)))
     }
@@ -90,19 +85,16 @@ class V1AdaptersIdentityTest {
     @Test
     fun `unsupported V1 entity version fails explicitly`() {
         val data = LegacyBanToV1Adapter().adapt(legacySnapshot()).copy(schemaVersion = 99)
-        val error = runCatching {
-            V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
-        }.exceptionOrNull()
-
+        val error = runCatching { V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE) }.exceptionOrNull()
         assertTrue(error is ImportVersionException)
     }
 
     @Test
-    fun `database V8 preserves explicit ordered migration registry from V1`() {
-        assertEquals(8, FootballDynastyDatabase.SCHEMA_VERSION)
-        assertEquals(7, FootballDynastyMigrations.ALL.size)
+    fun `database V9 preserves explicit ordered migration registry from V1`() {
+        assertEquals(9, FootballDynastyDatabase.SCHEMA_VERSION)
+        assertEquals(8, FootballDynastyMigrations.ALL.size)
         assertEquals(
-            listOf(1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7, 7 to 8),
+            listOf(1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7, 7 to 8, 8 to 9),
             FootballDynastyMigrations.ALL.map { it.startVersion to it.endVersion },
         )
     }
@@ -112,16 +104,12 @@ class V1AdaptersIdentityTest {
         val error = runCatching {
             LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf(1, 2, 3)))
         }.exceptionOrNull()
-
         assertTrue(error is UnsupportedLegacySaveException)
     }
 
     private fun legacySnapshot() = LegacySerialization.readBan(
         ByteArrayInputStream(
-            LegacyFixtureLoader.bytes(
-                "/legacy/12deoctubre_par.ban.b64",
-                javaClass,
-            )
+            LegacyFixtureLoader.bytes("/legacy/12deoctubre_par.ban.b64", javaClass)
         )
     )
 }

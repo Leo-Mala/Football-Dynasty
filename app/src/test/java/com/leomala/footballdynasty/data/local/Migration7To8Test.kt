@@ -20,8 +20,8 @@ class Migration7To8Test {
     )
 
     @Test
-    fun `migration chain to 8 adds empty fail closed stadium runtime without destroying career`() {
-        val name = "marco-b-migration-3-8"
+    fun `V7 to V8 stadium step remains fail closed through current V9 schema`() {
+        val name = "marco-b-migration-3-current-v8-contract"
         var db = helper.createDatabase(name, 3)
         db.execSQL(
             "INSERT INTO career_metadata " +
@@ -32,19 +32,30 @@ class Migration7To8Test {
 
         db = helper.runMigrationsAndValidate(
             name,
-            8,
+            FootballDynastyDatabase.SCHEMA_VERSION,
             true,
             FootballDynastyMigrations.MIGRATION_3_4,
             FootballDynastyMigrations.MIGRATION_4_5,
             Phase10CompetitionMigration.MIGRATION_5_6,
             Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
+            Phase13TicketRuntimeMigration.MIGRATION_8_9,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 
         db.query("SELECT COUNT(*) FROM career_stadium_runtime").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals("V8 migration must not synthesize stadium sectors", 0, cursor.getInt(0))
+        }
+        for (table in listOf(
+            "career_club_ticket_runtime",
+            "career_manager_ticket_runtime",
+            "career_match_construction_source",
+        )) {
+            db.query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("V9 migration must not synthesize $table rows", 0, cursor.getInt(0))
+            }
         }
         db.query("SELECT displayName FROM career_metadata WHERE id='career-v8'").use { cursor ->
             assertTrue(cursor.moveToFirst())
