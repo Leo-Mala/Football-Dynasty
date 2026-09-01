@@ -3,7 +3,7 @@
 Official corpus: `Brasfoot.apk_Decompiler.com.zip`  
 SHA-256: `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465`
 
-Status: **CHARACTERIZED / PERSISTENCE NOT YET PROMOTED**
+Status: **CHARACTERIZED / V9 PARTIALLY PROMOTED / POST-MATCH STILL FAIL-CLOSED**
 
 ## Why this field matters to Phase 13
 
@@ -41,6 +41,8 @@ Inside `best.f0.i(best.s)`, the manager's own goals/opponent goals and home/away
 
 `LegacyCoachRawHRule.afterMatch(...)` reconstructs only this proven H projection. Other `best.f0.i` fields/effects remain outside this rule.
 
+**Promotion boundary:** the H-only post-match projection is deliberately not wired to `CareerMatchAtomicCommitter` yet. `best.f0.i(best.s)` / `best.f0.j(best.s)` must be reconstructed field-by-field from Java↔SMALI before the production post-match mutation is persisted. Persisting only H would create a false partial lifecycle and is prohibited by the project parity contract.
+
 ## Annual recovery — `best.b.s()`
 
 During the reachable annual reset, `best.b.s()` iterates every club. When `club.y0() != null`, it calls:
@@ -49,6 +51,8 @@ During the reachable annual reset, `best.b.s()` iterates every club. When `club.
 - `club.y0().h(50)` for H.
 
 The H path is therefore exact `+50` through the same immediate `0..100` clamp. `LegacyCoachRawHRule.afterAnnualRecovery(...)` represents this isolated proven effect.
+
+V9 now persists this independently complete H slice through `CareerTicketRuntimeStore.applyCoachAnnualRecovery(...)`. The store mutates the first matching manager in legacy world order, preserves duplicate legacy manager IDs, fails closed for an absent/unmaterialized manager, and writes inside a Room transaction. Reopen coverage proves the resulting value is durable.
 
 ## ActivityMainTeam floor quirk
 
@@ -62,20 +66,27 @@ The flag can be set when the current match competition code held by the screen i
 
 `LegacyCoachRawHRule.afterMainTeamRefresh(rawH, legacyFloorEnabled)` preserves only the proven H mutation. It does not invent when a modern screen is opened.
 
-## Persistence consequence
+V9 now persists this independently complete H slice through `CareerTicketRuntimeStore.applyCoachMainTeamRefresh(...)`. The caller must still supply the already-characterized legacy floor flag; the persistence layer does not invent a modern-screen trigger. Disabled-floor behavior is an exact no-op and reopen coverage proves the enabled mutation is durable.
 
-V8 currently persists club finance, stadium sectors and manager employment-facing state, but does not contain durable per-club/per-manager H.
+## V9 persistence consequence
 
-A future persistence promotion must preserve all proven sources above:
+V9 contains durable career-scoped manager runtime rows with legacy world order, numeric legacy manager identity and raw H. The schema promotion is additive and fail-closed.
 
-1. fresh source club manager starts H at `80`;
-2. manager employment resets H to `80`;
-3. eligible match completion applies the exact home/away/result/margin sequence;
-4. annual reset applies `+50` with clamp;
-5. the reachable main-team hub can floor H to `30`.
+Migration V8→V9 intentionally does **not** synthesize `H = 80` for existing careers. A V8 career may already have advanced through matches, annual progression or the main-team floor path, so assigning 80 during migration would invent state.
 
-Existing V8 careers cannot be assigned `80` during migration without inventing state, because matches/annual progression may already have changed H. Any schema promotion must therefore remain fail-closed for previously advanced careers unless a lossless current value is available.
+The current V9 boundary therefore preserves these rules:
 
-## Phase 13 boundary after this characterization
+1. fresh source manager state may materialize the proven constructor value `80` only when that source state is actually being created;
+2. manager employment resets H to `80` only through the characterized employment transition;
+3. annual reset `+50` with immediate clamp is persistable now because that slice is independently complete;
+4. the reachable main-team floor to `30` is persistable now because that slice is independently complete and its trigger remains explicit;
+5. post-match H is **not** persisted yet, despite the pure H projection being characterized, because `best.f0.i/j` contain additional effects that must be reconstructed and committed together when the legacy ordering requires it;
+6. ticket input resolution reads only materialized V9 manager H and fails closed when the required state is unavailable; it never substitutes a constant 80.
 
-Ticket calculation may now rely on an exact pure H lifecycle rule, but the match ticket caller must continue supplying the current H from a characterized runtime boundary until durable H materialization is added. This prevents a false-green implementation that silently resets manager H to `80` for every match.
+## Remaining Phase 13/14 boundary
+
+Ticket calculation now resolves current manager H from persisted V9 state. Annual recovery and the main-team floor are durable. The remaining manager blocker is specifically the complete post-match lifecycle:
+
+`best.s.f()` → eligibility/order → `best.f0.i(best.s)` / `best.f0.j(best.s)` → all field mutations/effects → persistence ordering.
+
+Until that Java↔SMALI reconstruction is complete, no H-only production post-match write may be added. This keeps the manager lifecycle fail-closed instead of falsely claiming parity from one extracted field.
