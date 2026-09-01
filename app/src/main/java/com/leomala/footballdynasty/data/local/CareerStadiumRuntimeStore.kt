@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.data.local
 
 import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.entity.CareerStadiumRuntimeEntity
+import com.leomala.footballdynasty.domain.manager.LegacyStadiumInitialSectorRule
 
 data class CareerStadiumRuntimeState(val capacities: List<Int>) {
     init {
@@ -22,6 +23,22 @@ class CareerStadiumRuntimeStore(private val database: FootballDynastyDatabase) {
         requireNotNull(database.careerMetadataDao().findById(careerId)) { "Missing career $careerId" }
         requireNotNull(database.clubDao().findById(clubId)) { "Missing club $clubId" }
         dao.upsertStadiumRuntime(state.toEntity(careerId, clubId))
+    }
+
+    /**
+     * Materializes the exact initial `best.k` sector vector for a newly initialized career club.
+     *
+     * This is intentionally separate from V7→V8 migration: a fresh club can replay the proven
+     * constructor from immutable source capacity, while an already-running V7 career may have
+     * historical stadium expansions that cannot be inferred from aggregate source data.
+     */
+    suspend fun materializeFromSourceClub(careerId: String, clubId: String): CareerStadiumRuntimeState {
+        val club = requireNotNull(database.clubDao().findById(clubId)) { "Missing club $clubId" }
+        val state = CareerStadiumRuntimeState(
+            LegacyStadiumInitialSectorRule.fromAggregateCapacity(club.capacity)
+        )
+        materialize(careerId, clubId, state)
+        return state
     }
 
     suspend fun find(careerId: String, clubId: String): CareerStadiumRuntimeState? =
