@@ -18,8 +18,10 @@ class V1AdaptersIdentityTest {
     fun `legacy fixture maps deterministically and preserves opaque fields`() {
         val snapshot = legacySnapshot()
         val adapter = LegacyBanToV1Adapter()
+
         val first = adapter.adapt(snapshot)
         val second = adapter.adapt(snapshot)
+
         assertEquals(first.id, second.id)
         assertEquals(first.players.map { it.id }, second.players.map { it.id })
         assertEquals(snapshot.fileRef, first.sourceFileRef)
@@ -34,6 +36,7 @@ class V1AdaptersIdentityTest {
         assertEquals(snapshot.legacyVid, first.legacyVid)
         assertEquals(snapshot.legacyId, first.legacyId)
         assertEquals(snapshot.legacyValid, first.legacyValid)
+
         val sourcePlayer = snapshot.players.first()
         val mappedPlayer = first.players.first()
         assertEquals(sourcePlayer.legacyAid, mappedPlayer.legacyAid)
@@ -58,7 +61,9 @@ class V1AdaptersIdentityTest {
         val clubEntity = V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
         val players = data.players.map { V1RoomAdapter.playerEntity(it, LEGACY_BAN_IMPORT_SCOPE) }
         val memberships = data.players.map(V1RoomAdapter::membershipEntity)
+
         val roundTrip = V1RoomAdapter.clubData(clubEntity, players.reversed(), memberships)
+
         assertEquals(data, roundTrip)
         assertEquals(data.players.map { it.id }, roundTrip.players.map { it.id })
         assertEquals(V1Fingerprint.corpus(listOf(data)), V1Fingerprint.corpus(listOf(roundTrip)))
@@ -66,8 +71,18 @@ class V1AdaptersIdentityTest {
 
     @Test
     fun `career V1 round trip preserves optional legacy fingerprints`() {
-        val data = CareerDataV1("career-technical-probe", "Technical career probe", "metadata-fingerprint-probe", "career-fingerprint-probe")
-        val entity = V1RoomAdapter.careerEntity(data, 10L, 20L)
+        val data = CareerDataV1(
+            id = "career-technical-probe",
+            displayName = "Technical career probe",
+            legacyMetadataFingerprint = "metadata-fingerprint-probe",
+            legacyCareerFingerprint = "career-fingerprint-probe",
+        )
+        val entity = V1RoomAdapter.careerEntity(
+            data = data,
+            createdAtEpochMillis = 10L,
+            updatedAtEpochMillis = 20L,
+        )
+
         assertEquals(data, V1RoomAdapter.careerData(entity))
         assertEquals(data, V1DomainAdapter.careerData(V1DomainAdapter.career(data)))
     }
@@ -75,7 +90,11 @@ class V1AdaptersIdentityTest {
     @Test
     fun `unsupported V1 entity version fails explicitly`() {
         val data = LegacyBanToV1Adapter().adapt(legacySnapshot()).copy(schemaVersion = 99)
-        assertTrue(runCatching { V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE) }.exceptionOrNull() is ImportVersionException)
+        val error = runCatching {
+            V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
+        }.exceptionOrNull()
+
+        assertTrue(error is ImportVersionException)
     }
 
     @Test
@@ -90,10 +109,19 @@ class V1AdaptersIdentityTest {
 
     @Test
     fun `full legacy career reader remains explicitly blocked without real fixture`() {
-        assertTrue(runCatching { LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf(1,2,3))) }.exceptionOrNull() is UnsupportedLegacySaveException)
+        val error = runCatching {
+            LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf(1, 2, 3)))
+        }.exceptionOrNull()
+
+        assertTrue(error is UnsupportedLegacySaveException)
     }
 
     private fun legacySnapshot() = LegacySerialization.readBan(
-        ByteArrayInputStream(LegacyFixtureLoader.bytes("/legacy/12deoctubre_par.ban.b64", javaClass))
+        ByteArrayInputStream(
+            LegacyFixtureLoader.bytes(
+                "/legacy/12deoctubre_par.ban.b64",
+                javaClass,
+            )
+        )
     )
 }
