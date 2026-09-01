@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.entity.CareerClubTicketRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerManagerTicketRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerMatchConstructionSourceEntity
+import com.leomala.footballdynasty.domain.manager.LegacyCoachRawHRule
 import com.leomala.footballdynasty.domain.manager.LegacyManagerIdentityRule
 import com.leomala.footballdynasty.domain.manager.LegacyMatchConstructionSource
 
@@ -75,8 +76,48 @@ class CareerTicketRuntimeStore(private val database: FootballDynastyDatabase) {
         }.rawH
     }
 
+    /**
+     * Persists only the independently characterized annual `best.b.s()` H mutation.
+     *
+     * Duplicate legacy manager ids are intentionally supported: `best.b.b1(id)` observes the first
+     * manager in world ArrayList order, so only that first matching V9 row is mutated here.
+     */
+    suspend fun applyCoachAnnualRecovery(careerId: String, legacyManagerId: Int): Int =
+        mutateFirstCoachRawH(careerId, legacyManagerId) { rawH ->
+            LegacyCoachRawHRule.afterAnnualRecovery(rawH)
+        }
+
+    /**
+     * Persists only the proven `ActivityMainTeam.F()` floor quirk. The caller must provide the
+     * already-characterized legacy floor flag; opening/refreshing a modern screen is not invented.
+     */
+    suspend fun applyCoachMainTeamRefresh(
+        careerId: String,
+        legacyManagerId: Int,
+        legacyFloorEnabled: Boolean,
+    ): Int = mutateFirstCoachRawH(careerId, legacyManagerId) { rawH ->
+        LegacyCoachRawHRule.afterMainTeamRefresh(rawH, legacyFloorEnabled)
+    }
+
     suspend fun findMatchConstructionSource(careerId: String, matchId: String): LegacyMatchConstructionSource? =
         dao.findMatchConstructionSource(careerId, matchId)?.let {
             LegacyMatchConstructionSource.valueOf(it.sourceCode)
         }
+
+    private suspend fun mutateFirstCoachRawH(
+        careerId: String,
+        legacyManagerId: Int,
+        transform: (Int) -> Int,
+    ): Int = database.withTransaction {
+        require(legacyManagerId != LegacyManagerIdentityRule.clubStoredManagerId(null)) {
+            "Absent legacy manager id cannot carry mutable H"
+        }
+        val managers = dao.managerStates(careerId)
+        val manager = requireNotNull(managers.firstOrNull { it.legacyManagerId == legacyManagerId }) {
+            "Missing materialized manager id $legacyManagerId for career $careerId"
+        }
+        val after = transform(manager.rawH)
+        dao.upsertManagerStates(listOf(manager.copy(rawH = after)))
+        after
+    }
 }
