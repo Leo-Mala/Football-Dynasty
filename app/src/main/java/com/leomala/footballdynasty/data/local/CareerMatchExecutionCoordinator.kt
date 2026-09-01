@@ -15,9 +15,11 @@ import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
 /**
- * Proven ticket inputs that are not derivable from the persisted four-sector stadium state itself.
- * The coordinator deliberately replaces [LegacyTicketCalculationInput.capacities] with the durable
- * career stadium sectors before calculation, so callers cannot bypass the fail-closed V8 state.
+ * Resolved ticket input after persisted competition/club/Q0 fields and the remaining explicitly
+ * characterized career-mutable evidence have been joined.
+ *
+ * The coordinator still replaces [LegacyTicketCalculationInput.capacities] with the durable career
+ * stadium sectors before calculation, so no caller can bypass the fail-closed V8 state.
  */
 data class CareerMatchTicketRuntimeInput(
     val calculation: LegacyTicketCalculationInput,
@@ -42,6 +44,7 @@ class CareerMatchExecutionCoordinator(
     private val resolver = CareerMatchPersistedRuntimeResolver(database)
     private val managerStore = CareerManagerRuntimeStore(database)
     private val stadiumStore = CareerStadiumRuntimeStore(database)
+    private val ticketInputResolver = CareerMatchTicketInputResolver(database)
     private val atomicCommitter = CareerMatchAtomicCommitter(database, clockMillis)
 
     /**
@@ -117,16 +120,17 @@ class CareerMatchExecutionCoordinator(
     /**
      * Low-level seam retained for exact transient-state characterization and specialized callers.
      *
-     * When [ticketRuntimeInput] is present, the legacy `best.k.b(best.s)` attendance calculation
-     * runs after the match simulation on the exact same career [RandomSource]. Its finance mutation
-     * is then committed by [CareerMatchAtomicCommitter] in the same Room transaction as score,
-     * player effects, calendar progression and the advanced RNG state.
+     * When [ticketEvidence] is present, [CareerMatchTicketInputResolver] first obtains competition
+     * type, p0, J and Q0 from persisted/source state. `best.k.b(best.s)` then runs after match
+     * simulation on the exact same career [RandomSource]. Its finance mutation is committed by
+     * [CareerMatchAtomicCommitter] in the same Room transaction as score, player effects, calendar
+     * progression and the advanced RNG state.
      */
     suspend fun execute(
         careerId: String,
         matchId: String,
         transientEvidence: CareerMatchPersistedRuntimeResolver.TransientMatchEvidence,
-        ticketRuntimeInput: CareerMatchTicketRuntimeInput? = null,
+        ticketEvidence: CareerMatchTicketUnpersistedEvidence? = null,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
@@ -151,6 +155,9 @@ class CareerMatchExecutionCoordinator(
             state.calendar.copy(currentDayIndex = scheduled.dayIndex)
         )
 
+        val ticketRuntimeInput = ticketEvidence?.let {
+            ticketInputResolver.resolve(careerId, scheduled, it)
+        }
         val financeBefore: LegacyFinanceRuntimeState? = ticketRuntimeInput?.let {
             requireNotNull(managerStore.clubFinanceState(careerId, scheduled.homeClubId)) {
                 "Missing materialized home finance state $careerId/${scheduled.homeClubId}"
