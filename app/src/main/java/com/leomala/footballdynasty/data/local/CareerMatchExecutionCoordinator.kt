@@ -121,10 +121,11 @@ class CareerMatchExecutionCoordinator(
      * Low-level seam retained for exact transient-state characterization and specialized callers.
      *
      * When [ticketEvidence] is present, [CareerMatchTicketInputResolver] first obtains competition
-     * type, p0, J and Q0 from persisted/source state. `best.k.b(best.s)` then runs after match
-     * simulation on the exact same career [RandomSource]. Its finance mutation is committed by
-     * [CareerMatchAtomicCommitter] in the same Room transaction as score, player effects, calendar
-     * progression and the advanced RNG state.
+     * type, p0, J and Q0 from persisted/source state. Legacy `best.s.Q0()` calls
+     * `best.k.b(best.s)` before the subsequent match RNG sites, so the ticket calculation consumes
+     * the exact career [RandomSource] before [simulate]. The already-computed gross is credited only
+     * after simulation, matching `best.s.h()`. Finance, score, player effects, calendar and the
+     * advanced RNG state are then committed by [CareerMatchAtomicCommitter] in one Room transaction.
      */
     suspend fun execute(
         careerId: String,
@@ -176,19 +177,27 @@ class CareerMatchExecutionCoordinator(
             matchId = matchId,
         ) { event, random ->
             require(event == scheduled) { "Career bridge changed scheduled match identity" }
-            val match = simulate(event, transientState, random)
-            ticketRuntimeInput?.let { ticket ->
-                val calculation = LegacyTicketFinanceRule.calculate(
+
+            // `best.s.Q0()` performs `H().b(this)` before its later match Random.nextInt sites.
+            // Preserve that draw order while deferring the cash/ledger credit until after simulation.
+            val grossTicketIncome = ticketRuntimeInput?.let { ticket ->
+                LegacyTicketFinanceRule.calculate(
                     input = ticket.calculation.copy(
                         capacities = requireNotNull(stadiumBefore).capacities,
                     ),
                     random = random,
-                )
+                ).grossTicketIncome
+            }
+
+            val match = simulate(event, transientState, random)
+
+            if (grossTicketIncome != null) {
+                val ticket = requireNotNull(ticketRuntimeInput)
                 financeAfter = LegacyTicketFinanceRule.applyHomeTicketIncome(
                     state = requireNotNull(financeBefore),
                     rawCompetitionType = ticket.calculation.rawCompetitionType,
                     homeLegacyQ0 = ticket.homeLegacyQ0,
-                    grossTicketIncome = calculation.grossTicketIncome,
+                    grossTicketIncome = grossTicketIncome,
                 )
             }
             match

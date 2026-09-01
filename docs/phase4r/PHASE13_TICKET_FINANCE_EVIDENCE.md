@@ -64,19 +64,24 @@ This does **not** change the V7→V8 migration rule: an already-running V7 caree
 
 ## Persistence consequence
 
-V8 adds `career_stadium_runtime(careerId, clubId, sector0Capacity..sector3Capacity)` as additive career-local state. Match revenue reads this durable vector rather than splitting aggregate capacity heuristically.
+V8 adds `career_stadium_runtime(careerId, clubId,sector0Capacity..sector3Capacity)` as additive career-local state. Match revenue reads this durable vector rather than splitting aggregate capacity heuristically.
 
-## Match/RNG atomic integration
+## Match/RNG order and atomic integration
 
-The modern match path now accepts only `CareerMatchTicketUnpersistedEvidence` for the three still-unmaterialized inputs. `CareerMatchTicketInputResolver` joins that evidence with the persisted/source fields above before calculation. Then:
+The modern match path accepts only `CareerMatchTicketUnpersistedEvidence` for the three still-unmaterialized inputs. `CareerMatchTicketInputResolver` joins that evidence with the persisted/source fields above before calculation.
 
-1. persisted home finance state is required;
-2. persisted four-sector stadium state is required;
-3. the match simulation runs on the career `RandomSource`;
-4. `LegacyTicketFinanceRule.calculate(...)` consumes the same `RandomSource`, using the persisted sector vector;
-5. `LegacyTicketFinanceRule.applyHomeTicketIncome(...)` applies the proven type/Q0 credit gate;
-6. `CareerMatchAtomicCommitter` commits score, calendar, career/RNG state, player effects and ticket finance inside one outer Room transaction;
-7. `CareerManagerRuntimeStore.commitFinanceState(...)` keeps its expected-before stale-state guard inside that transaction, so a rejected finance mutation rolls the match/RNG writes back as well.
+SMALI `best.s.Q0()` proves the ordering constraint that was previously missing from the modern coordinator: it calls `H().b(this)` — the stadium attendance/ticket calculation — before the subsequent `java.util.Random.nextInt(...)` sites used by the match. The later `best.s.h()` only credits the already-computed gross and consumes no RNG.
+
+The modern order is therefore:
+
+1. persisted home finance state and four-sector stadium state are required;
+2. `LegacyTicketFinanceRule.calculate(...)` runs first on the career `RandomSource` and stores the gross ticket income;
+3. the match simulation runs on that **same already-advanced** `RandomSource`;
+4. after simulation, `LegacyTicketFinanceRule.applyHomeTicketIncome(...)` applies the proven type/Q0 credit gate to the saved gross without consuming RNG;
+5. `CareerMatchAtomicCommitter` commits score, calendar, career/RNG state, player effects and ticket finance inside one outer Room transaction;
+6. `CareerManagerRuntimeStore.commitFinanceState(...)` keeps its expected-before stale-state guard inside that transaction, so a rejected finance mutation rolls the match/RNG writes back as well.
+
+`CareerMatchTicketRngOrderTest` locks this sequence at the persistence boundary. With raw `O=0`, `best.k.b` has bounds `[10,20,5,0]`, so exactly three draws must already have been consumed when the match callback starts; a fourth draw made by the simulated match must then appear in the persisted career RNG state.
 
 No secondary RNG and no post-match finance transaction are introduced.
 
