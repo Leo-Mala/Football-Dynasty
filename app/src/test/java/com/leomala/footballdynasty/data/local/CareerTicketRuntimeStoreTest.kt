@@ -65,6 +65,60 @@ class CareerTicketRuntimeStoreTest {
     }
 
     @Test
+    fun `annual recovery and main team floor mutate only first duplicate manager and survive reopen`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val name = "phase14-coach-h-v9-reopen"
+        context.deleteDatabase(name)
+        var database = database(context, name)
+        seed(database)
+        var store = CareerTicketRuntimeStore(database)
+        store.materializeManagers(
+            CAREER,
+            listOf(
+                CareerManagerTicketRuntimeState(0, 7, 20),
+                CareerManagerTicketRuntimeState(1, 7, 91),
+                CareerManagerTicketRuntimeState(2, 8, 70),
+            ),
+        )
+
+        assertEquals(30, store.applyCoachMainTeamRefresh(CAREER, 7, legacyFloorEnabled = true))
+        assertEquals(listOf(30, 91, 70), store.managersInWorldOrder(CAREER).map { it.rawH })
+        assertEquals(80, store.applyCoachAnnualRecovery(CAREER, 7))
+        assertEquals(listOf(80, 91, 70), store.managersInWorldOrder(CAREER).map { it.rawH })
+        assertEquals(100, store.applyCoachAnnualRecovery(CAREER, 8))
+
+        database.close()
+        database = database(context, name)
+        store = CareerTicketRuntimeStore(database)
+        assertEquals(listOf(80, 91, 100), store.managersInWorldOrder(CAREER).map { it.rawH })
+        assertEquals(80, store.resolveCoachRawH(CAREER, 7))
+        assertEquals(100, store.resolveCoachRawH(CAREER, 8))
+
+        database.close()
+        context.deleteDatabase(name)
+        Unit
+    }
+
+    @Test
+    fun `coach H mutations are fail closed and disabled floor is exact no op`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        seed(database)
+        val store = CareerTicketRuntimeStore(database)
+        store.materializeManagers(CAREER, listOf(CareerManagerTicketRuntimeState(0, 7, 12)))
+
+        assertEquals(12, store.applyCoachMainTeamRefresh(CAREER, 7, legacyFloorEnabled = false))
+        assertEquals(12, store.resolveCoachRawH(CAREER, 7))
+        assertNotNull(runCatching { store.applyCoachAnnualRecovery(CAREER, 77) }.exceptionOrNull())
+        assertNotNull(runCatching { store.applyCoachAnnualRecovery(CAREER, -1) }.exceptionOrNull())
+
+        database.close()
+        Unit
+    }
+
+    @Test
     fun `non absent dangling manager id fails closed and invalid manager order is rejected`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val database = Room.inMemoryDatabaseBuilder(context, FootballDynastyDatabase::class.java)
