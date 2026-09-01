@@ -12,49 +12,20 @@ import com.leomala.footballdynasty.data.local.dao.ClubDao
 import com.leomala.footballdynasty.data.local.dao.LegacyImportDao
 import com.leomala.footballdynasty.data.local.dao.PlayerDao
 import com.leomala.footballdynasty.data.local.dao.SquadMembershipDao
-import com.leomala.footballdynasty.data.local.entity.CareerActiveLoanEntity
-import com.leomala.footballdynasty.data.local.entity.CareerClubManagerRuntimeEntity
-import com.leomala.footballdynasty.data.local.entity.CareerCompetitionEntity
-import com.leomala.footballdynasty.data.local.entity.CareerCompetitionMatchEntity
-import com.leomala.footballdynasty.data.local.entity.CareerCompetitionStandingEntity
-import com.leomala.footballdynasty.data.local.entity.CareerCoreStateEntity
-import com.leomala.footballdynasty.data.local.entity.CareerMetadataEntity
-import com.leomala.footballdynasty.data.local.entity.CareerPlayerClubSeasonStatEntity
-import com.leomala.footballdynasty.data.local.entity.CareerPlayerCommercialEntity
-import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
-import com.leomala.footballdynasty.data.local.entity.CareerPlayerTransferStateEntity
-import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
-import com.leomala.footballdynasty.data.local.entity.CareerScheduledMatchEntity
-import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
-import com.leomala.footballdynasty.data.local.entity.CareerStadiumConstructionEntity
-import com.leomala.footballdynasty.data.local.entity.ClubEntity
-import com.leomala.footballdynasty.data.local.entity.LegacyImportManifestEntity
-import com.leomala.footballdynasty.data.local.entity.LegacyImportStateEntity
-import com.leomala.footballdynasty.data.local.entity.PlayerEntity
-import com.leomala.footballdynasty.data.local.entity.SquadMembershipEntity
+import com.leomala.footballdynasty.data.local.entity.*
 
 @Database(
     entities = [
-        ClubEntity::class,
-        PlayerEntity::class,
-        SquadMembershipEntity::class,
-        LegacyImportStateEntity::class,
-        LegacyImportManifestEntity::class,
-        CareerMetadataEntity::class,
-        CareerCoreStateEntity::class,
-        CareerPlayerRuntimeEntity::class,
-        CareerProceduralPlayerEntity::class,
-        CareerSquadMembershipEntity::class,
-        CareerScheduledMatchEntity::class,
-        CareerPlayerClubSeasonStatEntity::class,
-        CareerCompetitionEntity::class,
-        CareerCompetitionStandingEntity::class,
-        CareerCompetitionMatchEntity::class,
-        CareerPlayerCommercialEntity::class,
-        CareerPlayerTransferStateEntity::class,
-        CareerClubManagerRuntimeEntity::class,
-        CareerActiveLoanEntity::class,
-        CareerStadiumConstructionEntity::class,
+        ClubEntity::class, PlayerEntity::class, SquadMembershipEntity::class,
+        LegacyImportStateEntity::class, LegacyImportManifestEntity::class,
+        CareerMetadataEntity::class, CareerCoreStateEntity::class,
+        CareerPlayerRuntimeEntity::class, CareerProceduralPlayerEntity::class,
+        CareerSquadMembershipEntity::class, CareerScheduledMatchEntity::class,
+        CareerPlayerClubSeasonStatEntity::class, CareerCompetitionEntity::class,
+        CareerCompetitionStandingEntity::class, CareerCompetitionMatchEntity::class,
+        CareerPlayerCommercialEntity::class, CareerPlayerTransferStateEntity::class,
+        CareerClubManagerRuntimeEntity::class, CareerActiveLoanEntity::class,
+        CareerStadiumConstructionEntity::class, CareerStadiumRuntimeEntity::class,
     ],
     version = FootballDynastyDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -72,7 +43,7 @@ abstract class FootballDynastyDatabase : RoomDatabase() {
     abstract fun careerManagerRuntimeDao(): CareerManagerRuntimeDao
 
     companion object {
-        const val SCHEMA_VERSION: Int = 7
+        const val SCHEMA_VERSION: Int = 8
         const val DATABASE_NAME: String = "football_dynasty.db"
     }
 }
