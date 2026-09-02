@@ -13,7 +13,7 @@ object Phase13StadiumConstructionOwnershipMigration {
     val MIGRATION_9_10: Migration = object : Migration(9, 10) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
-                "ALTER TABLE `career_stadium_constructions` ADD COLUMN `ownerClubId` TEXT DEFAULT NULL"
+                "ALTER TABLE `career_stadium_constructions` ADD COLUMN `ownerClubId` TEXT"
             )
         }
     }
