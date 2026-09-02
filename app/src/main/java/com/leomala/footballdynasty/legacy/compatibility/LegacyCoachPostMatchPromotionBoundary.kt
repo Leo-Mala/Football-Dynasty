@@ -72,11 +72,14 @@ object LegacyCoachPostMatchPromotionBoundary {
             }
 
     /**
-     * Structural recovery is complete, but semantic promotion stays separate: `i` mutates G and H,
-     * while `j` mutates aggregate manager statistics plus season+club records. Those effects must
-     * be represented atomically before this flag can become true.
+     * Semantic promotion is derived from exact method-level evidence rather than a hand-maintained
+     * boolean. This remains false while either `i` or `j` lacks complete field/effect ordering.
      */
-    const val semanticLifecycleCharacterized: Boolean = false
+    val semanticLifecycleCharacterized: Boolean
+        get() =
+            LegacyCoachPostMatchSemanticEvidence.completeFor(
+                characterizedCallerOrder,
+            )
 
     val completeLifecycleCharacterized: Boolean
         get() = recoveredManagerMethodEvidenceComplete && semanticLifecycleCharacterized
