@@ -122,6 +122,24 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
         )
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `reachable method cannot become complete with an empty proven mutation surface`() {
+        LegacyCoachPostMatchMethodSemanticEvidence(
+            legacyMethod = "best.f0.i(best.s)",
+            mutationFamilies = emptySet(),
+            fullyCharacterizedMutationFamilies = emptySet(),
+            completeFieldOrderingRecovered = true,
+        )
+    }
+
+    @Test
+    fun `semantic catalog method identities remain unique`() {
+        assertEquals(
+            LegacyCoachPostMatchSemanticEvidence.methods.size,
+            LegacyCoachPostMatchSemanticEvidence.methods.map { it.legacyMethod }.toSet().size,
+        )
+    }
+
     @Test
     fun `ordering alone cannot promote a partially characterized method`() {
         val partial =
