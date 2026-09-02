@@ -112,6 +112,20 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
+    fun `recovery remainder rejects duplicate required method identities`() {
+        LegacyCoachPostMatchSemanticEvidence.unresolvedFor(
+            listOf("best.f0.j(best.s)", "best.f0.j(best.s)"),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `semantic promotion rejects duplicate required method identities`() {
+        LegacyCoachPostMatchSemanticEvidence.completeFor(
+            listOf("best.f0.i(best.s)", "best.f0.i(best.s)"),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun `cannot characterize a mutation family outside the proven method surface`() {
         LegacyCoachPostMatchMethodSemanticEvidence(
             legacyMethod = "best.f0.i(best.s)",
