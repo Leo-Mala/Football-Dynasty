@@ -85,7 +85,7 @@ class Migration9To10Test {
         assertEquals(listOf(100, 20, 30, 40), listOf(row.addition0, row.addition1, row.addition2, row.addition3))
         assertNull(row.ownerClubId)
         assertEquals("Migration V10 probe", migrated.careerMetadataDao().findById(CAREER)?.displayName)
-        assertNull(migrated.careerCoachRuntimeDao().findState(CAREER, 0))
+        assertNull(migrated.careerCoachRuntimeDao().findCoachRuntime(CAREER, 0))
         migrated.close()
         context.deleteDatabase(name)
         Unit
