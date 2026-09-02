@@ -2,20 +2,19 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class LegacyCoachPostMatchSemanticEvidenceTest {
     @Test
     fun `locks proven mutation families without claiming full field ordering`() {
         val adjustment =
-            assertNotNull(
+            requireNotNull(
                 LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)"),
-            ).let { LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)")!! }
+            )
         val statistics =
-            assertNotNull(
+            requireNotNull(
                 LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)"),
-            ).let { LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)")!! }
+            )
 
         assertEquals(
             linkedSetOf(
