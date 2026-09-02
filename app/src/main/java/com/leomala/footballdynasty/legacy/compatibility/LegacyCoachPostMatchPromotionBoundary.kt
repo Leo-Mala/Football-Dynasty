@@ -9,6 +9,8 @@ data class LegacyRequiredCoachPostMatchMethod(
     val methodSignature: String,
     val smaliFileName: String,
     val smaliMethodSignature: String,
+    val instructionCount: Int,
+    val branchCount: Int,
 )
 
 /**
@@ -50,6 +52,8 @@ object LegacyCoachPostMatchPromotionBoundary {
                     methodSignature = postMatchStatisticsMethod.substringAfter("best.f0."),
                     smaliFileName = "best/f0.smali",
                     smaliMethodSignature = "j(Lbest/s;)V",
+                    instructionCount = 182,
+                    branchCount = 71,
                 ),
             postMatchAdjustmentMethod to
                 LegacyRequiredCoachPostMatchMethod(
@@ -57,6 +61,8 @@ object LegacyCoachPostMatchPromotionBoundary {
                     methodSignature = postMatchAdjustmentMethod.substringAfter("best.f0."),
                     smaliFileName = "best/f0.smali",
                     smaliMethodSignature = "i(Lbest/s;)V",
+                    instructionCount = 429,
+                    branchCount = 83,
                 ),
         )
 
@@ -72,7 +78,11 @@ object LegacyCoachPostMatchPromotionBoundary {
             }
         }
 
-    /** Structural Java↔SMALI recovery is a mandatory prerequisite and is catalog-driven. */
+    /**
+     * Structural Java↔SMALI recovery is a mandatory prerequisite and is catalog-driven. File,
+     * descriptor and recovered instruction/branch counts must all still match the official corpus
+     * checkpoint; otherwise structural evidence has drifted and promotion stays fail-closed.
+     */
     val recoveredManagerMethodEvidenceComplete: Boolean
         get() =
             requiredRecoveredManagerMethods.all { required ->
@@ -81,7 +91,9 @@ object LegacyCoachPostMatchPromotionBoundary {
                     methodSignature = required.methodSignature,
                 )?.let { recovered ->
                     recovered.smaliFileName == required.smaliFileName &&
-                        recovered.smaliMethodSignature == required.smaliMethodSignature
+                        recovered.smaliMethodSignature == required.smaliMethodSignature &&
+                        recovered.instructionCount == required.instructionCount &&
+                        recovered.branchCount == required.branchCount
                 } == true
             }
 
