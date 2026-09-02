@@ -18,14 +18,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class Migration9To10Test {
     @Test
-    fun `migration to 10 adds nullable construction owner without inventing backfill`() = runBlocking {
+    fun `migration to 10 adds nullable construction owner without invented backfill through current schema`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase13-migration-9-10"
         context.deleteDatabase(name)
 
-        // Materialize a structurally valid current database first. V10 changed only the
-        // construction table, so the test then rewinds that single table to its certified V9 shape
-        // and stamps the certified V9 Room identity before reopening through the real migration.
+        // Materialize a structurally valid current database first. The test then rewinds the
+        // construction table to its certified V9 shape and stamps the certified V9 Room identity.
+        // Reopening traverses the real 9->10 ownership step and the additive 10->11 coach step.
         val current = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
             .build()
@@ -75,13 +75,17 @@ class Migration9To10Test {
 
         val migrated = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
-            .addMigrations(Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10)
+            .addMigrations(
+                Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
+                Phase14CoachRuntimeMigration.MIGRATION_10_11,
+            )
             .build()
         val row = migrated.careerManagerRuntimeDao().stadiumConstructions(CAREER).single()
         assertEquals(77, row.stadiumCode)
         assertEquals(listOf(100, 20, 30, 40), listOf(row.addition0, row.addition1, row.addition2, row.addition3))
         assertNull(row.ownerClubId)
         assertEquals("Migration V10 probe", migrated.careerMetadataDao().findById(CAREER)?.displayName)
+        assertNull(migrated.careerCoachRuntimeDao().findState(CAREER, 0))
         migrated.close()
         context.deleteDatabase(name)
         Unit

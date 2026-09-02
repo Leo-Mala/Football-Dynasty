@@ -35,6 +35,7 @@ class Migration4To5Test {
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
+            Phase14CoachRuntimeMigration.MIGRATION_10_11,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         db.query("SELECT age,overall,energy,injuryUntilEpochDay FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c ->
@@ -51,6 +52,7 @@ class Migration4To5Test {
         } catch (_: SQLiteConstraintException) {}
         db.execSQL("DELETE FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'")
         db.query("SELECT COUNT(*) FROM career_player_club_season_stats").use { c -> assertTrue(c.moveToFirst()); assertEquals(0,c.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM career_coach_runtime").use { c -> assertTrue(c.moveToFirst()); assertEquals("V11 must not invent coach state",0,c.getInt(0)) }
         db.close()
     }
 }

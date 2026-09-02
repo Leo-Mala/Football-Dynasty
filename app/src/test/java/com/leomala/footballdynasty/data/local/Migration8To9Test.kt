@@ -41,6 +41,7 @@ class Migration8To9Test {
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
+            Phase14CoachRuntimeMigration.MIGRATION_10_11,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 
@@ -52,6 +53,12 @@ class Migration8To9Test {
             db.query("SELECT COUNT(*) FROM $table").use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("V9 migration must not synthesize $table rows", 0, cursor.getInt(0))
+            }
+        }
+        for (table in listOf("career_coach_runtime", "career_coach_season_club_records")) {
+            db.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("V11 migration must not synthesize $table rows", 0, cursor.getInt(0))
             }
         }
         db.query("SELECT displayName FROM career_metadata WHERE id='career-v9'").use { cursor ->

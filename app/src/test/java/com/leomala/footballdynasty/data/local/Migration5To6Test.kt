@@ -31,6 +31,7 @@ class Migration5To6Test {
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
+            Phase14CoachRuntimeMigration.MIGRATION_10_11,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         db.execSQL("INSERT INTO career_competitions (careerId,competitionId,legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds) VALUES ('career-v6','league-1',1,11,1,12)")
@@ -46,6 +47,7 @@ class Migration5To6Test {
             assertEquals(setOf("careerId","competitionId","matchId","roundNumber","fixtureOrdinal"),names)
         }
         db.query("SELECT COUNT(*) FROM career_player_commercial").use { c -> assertTrue(c.moveToFirst()); assertEquals(0,c.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM career_coach_runtime").use { c -> assertTrue(c.moveToFirst()); assertEquals("V11 must not invent coach state",0,c.getInt(0)) }
         db.execSQL("DELETE FROM career_metadata WHERE id='career-v6'")
         db.query("SELECT COUNT(*) FROM career_competitions").use { c -> assertTrue(c.moveToFirst()); assertEquals(0,c.getInt(0)) }
         db.close()
