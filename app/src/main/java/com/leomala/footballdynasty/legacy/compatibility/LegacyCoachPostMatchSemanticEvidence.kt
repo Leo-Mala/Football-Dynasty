@@ -36,6 +36,17 @@ data class LegacyCoachPostMatchMethodSemanticEvidence(
 
     fun mutationFamilyCharacterized(family: LegacyCoachPostMatchMutationFamily): Boolean =
         family in fullyCharacterizedMutationFamilies
+
+    /**
+     * A method may leave the fail-closed boundary only when both dimensions are complete:
+     * every proven mutation family has its exact semantics recovered and the complete cross-field
+     * ordering is known. Keeping these conditions together prevents a future ordering-only toggle
+     * from promoting a partially reconstructed method.
+     */
+    val semanticallyComplete: Boolean
+        get() =
+            completeFieldOrderingRecovered &&
+                fullyCharacterizedMutationFamilies == mutationFamilies
 }
 
 /**
@@ -91,6 +102,6 @@ object LegacyCoachPostMatchSemanticEvidence {
     fun completeFor(requiredMethods: Collection<String>): Boolean =
         requiredMethods.isNotEmpty() &&
             requiredMethods.all { required ->
-                byMethod[required]?.completeFieldOrderingRecovered == true
+                byMethod[required]?.semanticallyComplete == true
             }
 }
