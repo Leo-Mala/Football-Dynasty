@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.data.local
 
 import androidx.room.withTransaction
+import com.leomala.footballdynasty.data.local.entity.CareerClubTicketRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerCoachRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerCoachSeasonClubRecordEntity
 import com.leomala.footballdynasty.domain.manager.LegacyCoachSeasonClubRecord
@@ -24,6 +25,17 @@ data class CareerCoachRuntimeState(
     val rawO: Int,
     val rawM: Int,
     val records: List<LegacyCoachSeasonClubRecord>,
+)
+
+enum class CareerCoachEmploymentRole {
+    OUTGOING,
+    INCOMING,
+}
+
+data class CareerCoachEmploymentUpdate(
+    val role: CareerCoachEmploymentRole,
+    val expectedBefore: CareerCoachRuntimeState,
+    val after: CareerCoachRuntimeState,
 )
 
 /**
@@ -103,9 +115,79 @@ class CareerCoachRuntimeStore(private val database: FootballDynastyDatabase) {
         require(current == expectedBefore) {
             "Stale coach runtime for $careerId/${expectedBefore.sourceOrdinal}"
         }
-        val manager = requireNotNull(
-            ticketDao.managerStates(careerId).firstOrNull { it.sourceOrdinal == expectedBefore.sourceOrdinal }
+        persistCoachState(careerId, after)
+    }
+
+    /**
+     * Atomic persistence seam for the already-characterized employment chain
+     * `best.b.G(target,outgoing,incoming) -> f0.l/e`.
+     *
+     * The caller supplies the in-memory states produced by that rule in exact outgoing->incoming
+     * order. This seam persists only fields already owned by V9/V11: manager H, V11 coach state and
+     * the target club's stored manager id. World history/controlled-club lists and deep club helper
+     * effects remain outside this boundary until their own persisted representation is proven.
+     */
+    suspend fun commitEmploymentTransition(
+        careerId: String,
+        targetClubId: String,
+        expectedClubState: CareerClubTicketRuntimeState,
+        clubLegacyManagerIdAfter: Int,
+        updatesInLegacyOrder: List<CareerCoachEmploymentUpdate>,
+    ) = database.withTransaction {
+        requireNotNull(database.careerMetadataDao().findById(careerId)) { "Missing career $careerId" }
+        requireNotNull(database.clubDao().findById(targetClubId)) { "Missing club $targetClubId" }
+        requireEmploymentOrder(updatesInLegacyOrder)
+
+        val currentClub = requireNotNull(ticketDao.findClubState(careerId, targetClubId)) {
+            "Missing materialized club manager state $careerId/$targetClubId"
+        }
+        require(
+            CareerClubTicketRuntimeState(currentClub.rawDivisionCode, currentClub.legacyManagerId) == expectedClubState
+        ) { "Stale club manager state for $careerId/$targetClubId" }
+
+        updatesInLegacyOrder.forEach { update ->
+            requireEmploymentMutation(targetClubId, update)
+            validateState(update.after)
+            val current = requireNotNull(find(careerId, update.expectedBefore.sourceOrdinal)) {
+                "Missing materialized V11 coach state for $careerId/${update.expectedBefore.sourceOrdinal}"
+            }
+            require(current == update.expectedBefore) {
+                "Stale coach runtime for $careerId/${update.expectedBefore.sourceOrdinal}"
+            }
+            persistCoachState(careerId, update.after)
+        }
+
+        val incoming = updatesInLegacyOrder.lastOrNull { it.role == CareerCoachEmploymentRole.INCOMING }
+        if (incoming == null) {
+            require(clubLegacyManagerIdAfter == LegacyManagerIdentityRule.clubStoredManagerId(null)) {
+                "Employment transition without incoming manager must leave target club manager absent"
+            }
+        } else {
+            require(clubLegacyManagerIdAfter == incoming.after.legacyManagerId) {
+                "Target club manager id must match incoming manager"
+            }
+        }
+
+        ticketDao.upsertClubState(
+            CareerClubTicketRuntimeEntity(
+                careerId = careerId,
+                clubId = targetClubId,
+                rawDivisionCode = currentClub.rawDivisionCode,
+                legacyManagerId = clubLegacyManagerIdAfter,
+            )
         )
+    }
+
+    private suspend fun persistCoachState(
+        careerId: String,
+        after: CareerCoachRuntimeState,
+    ) {
+        val manager = requireNotNull(
+            ticketDao.managerStates(careerId).firstOrNull { it.sourceOrdinal == after.sourceOrdinal }
+        ) { "Missing ordered manager row $careerId/${after.sourceOrdinal}" }
+        require(manager.legacyManagerId == after.legacyManagerId) {
+            "Manager id ${manager.legacyManagerId} diverges from ${after.legacyManagerId} at ordinal ${after.sourceOrdinal}"
+        }
         ticketDao.upsertManagerStates(listOf(manager.copy(rawH = after.rawH)))
         coachDao.upsertCoachRuntime(after.toEntity(careerId))
         replaceRecords(careerId, after.sourceOrdinal, after.records)
@@ -144,6 +226,57 @@ class CareerCoachRuntimeStore(private val database: FootballDynastyDatabase) {
         require(after.previousClubCountry == before.previousClubCountry)
         require(after.previousClubDivisionIndex == before.previousClubDivisionIndex)
         require(after.rawM == before.rawM)
+    }
+
+    private fun requireEmploymentOrder(updates: List<CareerCoachEmploymentUpdate>) {
+        require(updates.size <= 2) { "Legacy employment dispatcher has at most outgoing and incoming managers" }
+        val roles = updates.map { it.role }
+        require(
+            roles == emptyList<CareerCoachEmploymentRole>() ||
+                roles == listOf(CareerCoachEmploymentRole.OUTGOING) ||
+                roles == listOf(CareerCoachEmploymentRole.INCOMING) ||
+                roles == listOf(CareerCoachEmploymentRole.OUTGOING, CareerCoachEmploymentRole.INCOMING)
+        ) { "Employment updates must preserve legacy outgoing -> incoming order" }
+    }
+
+    private fun requireEmploymentMutation(
+        targetClubId: String,
+        update: CareerCoachEmploymentUpdate,
+    ) {
+        val before = update.expectedBefore
+        val after = update.after
+        require(after.sourceOrdinal == before.sourceOrdinal)
+        require(after.legacyManagerId == before.legacyManagerId)
+        require(after.isUserControlled == before.isUserControlled)
+        require(after.alternativeClubId == before.alternativeClubId)
+        require(after.rawD == before.rawD)
+        require(after.rawE == before.rawE)
+        require(after.rawF == before.rawF)
+        require(after.rawO == before.rawO)
+        require(after.records == before.records)
+
+        when (update.role) {
+            CareerCoachEmploymentRole.OUTGOING -> {
+                require(before.currentClubId == targetClubId) {
+                    "Outgoing manager must belong to target club before legacy l()"
+                }
+                require(after.currentClubId == null) { "Outgoing manager current club must be cleared" }
+                require(after.previousClubId == targetClubId) { "Outgoing previous club must capture target club" }
+                require(after.rawG == before.rawG)
+                require(after.rawH == before.rawH)
+                require(after.rawM == before.rawM)
+            }
+
+            CareerCoachEmploymentRole.INCOMING -> {
+                require(after.currentClubId == targetClubId) { "Incoming manager must join target club" }
+                require(after.previousClubId == before.previousClubId)
+                require(after.previousClubCountry == before.previousClubCountry)
+                require(after.previousClubDivisionIndex == before.previousClubDivisionIndex)
+                require(after.rawG == 100) { "Legacy f0.e sets G=100" }
+                require(after.rawH == 80) { "Legacy f0.e sets H=80" }
+                require(after.rawM == 0) { "Legacy f0.e sets M=0" }
+            }
+        }
     }
 
     private fun CareerCoachRuntimeState.toEntity(careerId: String) = CareerCoachRuntimeEntity(
