@@ -35,12 +35,28 @@ class LegacyReplacementManagerCandidateRuleTest {
     private val target = LegacyReplacementTargetClub(countryCode = 7, levelCode = 3)
 
     @Test
-    fun modeBoundsPreserveModeTwoOverwriteAndUnknownZeroLocals() {
+    fun modeBoundsPreserveSmaliModeTwoFallthroughAndUnknownZeroLocals() {
         assertEquals(0..5, LegacyReplacementManagerCandidateRule.modeBounds(-1, 3))
         assertEquals(3..3, LegacyReplacementManagerCandidateRule.modeBounds(0, 3))
         assertEquals(2..3, LegacyReplacementManagerCandidateRule.modeBounds(1, 3))
-        assertEquals(1..3, LegacyReplacementManagerCandidateRule.modeBounds(2, 3))
+        assertEquals(1..4, LegacyReplacementManagerCandidateRule.modeBounds(2, 3))
         assertEquals(0..0, LegacyReplacementManagerCandidateRule.modeBounds(91, 3))
+    }
+
+    @Test
+    fun modeTwoIncludesTargetPlusOneButStillExcludesTargetPlusTwo() {
+        val random = FakeRandom(ArrayDeque(listOf(0)))
+        val selected = LegacyReplacementManagerCandidateRule.select(
+            listOf(
+                candidate("plus-two", level = 5, v = 100),
+                candidate("plus-one", level = 4, v = 50),
+            ),
+            target,
+            2,
+            random,
+        )
+        assertEquals("plus-one", selected)
+        assertEquals(1L, random.draws)
     }
 
     @Test

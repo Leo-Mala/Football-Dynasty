@@ -41,9 +41,9 @@ object LegacyReplacementManagerCandidateRule {
         -1 -> 0..5
         0 -> targetLevel..targetLevel
         1 -> (targetLevel - 1)..targetLevel
-        // The legacy Java briefly assigns `p0()+1`, then immediately overwrites the upper bound
-        // with `p0()`. Preserve the effective range, not the decompiler-looking intermediate.
-        2 -> (targetLevel - 2)..targetLevel
+        // SMALI mode 2 writes lower=p0()-2 and upper=p0()+1, then falls directly into the filter
+        // loop. The later p0() upper-bound write belongs only to the mode-0/mode-1 goto target.
+        2 -> (targetLevel - 2)..(targetLevel + 1)
         // `t` is public. Unknown modes leave both loop-carried bound locals at their initial zero.
         else -> 0..0
     }
