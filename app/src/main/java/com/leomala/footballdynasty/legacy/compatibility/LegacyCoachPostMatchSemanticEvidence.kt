@@ -38,6 +38,14 @@ data class LegacyCoachPostMatchMethodSemanticEvidence(
         family in fullyCharacterizedMutationFamilies
 
     /**
+     * Exact fail-closed recovery remainder for this method. The order follows [mutationFamilies]
+     * so the value is deterministic and can be used by tests/evidence tooling without inventing
+     * semantic priority among still-unresolved fields.
+     */
+    val unresolvedMutationFamilies: Set<LegacyCoachPostMatchMutationFamily>
+        get() = mutationFamilies.filterNotTo(linkedSetOf()) { it in fullyCharacterizedMutationFamilies }
+
+    /**
      * A method may leave the fail-closed boundary only when both dimensions are complete:
      * every proven mutation family has its exact semantics recovered and the complete cross-field
      * ordering is known. Keeping these conditions together prevents a future ordering-only toggle
@@ -46,7 +54,7 @@ data class LegacyCoachPostMatchMethodSemanticEvidence(
     val semanticallyComplete: Boolean
         get() =
             completeFieldOrderingRecovered &&
-                fullyCharacterizedMutationFamilies == mutationFamilies
+                unresolvedMutationFamilies.isEmpty()
 }
 
 /**
@@ -95,6 +103,17 @@ object LegacyCoachPostMatchSemanticEvidence {
 
     fun findExact(legacyMethod: String): LegacyCoachPostMatchMethodSemanticEvidence? =
         byMethod[legacyMethod]
+
+    /**
+     * Deterministic unresolved-family projection for the exact required method sequence. Unknown
+     * methods remain explicit blockers instead of being silently ignored.
+     */
+    fun unresolvedFor(requiredMethods: Collection<String>): Map<String, Set<LegacyCoachPostMatchMutationFamily>?> =
+        linkedMapOf<String, Set<LegacyCoachPostMatchMutationFamily>?>().apply {
+            requiredMethods.forEach { required ->
+                this[required] = byMethod[required]?.unresolvedMutationFamilies
+            }
+        }
 
     /**
      * Promotion is derived from exact required methods rather than a manually toggled boolean.
