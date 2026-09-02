@@ -23,13 +23,19 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
     }
 
     @Test
-    fun `requires exact recovered i j Java smali evidence before lifecycle promotion`() {
+    fun `requires recovered j i Java smali evidence in exact caller order before lifecycle promotion`() {
         assertEquals(
-            listOf("i(best.s)", "j(best.s)"),
+            LegacyCoachPostMatchPromotionBoundary.characterizedCallerOrder,
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map {
+                "${it.legacyClassName}.${it.methodSignature}"
+            },
+        )
+        assertEquals(
+            listOf("j(best.s)", "i(best.s)"),
             LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.methodSignature },
         )
         assertEquals(
-            listOf("i(Lbest/s;)V", "j(Lbest/s;)V"),
+            listOf("j(Lbest/s;)V", "i(Lbest/s;)V"),
             LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.smaliMethodSignature },
         )
         assertEquals(
