@@ -42,21 +42,35 @@ object LegacyCoachPostMatchPromotionBoundary {
     /** The previously isolated H projection remains characterized by `LegacyCoachRawHRule`. */
     const val hProjectionCharacterized: Boolean = true
 
-    val requiredRecoveredManagerMethods: List<LegacyRequiredCoachPostMatchMethod> =
-        listOf(
-            LegacyRequiredCoachPostMatchMethod(
-                legacyClassName = "best.f0",
-                methodSignature = postMatchAdjustmentMethod.substringAfter("best.f0."),
-                smaliFileName = "best/f0.smali",
-                smaliMethodSignature = "i(Lbest/s;)V",
-            ),
-            LegacyRequiredCoachPostMatchMethod(
-                legacyClassName = "best.f0",
-                methodSignature = postMatchStatisticsMethod.substringAfter("best.f0."),
-                smaliFileName = "best/f0.smali",
-                smaliMethodSignature = "j(Lbest/s;)V",
-            ),
+    private val recoveredMethodRequirementByExactMethod: Map<String, LegacyRequiredCoachPostMatchMethod> =
+        mapOf(
+            postMatchStatisticsMethod to
+                LegacyRequiredCoachPostMatchMethod(
+                    legacyClassName = "best.f0",
+                    methodSignature = postMatchStatisticsMethod.substringAfter("best.f0."),
+                    smaliFileName = "best/f0.smali",
+                    smaliMethodSignature = "j(Lbest/s;)V",
+                ),
+            postMatchAdjustmentMethod to
+                LegacyRequiredCoachPostMatchMethod(
+                    legacyClassName = "best.f0",
+                    methodSignature = postMatchAdjustmentMethod.substringAfter("best.f0."),
+                    smaliFileName = "best/f0.smali",
+                    smaliMethodSignature = "i(Lbest/s;)V",
+                ),
         )
+
+    /**
+     * Keep structural recovery requirements in the exact legacy caller order. Deriving this list
+     * from [characterizedCallerOrder] prevents evidence bookkeeping from silently drifting back to
+     * `i -> j` while the proven reachable runtime order is `j -> i`.
+     */
+    val requiredRecoveredManagerMethods: List<LegacyRequiredCoachPostMatchMethod> =
+        characterizedCallerOrder.map { exactMethod ->
+            checkNotNull(recoveredMethodRequirementByExactMethod[exactMethod]) {
+                "Missing structural recovery requirement for $exactMethod"
+            }
+        }
 
     /** Structural Java↔SMALI recovery is a mandatory prerequisite and is catalog-driven. */
     val recoveredManagerMethodEvidenceComplete: Boolean
