@@ -1,8 +1,6 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
-/**
- * Mutation families proven to be touched by the reachable legacy coach post-match lifecycle.
- */
+/** Mutation families proven to be touched by the reachable legacy coach post-match lifecycle. */
 enum class LegacyCoachPostMatchMutationFamily {
     RAW_G,
     RAW_H,
@@ -10,18 +8,6 @@ enum class LegacyCoachPostMatchMutationFamily {
     SEASON_AND_CLUB_RECORDS,
 }
 
-/**
- * Semantic-recovery checkpoint for one exact legacy method.
- *
- * [mutationFamilies] is the complete currently-proven surface touched by the method.
- * [fullyCharacterizedMutationFamilies] is deliberately narrower: a family enters that set only
- * after its exact mutation formula/control flow has already been recovered and regression tested.
- * That distinction prevents the already-characterized H projection from accidentally promoting
- * the unresolved G/statistics/record behavior.
- *
- * [completeFieldOrderingRecovered] stays false until Java↔SMALI reconstruction has proven every
- * mutation and its ordering, including interactions between the listed families.
- */
 data class LegacyCoachPostMatchMethodSemanticEvidence(
     val legacyMethod: String,
     val mutationFamilies: Set<LegacyCoachPostMatchMutationFamily>,
@@ -40,66 +26,52 @@ data class LegacyCoachPostMatchMethodSemanticEvidence(
     fun mutationFamilyCharacterized(family: LegacyCoachPostMatchMutationFamily): Boolean =
         family in fullyCharacterizedMutationFamilies
 
-    /**
-     * Exact fail-closed recovery remainder for this method. The order follows [mutationFamilies]
-     * so the value is deterministic and can be used by tests/evidence tooling without inventing
-     * semantic priority among still-unresolved fields.
-     */
     val unresolvedMutationFamilies: Set<LegacyCoachPostMatchMutationFamily>
         get() = mutationFamilies.filterNotTo(linkedSetOf()) { it in fullyCharacterizedMutationFamilies }
 
-    /**
-     * A method may leave the fail-closed boundary only when both dimensions are complete:
-     * every proven mutation family has its exact semantics recovered and the complete cross-field
-     * ordering is known. Keeping these conditions together prevents a future ordering-only toggle
-     * from promoting a partially reconstructed method.
-     */
     val semanticallyComplete: Boolean
-        get() =
-            completeFieldOrderingRecovered &&
-                unresolvedMutationFamilies.isEmpty()
+        get() = completeFieldOrderingRecovered && unresolvedMutationFamilies.isEmpty()
 }
 
 /**
- * Fail-closed semantic coverage catalog for `best.f0.i(best.s)` / `best.f0.j(best.s)`.
+ * Semantic coverage catalog for `best.f0.i(best.s)` / `best.f0.j(best.s)`.
  *
- * Official-corpus recovery currently proves:
- * - `i` mutates raw manager G/H state;
- * - the exact H-only match projection is already characterized by `LegacyCoachRawHRule`;
- * - G remains unresolved;
- * - `j` mutates aggregate manager statistics plus season/club records, whose complete formulas and
- *   ordering remain unresolved.
+ * The official Java+SMALI corpus now has complete pure-rule representations for both methods:
+ * - `LegacyCoachPostMatchAdjustmentRule` preserves every G write, the already-certified H writes,
+ *   debt/matrix conditions, clamps and the final H<30 -> G-5 cross-field dependency;
+ * - `LegacyCoachPostMatchStatisticsRule` preserves D/E/F/o, first season+club record lookup/append,
+ *   A() -> alternative-l association priority and exact competition/subtype/mando point routing.
  *
- * Therefore neither method is semantically complete and production post-match persistence remains
- * blocked.
+ * This semantic checkpoint authorizes persistence work; it does not itself claim that a Room
+ * persistence implementation already exists or that Phase 14 is closed.
  */
 object LegacyCoachPostMatchSemanticEvidence {
-    val methods: List<LegacyCoachPostMatchMethodSemanticEvidence> =
-        listOf(
-            LegacyCoachPostMatchMethodSemanticEvidence(
-                legacyMethod = "best.f0.i(best.s)",
-                mutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.RAW_G,
-                        LegacyCoachPostMatchMutationFamily.RAW_H,
-                    ),
-                fullyCharacterizedMutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.RAW_H,
-                    ),
-                completeFieldOrderingRecovered = false,
+    val methods: List<LegacyCoachPostMatchMethodSemanticEvidence> = listOf(
+        LegacyCoachPostMatchMethodSemanticEvidence(
+            legacyMethod = "best.f0.i(best.s)",
+            mutationFamilies = linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.RAW_G,
+                LegacyCoachPostMatchMutationFamily.RAW_H,
             ),
-            LegacyCoachPostMatchMethodSemanticEvidence(
-                legacyMethod = "best.f0.j(best.s)",
-                mutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
-                        LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
-                    ),
-                fullyCharacterizedMutationFamilies = emptySet(),
-                completeFieldOrderingRecovered = false,
+            fullyCharacterizedMutationFamilies = linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.RAW_G,
+                LegacyCoachPostMatchMutationFamily.RAW_H,
             ),
-        )
+            completeFieldOrderingRecovered = true,
+        ),
+        LegacyCoachPostMatchMethodSemanticEvidence(
+            legacyMethod = "best.f0.j(best.s)",
+            mutationFamilies = linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
+                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
+            ),
+            fullyCharacterizedMutationFamilies = linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
+                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
+            ),
+            completeFieldOrderingRecovered = true,
+        ),
+    )
 
     private val byMethod: Map<String, LegacyCoachPostMatchMethodSemanticEvidence> =
         methods.associateBy { it.legacyMethod }.also { indexed ->
@@ -108,8 +80,7 @@ object LegacyCoachPostMatchSemanticEvidence {
             }
         }
 
-    fun findExact(legacyMethod: String): LegacyCoachPostMatchMethodSemanticEvidence? =
-        byMethod[legacyMethod]
+    fun findExact(legacyMethod: String): LegacyCoachPostMatchMethodSemanticEvidence? = byMethod[legacyMethod]
 
     private fun requireUniqueRequiredMethods(requiredMethods: Collection<String>) {
         require(requiredMethods.size == requiredMethods.toSet().size) {
@@ -117,30 +88,16 @@ object LegacyCoachPostMatchSemanticEvidence {
         }
     }
 
-    /**
-     * Deterministic unresolved-family projection for the exact required method sequence. Unknown
-     * methods remain explicit blockers instead of being silently ignored. Duplicate required
-     * methods are rejected because the recovered caller sequence is exact and a duplicate would
-     * otherwise collapse in the keyed projection.
-     */
     fun unresolvedFor(requiredMethods: Collection<String>): Map<String, Set<LegacyCoachPostMatchMutationFamily>?> {
         requireUniqueRequiredMethods(requiredMethods)
         return linkedMapOf<String, Set<LegacyCoachPostMatchMutationFamily>?>().apply {
-            requiredMethods.forEach { required ->
-                this[required] = byMethod[required]?.unresolvedMutationFamilies
-            }
+            requiredMethods.forEach { required -> this[required] = byMethod[required]?.unresolvedMutationFamilies }
         }
     }
 
-    /**
-     * Promotion is derived from exact required methods rather than a manually toggled boolean.
-     * Duplicate required identities are rejected rather than being treated as redundant evidence.
-     */
     fun completeFor(requiredMethods: Collection<String>): Boolean {
         requireUniqueRequiredMethods(requiredMethods)
         return requiredMethods.isNotEmpty() &&
-            requiredMethods.all { required ->
-                byMethod[required]?.semanticallyComplete == true
-            }
+            requiredMethods.all { required -> byMethod[required]?.semanticallyComplete == true }
     }
 }

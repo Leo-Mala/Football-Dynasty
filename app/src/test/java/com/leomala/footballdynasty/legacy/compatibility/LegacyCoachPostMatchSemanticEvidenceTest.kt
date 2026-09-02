@@ -8,23 +8,15 @@ import org.junit.Test
 
 class LegacyCoachPostMatchSemanticEvidenceTest {
     @Test
-    fun `locks proven mutation families without claiming full field ordering`() {
-        val adjustment =
-            requireNotNull(
-                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)"),
-            )
-        val statistics =
-            requireNotNull(
-                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)"),
-            )
+    fun `locks fully characterized mutation families and ordering for i and j`() {
+        val adjustment = requireNotNull(LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)"))
+        val statistics = requireNotNull(LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)"))
 
         assertEquals(
-            linkedSetOf(
-                LegacyCoachPostMatchMutationFamily.RAW_G,
-                LegacyCoachPostMatchMutationFamily.RAW_H,
-            ),
+            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G, LegacyCoachPostMatchMutationFamily.RAW_H),
             adjustment.mutationFamilies,
         )
+        assertEquals(adjustment.mutationFamilies, adjustment.fullyCharacterizedMutationFamilies)
         assertEquals(
             linkedSetOf(
                 LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
@@ -32,81 +24,26 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
             ),
             statistics.mutationFamilies,
         )
-        assertFalse(adjustment.completeFieldOrderingRecovered)
-        assertFalse(statistics.completeFieldOrderingRecovered)
-        assertFalse(adjustment.semanticallyComplete)
-        assertFalse(statistics.semanticallyComplete)
-    }
-
-    @Test
-    fun `records H as characterized while G and j mutation families remain unresolved`() {
-        val adjustment =
-            requireNotNull(
-                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)"),
-            )
-        val statistics =
-            requireNotNull(
-                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)"),
-            )
-
-        assertEquals(
-            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
-            adjustment.fullyCharacterizedMutationFamilies,
-        )
-        assertEquals(
-            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
-            adjustment.unresolvedMutationFamilies,
-        )
-        assertEquals(
-            linkedSetOf(
-                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
-                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
-            ),
-            statistics.unresolvedMutationFamilies,
-        )
-        assertTrue(
-            adjustment.mutationFamilyCharacterized(
-                LegacyCoachPostMatchMutationFamily.RAW_H,
-            ),
-        )
-        assertFalse(
-            adjustment.mutationFamilyCharacterized(
-                LegacyCoachPostMatchMutationFamily.RAW_G,
-            ),
-        )
-        assertTrue(statistics.fullyCharacterizedMutationFamilies.isEmpty())
+        assertEquals(statistics.mutationFamilies, statistics.fullyCharacterizedMutationFamilies)
+        assertTrue(adjustment.completeFieldOrderingRecovered)
+        assertTrue(statistics.completeFieldOrderingRecovered)
+        assertTrue(adjustment.semanticallyComplete)
+        assertTrue(statistics.semanticallyComplete)
+        assertTrue(adjustment.unresolvedMutationFamilies.isEmpty())
+        assertTrue(statistics.unresolvedMutationFamilies.isEmpty())
     }
 
     @Test
     fun `recovery remainder follows exact caller order and keeps unknown methods explicit`() {
-        val unresolved =
-            LegacyCoachPostMatchSemanticEvidence.unresolvedFor(
-                listOf(
-                    "best.f0.j(best.s)",
-                    "best.f0.i(best.s)",
-                    "best.f0.unknown(best.s)",
-                ),
-            )
-
+        val unresolved = LegacyCoachPostMatchSemanticEvidence.unresolvedFor(
+            listOf("best.f0.j(best.s)", "best.f0.i(best.s)", "best.f0.unknown(best.s)"),
+        )
         assertEquals(
-            listOf(
-                "best.f0.j(best.s)",
-                "best.f0.i(best.s)",
-                "best.f0.unknown(best.s)",
-            ),
+            listOf("best.f0.j(best.s)", "best.f0.i(best.s)", "best.f0.unknown(best.s)"),
             unresolved.keys.toList(),
         )
-        assertEquals(
-            linkedSetOf(
-                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
-                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
-            ),
-            unresolved["best.f0.j(best.s)"],
-        )
-        assertEquals(
-            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
-            unresolved["best.f0.i(best.s)"],
-        )
+        assertEquals(emptySet<LegacyCoachPostMatchMutationFamily>(), unresolved["best.f0.j(best.s)"])
+        assertEquals(emptySet<LegacyCoachPostMatchMutationFamily>(), unresolved["best.f0.i(best.s)"])
         assertTrue(unresolved.containsKey("best.f0.unknown(best.s)"))
         assertNull(unresolved["best.f0.unknown(best.s)"])
     }
@@ -130,8 +67,7 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
         LegacyCoachPostMatchMethodSemanticEvidence(
             legacyMethod = "best.f0.i(best.s)",
             mutationFamilies = linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
-            fullyCharacterizedMutationFamilies =
-                linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
+            fullyCharacterizedMutationFamilies = linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
             completeFieldOrderingRecovered = false,
         )
     }
@@ -156,57 +92,28 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
 
     @Test
     fun `ordering alone cannot promote a partially characterized method`() {
-        val partial =
-            LegacyCoachPostMatchMethodSemanticEvidence(
-                legacyMethod = "best.f0.i(best.s)",
-                mutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.RAW_G,
-                        LegacyCoachPostMatchMutationFamily.RAW_H,
-                    ),
-                fullyCharacterizedMutationFamilies =
-                    linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
-                completeFieldOrderingRecovered = true,
-            )
-
-        assertFalse(partial.semanticallyComplete)
-        assertEquals(
-            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
-            partial.unresolvedMutationFamilies,
+        val partial = LegacyCoachPostMatchMethodSemanticEvidence(
+            legacyMethod = "best.f0.i(best.s)",
+            mutationFamilies = linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.RAW_G,
+                LegacyCoachPostMatchMutationFamily.RAW_H,
+            ),
+            fullyCharacterizedMutationFamilies = linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
+            completeFieldOrderingRecovered = true,
         )
+        assertFalse(partial.semanticallyComplete)
+        assertEquals(linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G), partial.unresolvedMutationFamilies)
     }
 
     @Test
-    fun `semantic completeness requires all mutation families and complete ordering`() {
-        val complete =
-            LegacyCoachPostMatchMethodSemanticEvidence(
-                legacyMethod = "best.f0.i(best.s)",
-                mutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.RAW_G,
-                        LegacyCoachPostMatchMutationFamily.RAW_H,
-                    ),
-                fullyCharacterizedMutationFamilies =
-                    linkedSetOf(
-                        LegacyCoachPostMatchMutationFamily.RAW_G,
-                        LegacyCoachPostMatchMutationFamily.RAW_H,
-                    ),
-                completeFieldOrderingRecovered = true,
-            )
-
-        assertTrue(complete.unresolvedMutationFamilies.isEmpty())
-        assertTrue(complete.semanticallyComplete)
-    }
-
-    @Test
-    fun `semantic promotion remains fail closed until every required method is complete`() {
-        assertFalse(
+    fun `semantic promotion is now complete for exact j then i caller sequence`() {
+        assertTrue(
             LegacyCoachPostMatchSemanticEvidence.completeFor(
                 listOf("best.f0.j(best.s)", "best.f0.i(best.s)"),
             ),
         )
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
     }
 
     @Test

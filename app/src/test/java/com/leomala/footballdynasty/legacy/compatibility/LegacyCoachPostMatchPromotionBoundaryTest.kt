@@ -1,7 +1,6 @@
 package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -56,14 +55,12 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
     @Test
     fun `required coach structural fingerprints remain identical to recovered corpus catalog`() {
         LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.forEach { required ->
-            val recovered =
-                requireNotNull(
-                    LegacyManagerRecoveredMethodEvidence.findExact(
-                        legacyClassName = required.legacyClassName,
-                        methodSignature = required.methodSignature,
-                    ),
-                )
-
+            val recovered = requireNotNull(
+                LegacyManagerRecoveredMethodEvidence.findExact(
+                    legacyClassName = required.legacyClassName,
+                    methodSignature = required.methodSignature,
+                ),
+            )
             assertEquals(required.smaliFileName, recovered.smaliFileName)
             assertEquals(required.smaliMethodSignature, recovered.smaliMethodSignature)
             assertEquals(required.instructionCount, recovered.instructionCount)
@@ -72,9 +69,9 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
     }
 
     @Test
-    fun `keeps production persistence fail closed after structural recovery until semantics are promoted`() {
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.completeLifecycleCharacterized)
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
+    fun `semantic recovery now authorizes complete post match persistence implementation`() {
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.completeLifecycleCharacterized)
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
     }
 }
