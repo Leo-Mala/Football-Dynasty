@@ -39,12 +39,18 @@ class CareerTicketRuntimeStore(private val database: FootballDynastyDatabase) {
         require(managersInWorldOrder.map { it.sourceOrdinal } == managersInWorldOrder.indices.toList()) {
             "Manager source ordinals must be contiguous legacy ArrayList order"
         }
-        dao.deleteManagerStates(careerId)
-        dao.upsertManagerStates(
-            managersInWorldOrder.map {
-                CareerManagerTicketRuntimeEntity(careerId, it.sourceOrdinal, it.legacyManagerId, it.rawH)
+        val desired = managersInWorldOrder.map {
+            CareerManagerTicketRuntimeEntity(careerId, it.sourceOrdinal, it.legacyManagerId, it.rawH)
+        }
+        val materializedCoachState = database.careerCoachRuntimeDao().coachRuntimeForCareer(careerId)
+        if (materializedCoachState.isNotEmpty()) {
+            require(dao.managerStates(careerId) == desired) {
+                "Cannot rematerialize ordered manager parents after V11 coach state exists"
             }
-        )
+            return@withTransaction
+        }
+        dao.deleteManagerStates(careerId)
+        dao.upsertManagerStates(desired)
     }
 
     suspend fun materializeMatchConstructionSource(
