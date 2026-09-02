@@ -90,6 +90,7 @@ class CareerCompetitionPrizeStoreTest {
             rawCompetitionI0 = 0,
             rawCompetitionPCode = -1,
         )
+        Unit
     }
 
     private suspend fun materialize(
