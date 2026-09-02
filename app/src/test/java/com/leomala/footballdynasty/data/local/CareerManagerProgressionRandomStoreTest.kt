@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.leomala.footballdynasty.data.local.entity.CareerMetadataEntity
-import com.leomala.footballdynasty.domain.career.CareerCalendarState
 import com.leomala.footballdynasty.domain.career.CareerRandomState
 import com.leomala.footballdynasty.domain.career.CareerState
+import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.SeasonState
 import com.leomala.footballdynasty.domain.manager.LegacyPostDismissalContinuationRule
 import com.leomala.footballdynasty.domain.manager.LegacyReplacementManagerCandidate
@@ -217,15 +217,12 @@ class CareerManagerProgressionRandomStoreTest {
 
     private fun careerState(seed: Long): CareerState {
         val snapshot = StatefulJavaRandomSource(seed).snapshot()
+        val seasonNumber = 1
+        val seasonYear = LegacyCalendarRules.seasonYear(seasonNumber)
         return CareerState(
             id = CAREER,
-            season = SeasonState(number = 1, year = 2026),
-            calendar = CareerCalendarState(
-                year = 2026,
-                currentDayIndex = 0,
-                startDayIndex = 0,
-                dayCount = 365,
-            ),
+            season = SeasonState(number = seasonNumber, year = seasonYear),
+            calendar = LegacyCalendarRules.calendarForSeason(seasonNumber),
             managedClub = null,
             random = snapshot.toCareerRandomState(),
         )
