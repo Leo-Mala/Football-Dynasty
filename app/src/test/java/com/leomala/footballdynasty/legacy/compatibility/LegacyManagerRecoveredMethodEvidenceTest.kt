@@ -23,6 +23,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
                 LegacyRecoveredManagerMethod("best.b", "G(best.c0,best.f0,best.f0)", "best/b.smali", 5, 2, "G(Lbest/c0;Lbest/f0;Lbest/f0;)V"),
                 LegacyRecoveredManagerMethod("best.f0", "l(best.f0)", "best/f0.smali", 100, 5, "l(Lbest/f0;)V"),
                 LegacyRecoveredManagerMethod("best.f0", "e(best.c0)", "best/f0.smali", 38, 3, "e(Lbest/c0;)V"),
+                LegacyRecoveredManagerMethod("best.f0", "i(best.s)", "best/f0.smali", 429, 83, "i(Lbest/s;)V"),
+                LegacyRecoveredManagerMethod("best.f0", "j(best.s)", "best/f0.smali", 182, 71, "j(Lbest/s;)V"),
                 LegacyRecoveredManagerMethod("best.c0", "y()", "best/c0.smali", 103, 22, "y()Lbest/f0;"),
                 LegacyRecoveredManagerMethod("best.b", "t(best.c0,int)", "best/b.smali", 120, 20, "t(Lbest/c0;I)Lbest/f0;"),
                 LegacyRecoveredManagerMethod("best.b", "u()", "best/b.smali", 30, 4, "u()Lbest/f0;"),
@@ -45,6 +47,8 @@ class LegacyManagerRecoveredMethodEvidenceTest {
         assertEquals("y()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscalacao", "B()")).smaliMethodSignature)
         assertEquals("i(Ljava/lang/String;)Z", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("ActivityEscolhaTimes", "i(String)")).smaliMethodSignature)
         assertEquals("G(Lbest/c0;Lbest/f0;Lbest/f0;)V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.b", "G(best.c0,best.f0,best.f0)")).smaliMethodSignature)
+        assertEquals("i(Lbest/s;)V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "i(best.s)")).smaliMethodSignature)
+        assertEquals("j(Lbest/s;)V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "j(best.s)")).smaliMethodSignature)
         assertEquals("y()Lbest/f0;", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.c0", "y()")).smaliMethodSignature)
         assertEquals("l()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "l()")).smaliMethodSignature)
         assertEquals("m()V", requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.n", "m()")).smaliMethodSignature)
@@ -74,6 +78,14 @@ class LegacyManagerRecoveredMethodEvidenceTest {
     }
 
     @Test
+    fun recoveredCoachPostMatchMethodsKeepOfficialStructuralFingerprints() {
+        val adjustment = requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "i(best.s)"))
+        val statistics = requireNotNull(LegacyManagerRecoveredMethodEvidence.findExact("best.f0", "j(best.s)"))
+        assertEquals(429 to 83, adjustment.instructionCount to adjustment.branchCount)
+        assertEquals(182 to 71, statistics.instructionCount to statistics.branchCount)
+    }
+
+    @Test
     fun recoveredYearEndAndContinuationMethodsKeepOfficialStructuralFingerprints() {
         val expected = mapOf(
             "l()" to (81 to 16),
@@ -97,7 +109,7 @@ class LegacyManagerRecoveredMethodEvidenceTest {
             listOf(LegacyRecoveredManagerMethod("ActivityProcura", "t(best.o,best.c0,int)", "ActivityProcura.smali", 136, 14, "t(Lbest/o;Lbest/c0;I)I")),
             LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivityProcura"),
         )
-        assertEquals(2, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.f0").size)
+        assertEquals(4, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.f0").size)
         assertEquals(8, LegacyManagerRecoveredMethodEvidence.forLegacyClass("best.n").size)
         assertTrue(LegacyManagerRecoveredMethodEvidence.forLegacyClass("ActivitySearch").isEmpty())
     }

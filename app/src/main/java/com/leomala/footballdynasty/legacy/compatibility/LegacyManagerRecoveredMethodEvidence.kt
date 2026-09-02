@@ -26,6 +26,8 @@ object LegacyManagerRecoveredMethodEvidence {
         LegacyRecoveredManagerMethod("best.b", "G(best.c0,best.f0,best.f0)", "best/b.smali", 5, 2, "G(Lbest/c0;Lbest/f0;Lbest/f0;)V"),
         LegacyRecoveredManagerMethod("best.f0", "l(best.f0)", "best/f0.smali", 100, 5, "l(Lbest/f0;)V"),
         LegacyRecoveredManagerMethod("best.f0", "e(best.c0)", "best/f0.smali", 38, 3, "e(Lbest/c0;)V"),
+        LegacyRecoveredManagerMethod("best.f0", "i(best.s)", "best/f0.smali", 429, 83, "i(Lbest/s;)V"),
+        LegacyRecoveredManagerMethod("best.f0", "j(best.s)", "best/f0.smali", 182, 71, "j(Lbest/s;)V"),
         LegacyRecoveredManagerMethod("best.c0", "y()", "best/c0.smali", 103, 22, "y()Lbest/f0;"),
         LegacyRecoveredManagerMethod("best.b", "t(best.c0,int)", "best/b.smali", 120, 20, "t(Lbest/c0;I)Lbest/f0;"),
         LegacyRecoveredManagerMethod("best.b", "u()", "best/b.smali", 30, 4, "u()Lbest/f0;"),

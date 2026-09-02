@@ -7,10 +7,14 @@ import org.junit.Test
 
 class LegacyCoachPostMatchPromotionBoundaryTest {
     @Test
-    fun `locks exact reachable post-match evidence surface`() {
+    fun `locks exact reachable post-match caller order`() {
         assertEquals("best.s.f()", LegacyCoachPostMatchPromotionBoundary.callerMethod)
-        assertEquals("best.f0.i(best.s)", LegacyCoachPostMatchPromotionBoundary.homeManagerMethod)
-        assertEquals("best.f0.j(best.s)", LegacyCoachPostMatchPromotionBoundary.pairedManagerMethod)
+        assertEquals("best.f0.i(best.s)", LegacyCoachPostMatchPromotionBoundary.postMatchAdjustmentMethod)
+        assertEquals("best.f0.j(best.s)", LegacyCoachPostMatchPromotionBoundary.postMatchStatisticsMethod)
+        assertEquals(
+            listOf("best.f0.j(best.s)", "best.f0.i(best.s)"),
+            LegacyCoachPostMatchPromotionBoundary.characterizedCallerOrder,
+        )
         assertEquals(
             linkedSetOf(1, 2, 3, 4, 5, 6, 8),
             LegacyCoachPostMatchPromotionBoundary.characterizedHCompetitionTypes,
@@ -32,11 +36,11 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
             listOf("best/f0.smali", "best/f0.smali"),
             LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.smaliFileName },
         )
-        assertFalse(LegacyCoachPostMatchPromotionBoundary.recoveredManagerMethodEvidenceComplete)
+        assertTrue(LegacyCoachPostMatchPromotionBoundary.recoveredManagerMethodEvidenceComplete)
     }
 
     @Test
-    fun `keeps production persistence fail closed until structural and semantic i j evidence is complete`() {
+    fun `keeps production persistence fail closed after structural recovery until semantics are promoted`() {
         assertFalse(LegacyCoachPostMatchPromotionBoundary.semanticLifecycleCharacterized)
         assertFalse(LegacyCoachPostMatchPromotionBoundary.completeLifecycleCharacterized)
         assertFalse(LegacyCoachPostMatchPromotionBoundary.productionPersistenceAllowed())
