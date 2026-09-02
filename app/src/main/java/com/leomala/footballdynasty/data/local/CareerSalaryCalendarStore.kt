@@ -14,7 +14,36 @@ class CareerSalaryCalendarStore(
     database: FootballDynastyDatabase,
 ) {
     private val managerStore = CareerManagerRuntimeStore(database)
+    private val financeInputResolver = CareerClubFinanceInputResolver(database)
 
+    /**
+     * Production-facing salary path. Payroll is resolved from persisted squad memberships plus the
+     * characterized commercial salary field; callers cannot inject an arbitrary payroll snapshot.
+     */
+    suspend fun applyCalendarDayFromPersistedRoster(
+        careerId: String,
+        clubId: String,
+        useDayOfMonthTwoSchedule: Boolean,
+        dayOfMonth: Int,
+        dayOfWeek: Int,
+        currentMonthCode: Int,
+        participatingCalendarMonthCodes: Iterable<Int>,
+    ): LegacyFinanceRuntimeState {
+        val (seniorSalaryCodes, youthSalaryCodes) = financeInputResolver.resolvePayroll(careerId, clubId)
+        return applyCalendarDay(
+            careerId = careerId,
+            clubId = clubId,
+            useDayOfMonthTwoSchedule = useDayOfMonthTwoSchedule,
+            dayOfMonth = dayOfMonth,
+            dayOfWeek = dayOfWeek,
+            currentMonthCode = currentMonthCode,
+            participatingCalendarMonthCodes = participatingCalendarMonthCodes,
+            seniorSalaryCodes = seniorSalaryCodes,
+            youthSalaryCodes = youthSalaryCodes,
+        )
+    }
+
+    /** Low-level characterized boundary retained for pure/integration fixtures. */
     suspend fun applyCalendarDay(
         careerId: String,
         clubId: String,
