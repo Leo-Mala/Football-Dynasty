@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LegacyCoachPostMatchSemanticEvidenceTest {
@@ -32,6 +33,45 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
         )
         assertFalse(adjustment.completeFieldOrderingRecovered)
         assertFalse(statistics.completeFieldOrderingRecovered)
+    }
+
+    @Test
+    fun `records H as characterized while G and j mutation families remain unresolved`() {
+        val adjustment =
+            requireNotNull(
+                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.i(best.s)"),
+            )
+        val statistics =
+            requireNotNull(
+                LegacyCoachPostMatchSemanticEvidence.findExact("best.f0.j(best.s)"),
+            )
+
+        assertEquals(
+            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
+            adjustment.fullyCharacterizedMutationFamilies,
+        )
+        assertTrue(
+            adjustment.mutationFamilyCharacterized(
+                LegacyCoachPostMatchMutationFamily.RAW_H,
+            ),
+        )
+        assertFalse(
+            adjustment.mutationFamilyCharacterized(
+                LegacyCoachPostMatchMutationFamily.RAW_G,
+            ),
+        )
+        assertTrue(statistics.fullyCharacterizedMutationFamilies.isEmpty())
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `cannot characterize a mutation family outside the proven method surface`() {
+        LegacyCoachPostMatchMethodSemanticEvidence(
+            legacyMethod = "best.f0.i(best.s)",
+            mutationFamilies = linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
+            fullyCharacterizedMutationFamilies =
+                linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
+            completeFieldOrderingRecovered = false,
+        )
     }
 
     @Test
