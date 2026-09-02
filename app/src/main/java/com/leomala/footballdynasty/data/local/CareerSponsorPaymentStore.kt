@@ -14,7 +14,32 @@ class CareerSponsorPaymentStore(
     database: FootballDynastyDatabase,
 ) {
     private val managerStore = CareerManagerRuntimeStore(database)
+    private val financeInputResolver = CareerClubFinanceInputResolver(database)
 
+    /**
+     * Production-facing annual sponsor path. Country, O(), Q0() and payroll are resolved from the
+     * frozen source row plus persisted career state; only the characterized global state-championship
+     * flag remains a caller input.
+     */
+    suspend fun applyAnnualSponsorFromPersistedClubState(
+        careerId: String,
+        clubId: String,
+        playStateChampionship: Boolean,
+    ): LegacyFinanceRuntimeState {
+        val input = financeInputResolver.resolve(careerId, clubId)
+        return applyAnnualSponsor(
+            careerId = careerId,
+            clubId = clubId,
+            rawCountryCode = input.rawCountryCode,
+            rawDivisionCode = input.rawDivisionCode,
+            playStateChampionship = playStateChampionship,
+            seniorSalaryCodes = input.seniorSalaryCodes,
+            youthSalaryCodes = input.youthSalaryCodes,
+            recordFinanceLedger = input.recordFinanceLedger,
+        )
+    }
+
+    /** Low-level characterized boundary retained for pure/integration fixtures. */
     suspend fun applyAnnualSponsor(
         careerId: String,
         clubId: String,
