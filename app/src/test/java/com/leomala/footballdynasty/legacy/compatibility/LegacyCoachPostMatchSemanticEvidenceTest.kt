@@ -33,6 +33,8 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
         )
         assertFalse(adjustment.completeFieldOrderingRecovered)
         assertFalse(statistics.completeFieldOrderingRecovered)
+        assertFalse(adjustment.semanticallyComplete)
+        assertFalse(statistics.semanticallyComplete)
     }
 
     @Test
@@ -72,6 +74,45 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
                 linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
             completeFieldOrderingRecovered = false,
         )
+    }
+
+    @Test
+    fun `ordering alone cannot promote a partially characterized method`() {
+        val partial =
+            LegacyCoachPostMatchMethodSemanticEvidence(
+                legacyMethod = "best.f0.i(best.s)",
+                mutationFamilies =
+                    linkedSetOf(
+                        LegacyCoachPostMatchMutationFamily.RAW_G,
+                        LegacyCoachPostMatchMutationFamily.RAW_H,
+                    ),
+                fullyCharacterizedMutationFamilies =
+                    linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
+                completeFieldOrderingRecovered = true,
+            )
+
+        assertFalse(partial.semanticallyComplete)
+    }
+
+    @Test
+    fun `semantic completeness requires all mutation families and complete ordering`() {
+        val complete =
+            LegacyCoachPostMatchMethodSemanticEvidence(
+                legacyMethod = "best.f0.i(best.s)",
+                mutationFamilies =
+                    linkedSetOf(
+                        LegacyCoachPostMatchMutationFamily.RAW_G,
+                        LegacyCoachPostMatchMutationFamily.RAW_H,
+                    ),
+                fullyCharacterizedMutationFamilies =
+                    linkedSetOf(
+                        LegacyCoachPostMatchMutationFamily.RAW_G,
+                        LegacyCoachPostMatchMutationFamily.RAW_H,
+                    ),
+                completeFieldOrderingRecovered = true,
+            )
+
+        assertTrue(complete.semanticallyComplete)
     }
 
     @Test
