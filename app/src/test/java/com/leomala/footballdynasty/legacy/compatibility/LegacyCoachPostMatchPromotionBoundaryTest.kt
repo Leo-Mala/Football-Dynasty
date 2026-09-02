@@ -42,7 +42,33 @@ class LegacyCoachPostMatchPromotionBoundaryTest {
             listOf("best/f0.smali", "best/f0.smali"),
             LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.smaliFileName },
         )
+        assertEquals(
+            listOf(182, 429),
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.instructionCount },
+        )
+        assertEquals(
+            listOf(71, 83),
+            LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.map { it.branchCount },
+        )
         assertTrue(LegacyCoachPostMatchPromotionBoundary.recoveredManagerMethodEvidenceComplete)
+    }
+
+    @Test
+    fun `required coach structural fingerprints remain identical to recovered corpus catalog`() {
+        LegacyCoachPostMatchPromotionBoundary.requiredRecoveredManagerMethods.forEach { required ->
+            val recovered =
+                requireNotNull(
+                    LegacyManagerRecoveredMethodEvidence.findExact(
+                        legacyClassName = required.legacyClassName,
+                        methodSignature = required.methodSignature,
+                    ),
+                )
+
+            assertEquals(required.smaliFileName, recovered.smaliFileName)
+            assertEquals(required.smaliMethodSignature, recovered.smaliMethodSignature)
+            assertEquals(required.instructionCount, recovered.instructionCount)
+            assertEquals(required.branchCount, recovered.branchCount)
+        }
     }
 
     @Test
