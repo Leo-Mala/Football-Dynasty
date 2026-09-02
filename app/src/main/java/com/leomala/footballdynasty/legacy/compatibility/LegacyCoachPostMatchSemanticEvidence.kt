@@ -2,9 +2,6 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 /**
  * Mutation families proven to be touched by the reachable legacy coach post-match lifecycle.
- *
- * These names deliberately stay structural/neutral. Exact field formulas and ordering remain a
- * separate recovery problem and must not be inferred from this catalog.
  */
 enum class LegacyCoachPostMatchMutationFamily {
     RAW_G,
@@ -16,22 +13,43 @@ enum class LegacyCoachPostMatchMutationFamily {
 /**
  * Semantic-recovery checkpoint for one exact legacy method.
  *
- * [completeFieldOrderingRecovered] is intentionally false until Java↔SMALI reconstruction has
- * proven every mutation and its ordering. Listing a mutation family is evidence of surface area,
- * not permission to persist a partial projection.
+ * [mutationFamilies] is the complete currently-proven surface touched by the method.
+ * [fullyCharacterizedMutationFamilies] is deliberately narrower: a family enters that set only
+ * after its exact mutation formula/control flow has already been recovered and regression tested.
+ * That distinction prevents the already-characterized H projection from accidentally promoting
+ * the unresolved G/statistics/record behavior.
+ *
+ * [completeFieldOrderingRecovered] stays false until Java↔SMALI reconstruction has proven every
+ * mutation and its ordering, including interactions between the listed families.
  */
 data class LegacyCoachPostMatchMethodSemanticEvidence(
     val legacyMethod: String,
     val mutationFamilies: Set<LegacyCoachPostMatchMutationFamily>,
+    val fullyCharacterizedMutationFamilies: Set<LegacyCoachPostMatchMutationFamily>,
     val completeFieldOrderingRecovered: Boolean,
-)
+) {
+    init {
+        require(fullyCharacterizedMutationFamilies.all(mutationFamilies::contains)) {
+            "Characterized mutation families must be part of the proven method surface"
+        }
+    }
+
+    fun mutationFamilyCharacterized(family: LegacyCoachPostMatchMutationFamily): Boolean =
+        family in fullyCharacterizedMutationFamilies
+}
 
 /**
  * Fail-closed semantic coverage catalog for `best.f0.i(best.s)` / `best.f0.j(best.s)`.
  *
- * The current official-corpus recovery proves that `i` mutates raw manager G/H state and that `j`
- * mutates aggregate manager statistics plus season/club records. It does not yet prove the complete
- * field-by-field formulas/order for both methods, so neither method is semantically complete.
+ * Official-corpus recovery currently proves:
+ * - `i` mutates raw manager G/H state;
+ * - the exact H-only match projection is already characterized by `LegacyCoachRawHRule`;
+ * - G remains unresolved;
+ * - `j` mutates aggregate manager statistics plus season/club records, whose complete formulas and
+ *   ordering remain unresolved.
+ *
+ * Therefore neither method is semantically complete and production post-match persistence remains
+ * blocked.
  */
 object LegacyCoachPostMatchSemanticEvidence {
     val methods: List<LegacyCoachPostMatchMethodSemanticEvidence> =
@@ -43,6 +61,10 @@ object LegacyCoachPostMatchSemanticEvidence {
                         LegacyCoachPostMatchMutationFamily.RAW_G,
                         LegacyCoachPostMatchMutationFamily.RAW_H,
                     ),
+                fullyCharacterizedMutationFamilies =
+                    linkedSetOf(
+                        LegacyCoachPostMatchMutationFamily.RAW_H,
+                    ),
                 completeFieldOrderingRecovered = false,
             ),
             LegacyCoachPostMatchMethodSemanticEvidence(
@@ -52,6 +74,7 @@ object LegacyCoachPostMatchSemanticEvidence {
                         LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
                         LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
                     ),
+                fullyCharacterizedMutationFamilies = emptySet(),
                 completeFieldOrderingRecovered = false,
             ),
         )
