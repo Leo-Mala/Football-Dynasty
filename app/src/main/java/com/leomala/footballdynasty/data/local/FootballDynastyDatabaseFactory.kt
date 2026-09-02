@@ -47,6 +47,7 @@ object FootballDynastyMigrations {
         Phase12ManagerPersistenceMigration.MIGRATION_6_7,
         Phase13StadiumRuntimeMigration.MIGRATION_7_8,
         Phase13TicketRuntimeMigration.MIGRATION_8_9,
+        Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
     )
 }
 

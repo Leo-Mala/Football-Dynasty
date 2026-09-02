@@ -152,9 +152,12 @@ data class CareerActiveLoanEntity(
 )
 
 /**
- * Ordered legacy `components.y1` construction list. The legacy record itself proves no club foreign
- * key, so persistence deliberately keeps only its source ordinal, stadium code, end time and four
- * raw additions instead of inventing ownership semantics.
+ * Ordered legacy `components.y1` construction list.
+ *
+ * `stadiumCode` remains opaque legacy data. `ownerClubId` is deliberately separate modern
+ * persistence metadata: it records the already-known club context when a new construction is
+ * started. V9 rows migrate with NULL ownership and therefore fail closed at completion rather than
+ * guessing a legacy stadium-code mapping.
  */
 @Entity(
     tableName = "career_stadium_constructions",
@@ -178,4 +181,5 @@ data class CareerStadiumConstructionEntity(
     val addition1: Int,
     val addition2: Int,
     val addition3: Int,
+    val ownerClubId: String? = null,
 )

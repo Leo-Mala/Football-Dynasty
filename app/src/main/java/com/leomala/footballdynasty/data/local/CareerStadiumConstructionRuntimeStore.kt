@@ -12,14 +12,10 @@ import com.leomala.footballdynasty.domain.manager.LegacyStadiumFinanceRuntimeRul
 /**
  * Transactional Phase 13 boundary for starting a legacy stadium construction.
  *
- * The caller supplies only inputs that are still external to the persisted V9 boundary: the four
- * requested additions, the already-characterized legacy J value, the raw legacy stadium code and
- * the legacy-derived completion timestamp. Current capacities and club finance are always resolved
- * from Room inside the same transaction before the legacy quote/debit rules execute.
- *
- * `stadiumCode` intentionally remains opaque. The official source-identity boundary explicitly
- * forbids interpreting `legacySid` as its owner without additional Java+SMALI proof, so this store
- * does not invent that mapping.
+ * Current capacities and club finance are resolved from Room inside the same transaction before
+ * the characterized legacy quote/debit rules execute. `stadiumCode` stays opaque. V10 additionally
+ * persists the already-known `clubId` as modern ownership metadata so a future completion can
+ * mutate the correct persisted stadium without reinterpreting any legacy identity field.
  */
 class CareerStadiumConstructionRuntimeStore(
     private val database: FootballDynastyDatabase,
@@ -81,6 +77,7 @@ class CareerStadiumConstructionRuntimeStore(
                     addition1 = record.additions[1],
                     addition2 = record.additions[2],
                     addition3 = record.additions[3],
+                    ownerClubId = clubId,
                 )
             )
         }
