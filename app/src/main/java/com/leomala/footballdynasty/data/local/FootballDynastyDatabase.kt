@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.leomala.footballdynasty.data.local.dao.CareerCoachRuntimeDao
 import com.leomala.footballdynasty.data.local.dao.CareerCompetitionDao
 import com.leomala.footballdynasty.data.local.dao.CareerCoreStateDao
 import com.leomala.footballdynasty.data.local.dao.CareerManagerRuntimeDao
@@ -28,7 +29,8 @@ import com.leomala.footballdynasty.data.local.entity.*
         CareerClubManagerRuntimeEntity::class, CareerActiveLoanEntity::class,
         CareerStadiumConstructionEntity::class, CareerStadiumRuntimeEntity::class,
         CareerClubTicketRuntimeEntity::class, CareerManagerTicketRuntimeEntity::class,
-        CareerMatchConstructionSourceEntity::class,
+        CareerMatchConstructionSourceEntity::class, CareerCoachRuntimeEntity::class,
+        CareerCoachSeasonClubRecordEntity::class,
     ],
     version = FootballDynastyDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -45,9 +47,10 @@ abstract class FootballDynastyDatabase : RoomDatabase() {
     abstract fun careerCompetitionDao(): CareerCompetitionDao
     abstract fun careerManagerRuntimeDao(): CareerManagerRuntimeDao
     abstract fun careerTicketRuntimeDao(): CareerTicketRuntimeDao
+    abstract fun careerCoachRuntimeDao(): CareerCoachRuntimeDao
 
     companion object {
-        const val SCHEMA_VERSION: Int = 10
+        const val SCHEMA_VERSION: Int = 11
         const val DATABASE_NAME: String = "football_dynasty.db"
     }
 }
