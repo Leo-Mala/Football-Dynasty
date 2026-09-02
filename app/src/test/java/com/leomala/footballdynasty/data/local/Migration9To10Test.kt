@@ -9,7 +9,6 @@ import com.leomala.footballdynasty.data.local.entity.CareerStadiumConstructionEn
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,7 +26,7 @@ class Migration9To10Test {
         // Materialize a structurally valid current database first. V10 changed only the
         // construction table, so the test then rewinds that single table to its certified V9 shape
         // and stamps the certified V9 Room identity before reopening through the real migration.
-        var current = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
+        val current = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
             .build()
         current.careerMetadataDao().upsert(
@@ -82,7 +81,7 @@ class Migration9To10Test {
         assertEquals(77, row.stadiumCode)
         assertEquals(listOf(100, 20, 30, 40), listOf(row.addition0, row.addition1, row.addition2, row.addition3))
         assertNull(row.ownerClubId)
-        assertEquals("Migration V10 probe", migrated.careerMetadataDao().getById(CAREER)?.displayName)
+        assertEquals("Migration V10 probe", migrated.careerMetadataDao().findById(CAREER)?.displayName)
         migrated.close()
         context.deleteDatabase(name)
         Unit
