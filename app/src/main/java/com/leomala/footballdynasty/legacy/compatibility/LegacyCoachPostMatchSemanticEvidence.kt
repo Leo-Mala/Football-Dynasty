@@ -111,23 +111,36 @@ object LegacyCoachPostMatchSemanticEvidence {
     fun findExact(legacyMethod: String): LegacyCoachPostMatchMethodSemanticEvidence? =
         byMethod[legacyMethod]
 
+    private fun requireUniqueRequiredMethods(requiredMethods: Collection<String>) {
+        require(requiredMethods.size == requiredMethods.toSet().size) {
+            "Duplicate required coach post-match methods would make caller recovery ambiguous"
+        }
+    }
+
     /**
      * Deterministic unresolved-family projection for the exact required method sequence. Unknown
-     * methods remain explicit blockers instead of being silently ignored.
+     * methods remain explicit blockers instead of being silently ignored. Duplicate required
+     * methods are rejected because the recovered caller sequence is exact and a duplicate would
+     * otherwise collapse in the keyed projection.
      */
-    fun unresolvedFor(requiredMethods: Collection<String>): Map<String, Set<LegacyCoachPostMatchMutationFamily>?> =
-        linkedMapOf<String, Set<LegacyCoachPostMatchMutationFamily>?>().apply {
+    fun unresolvedFor(requiredMethods: Collection<String>): Map<String, Set<LegacyCoachPostMatchMutationFamily>?> {
+        requireUniqueRequiredMethods(requiredMethods)
+        return linkedMapOf<String, Set<LegacyCoachPostMatchMutationFamily>?>().apply {
             requiredMethods.forEach { required ->
                 this[required] = byMethod[required]?.unresolvedMutationFamilies
             }
         }
+    }
 
     /**
      * Promotion is derived from exact required methods rather than a manually toggled boolean.
+     * Duplicate required identities are rejected rather than being treated as redundant evidence.
      */
-    fun completeFor(requiredMethods: Collection<String>): Boolean =
-        requiredMethods.isNotEmpty() &&
+    fun completeFor(requiredMethods: Collection<String>): Boolean {
+        requireUniqueRequiredMethods(requiredMethods)
+        return requiredMethods.isNotEmpty() &&
             requiredMethods.all { required ->
                 byMethod[required]?.semanticallyComplete == true
             }
+    }
 }
