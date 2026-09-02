@@ -29,6 +29,9 @@ data class LegacyCoachPostMatchMethodSemanticEvidence(
     val completeFieldOrderingRecovered: Boolean,
 ) {
     init {
+        require(mutationFamilies.isNotEmpty()) {
+            "A reachable coach post-match method must retain at least one proven mutation family"
+        }
         require(fullyCharacterizedMutationFamilies.all(mutationFamilies::contains)) {
             "Characterized mutation families must be part of the proven method surface"
         }
@@ -99,7 +102,11 @@ object LegacyCoachPostMatchSemanticEvidence {
         )
 
     private val byMethod: Map<String, LegacyCoachPostMatchMethodSemanticEvidence> =
-        methods.associateBy { it.legacyMethod }
+        methods.associateBy { it.legacyMethod }.also { indexed ->
+            check(indexed.size == methods.size) {
+                "Duplicate coach post-match semantic evidence would make recovery ambiguous"
+            }
+        }
 
     fun findExact(legacyMethod: String): LegacyCoachPostMatchMethodSemanticEvidence? =
         byMethod[legacyMethod]
