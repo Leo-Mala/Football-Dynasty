@@ -24,7 +24,7 @@ class CareerCompetitionPrizeStoreTest {
         val name = "marco-b-prize-reopen"
         context.deleteDatabase(name)
         var database = fileDatabase(context, name)
-        materialize(database, cash = 1_000L, prizeIncome = 25)
+        materialize(database, cash = 1_000L, prizeIncome = 25, active = true)
 
         val after = CareerCompetitionPrizeStore(database).applyResolvedWinnerPrize(
             careerId = CAREER,
@@ -33,7 +33,6 @@ class CareerCompetitionPrizeStoreTest {
             rawStageIndex = 3,
             rawCompetitionI0 = 0,
             rawCompetitionPCode = -1,
-            winnerLegacyQ0 = true,
         )
         assertEquals(5_001_000L, after.cash)
         assertEquals(5_000_025, after.ledger.prizeIncome)
@@ -49,9 +48,9 @@ class CareerCompetitionPrizeStoreTest {
     }
 
     @Test
-    fun `winner without legacy Q0 receives neither cash nor prize ledger`() = runBlocking {
+    fun `persisted winner without legacy Q0 receives neither cash nor prize ledger`() = runBlocking {
         val database = inMemoryDatabase()
-        materialize(database, cash = 100L, prizeIncome = 8)
+        materialize(database, cash = 100L, prizeIncome = 8, active = false)
         val before = requireNotNull(CareerManagerRuntimeStore(database).clubFinanceState(CAREER, CLUB))
         val after = CareerCompetitionPrizeStore(database).applyResolvedWinnerPrize(
             careerId = CAREER,
@@ -60,7 +59,6 @@ class CareerCompetitionPrizeStoreTest {
             rawStageIndex = 0,
             rawCompetitionI0 = 0,
             rawCompetitionPCode = 0,
-            winnerLegacyQ0 = false,
         )
         assertEquals(before, after)
         assertEquals(before, CareerManagerRuntimeStore(database).clubFinanceState(CAREER, CLUB))
@@ -68,10 +66,37 @@ class CareerCompetitionPrizeStoreTest {
         Unit
     }
 
+    @Test(expected = IllegalArgumentException::class)
+    fun `missing persisted winner runtime fails closed instead of accepting caller eligibility`() = runBlocking {
+        val database = inMemoryDatabase()
+        database.clubDao().upsertAll(listOf(club()))
+        database.careerMetadataDao().upsert(
+            CareerMetadataEntity(
+                id = CAREER,
+                dataVersion = 1,
+                displayName = "Competition prize",
+                legacyMetadataFingerprint = null,
+                legacyCareerFingerprint = null,
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+            )
+        )
+
+        CareerCompetitionPrizeStore(database).applyResolvedWinnerPrize(
+            careerId = CAREER,
+            winnerClubId = CLUB,
+            rawCompetitionType = 4,
+            rawStageIndex = 3,
+            rawCompetitionI0 = 0,
+            rawCompetitionPCode = -1,
+        )
+    }
+
     private suspend fun materialize(
         database: FootballDynastyDatabase,
         cash: Long,
         prizeIncome: Int,
+        active: Boolean,
     ) {
         database.clubDao().upsertAll(listOf(club()))
         database.careerMetadataDao().upsert(
@@ -90,7 +115,7 @@ class CareerCompetitionPrizeStoreTest {
             clubId = CLUB,
             transfer = LegacyTransferClubRuntimeState(
                 clubCode = LEGACY_CLUB,
-                active = true,
+                active = active,
                 funds = cash,
                 rosterPlayerCodes = emptyList(),
                 primarySlotPlayerCode = null,
