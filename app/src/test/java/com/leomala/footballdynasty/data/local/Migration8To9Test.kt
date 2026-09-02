@@ -20,8 +20,8 @@ class Migration8To9Test {
     )
 
     @Test
-    fun `migration chain to 9 adds empty fail closed ticket runtime without destroying career`() {
-        val name = "marco-b-migration-3-9"
+    fun `migration through V9 preserves empty fail closed ticket runtime in current schema`() {
+        val name = "marco-b-migration-3-current-v9-contract"
         var db = helper.createDatabase(name, 3)
         db.execSQL(
             "INSERT INTO career_metadata " +
@@ -32,7 +32,7 @@ class Migration8To9Test {
 
         db = helper.runMigrationsAndValidate(
             name,
-            9,
+            FootballDynastyDatabase.SCHEMA_VERSION,
             true,
             FootballDynastyMigrations.MIGRATION_3_4,
             FootballDynastyMigrations.MIGRATION_4_5,
@@ -40,6 +40,7 @@ class Migration8To9Test {
             Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
+            Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 

@@ -20,7 +20,7 @@ class Migration7To8Test {
     )
 
     @Test
-    fun `V7 to V8 stadium step remains fail closed through current V9 schema`() {
+    fun `V7 to V8 stadium step remains fail closed through current schema`() {
         val name = "marco-b-migration-3-current-v8-contract"
         var db = helper.createDatabase(name, 3)
         db.execSQL(
@@ -40,6 +40,7 @@ class Migration7To8Test {
             Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
+            Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 

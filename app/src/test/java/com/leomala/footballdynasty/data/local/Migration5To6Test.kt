@@ -30,6 +30,7 @@ class Migration5To6Test {
             Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
+            Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         db.execSQL("INSERT INTO career_competitions (careerId,competitionId,legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds) VALUES ('career-v6','league-1',1,11,1,12)")
