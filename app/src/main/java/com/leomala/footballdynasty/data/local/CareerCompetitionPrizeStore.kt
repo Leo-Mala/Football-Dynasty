@@ -28,7 +28,9 @@ class CareerCompetitionPrizeStore(
         val clubRuntime = requireNotNull(managerDao.findClubRuntime(careerId, winnerClubId)) {
             "Missing materialized club manager runtime $careerId/$winnerClubId"
         }
-        val before = clubRuntime.toFinanceState()
+        val before = requireNotNull(managerStore.clubFinanceState(careerId, winnerClubId)) {
+            "Missing materialized club finance state $careerId/$winnerClubId"
+        }
         val prize = LegacyCompetitionPrizeRule.prizeAmount(
             rawCompetitionType = rawCompetitionType,
             rawStageIndex = rawStageIndex,
