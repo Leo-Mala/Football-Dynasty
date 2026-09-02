@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.legacy.compatibility
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,6 +53,17 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
             linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_H),
             adjustment.fullyCharacterizedMutationFamilies,
         )
+        assertEquals(
+            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
+            adjustment.unresolvedMutationFamilies,
+        )
+        assertEquals(
+            linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
+                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
+            ),
+            statistics.unresolvedMutationFamilies,
+        )
         assertTrue(
             adjustment.mutationFamilyCharacterized(
                 LegacyCoachPostMatchMutationFamily.RAW_H,
@@ -63,6 +75,40 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
             ),
         )
         assertTrue(statistics.fullyCharacterizedMutationFamilies.isEmpty())
+    }
+
+    @Test
+    fun `recovery remainder follows exact caller order and keeps unknown methods explicit`() {
+        val unresolved =
+            LegacyCoachPostMatchSemanticEvidence.unresolvedFor(
+                listOf(
+                    "best.f0.j(best.s)",
+                    "best.f0.i(best.s)",
+                    "best.f0.unknown(best.s)",
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                "best.f0.j(best.s)",
+                "best.f0.i(best.s)",
+                "best.f0.unknown(best.s)",
+            ),
+            unresolved.keys.toList(),
+        )
+        assertEquals(
+            linkedSetOf(
+                LegacyCoachPostMatchMutationFamily.AGGREGATE_MANAGER_STATISTICS,
+                LegacyCoachPostMatchMutationFamily.SEASON_AND_CLUB_RECORDS,
+            ),
+            unresolved["best.f0.j(best.s)"],
+        )
+        assertEquals(
+            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
+            unresolved["best.f0.i(best.s)"],
+        )
+        assertTrue(unresolved.containsKey("best.f0.unknown(best.s)"))
+        assertNull(unresolved["best.f0.unknown(best.s)"])
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -92,6 +138,10 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
             )
 
         assertFalse(partial.semanticallyComplete)
+        assertEquals(
+            linkedSetOf(LegacyCoachPostMatchMutationFamily.RAW_G),
+            partial.unresolvedMutationFamilies,
+        )
     }
 
     @Test
@@ -112,6 +162,7 @@ class LegacyCoachPostMatchSemanticEvidenceTest {
                 completeFieldOrderingRecovered = true,
             )
 
+        assertTrue(complete.unresolvedMutationFamilies.isEmpty())
         assertTrue(complete.semanticallyComplete)
     }
 
