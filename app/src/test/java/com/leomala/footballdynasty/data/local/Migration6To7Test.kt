@@ -32,6 +32,7 @@ class Migration6To7Test {
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
             Phase14CoachRuntimeMigration.MIGRATION_10_11,
+            Phase14CompetitionInputsMigration.MIGRATION_11_12,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         val expectedTables = setOf(
@@ -51,6 +52,7 @@ class Migration6To7Test {
         for (table in listOf("career_coach_runtime","career_coach_season_club_records")) {
             db.query("SELECT COUNT(*) FROM `$table`").use { c -> assertTrue(c.moveToFirst()); assertEquals("V11 must not synthesize $table rows",0,c.getInt(0)) }
         }
+        db.query("SELECT legacyRelegationCount FROM career_competitions").use { c -> assertTrue(!c.moveToFirst()) }
         db.query("SELECT displayName FROM career_metadata WHERE id='career-v7'").use { c -> assertTrue(c.moveToFirst()); assertEquals("Migration V7 probe",c.getString(0)) }
         db.execSQL("DELETE FROM career_metadata WHERE id='career-v7'")
         db.close()

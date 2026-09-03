@@ -57,7 +57,10 @@ class Migration10To11Test {
 
         val migrated = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
-            .addMigrations(Phase14CoachRuntimeMigration.MIGRATION_10_11)
+            .addMigrations(
+                Phase14CoachRuntimeMigration.MIGRATION_10_11,
+                Phase14CompetitionInputsMigration.MIGRATION_11_12,
+            )
             .build()
         val ticket = CareerTicketRuntimeStore(migrated)
         val coach = CareerCoachRuntimeStore(migrated)

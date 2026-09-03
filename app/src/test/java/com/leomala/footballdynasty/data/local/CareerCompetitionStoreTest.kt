@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerCompetitionStoreTest {
     @Test
-    fun `last match atomically advances standings and stable order survives reopen`() = runBlocking {
+    fun `last match atomically advances standings and exact relegation count survives reopen`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase10-competition-reopen"
         context.deleteDatabase(name)
@@ -52,6 +52,7 @@ class CareerCompetitionStoreTest {
             legacyFormatCode = -1,
             clubIds = listOf("a", "b", "c", "d"),
             roundMatchIds = listOf(listOf("m1", "m2"), listOf("m3", "m4")),
+            legacyRelegationCount = 2,
         )
 
         val first = CareerMatchRuntimeBridge.run(initial, schedule, "m1") { scheduled, _ ->
@@ -73,6 +74,7 @@ class CareerCompetitionStoreTest {
         val advanced = requireNotNull(competitionStore.load("career-league", "league-1"))
 
         assertEquals(2, advanced.currentRoundNumber)
+        assertEquals(2, advanced.legacyRelegationCount)
         assertEquals(listOf("a", "c", "d", "b"), advanced.standings.map { it.clubId })
         assertEquals(listOf(3, 1, 1, 0), advanced.standings.map { it.points })
         assertEquals(listOf(1, 1, 1, 1), advanced.standings.map { it.played })
@@ -84,6 +86,7 @@ class CareerCompetitionStoreTest {
             .build()
         val reopened = requireNotNull(CareerCompetitionStore(database).load("career-league", "league-1"))
         assertEquals(advanced, reopened)
+        assertEquals(2, reopened.legacyRelegationCount)
 
         database.close()
         context.deleteDatabase(name)

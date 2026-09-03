@@ -50,7 +50,7 @@ abstract class FootballDynastyDatabase : RoomDatabase() {
     abstract fun careerCoachRuntimeDao(): CareerCoachRuntimeDao
 
     companion object {
-        const val SCHEMA_VERSION: Int = 11
+        const val SCHEMA_VERSION: Int = 12
         const val DATABASE_NAME: String = "football_dynasty.db"
     }
 }

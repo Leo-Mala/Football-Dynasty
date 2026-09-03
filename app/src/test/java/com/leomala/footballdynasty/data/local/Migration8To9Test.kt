@@ -42,6 +42,7 @@ class Migration8To9Test {
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
             Phase14CoachRuntimeMigration.MIGRATION_10_11,
+            Phase14CompetitionInputsMigration.MIGRATION_11_12,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
 
@@ -61,6 +62,7 @@ class Migration8To9Test {
                 assertEquals("V11 migration must not synthesize $table rows", 0, cursor.getInt(0))
             }
         }
+        db.query("SELECT legacyRelegationCount FROM career_competitions").use { cursor -> assertTrue(!cursor.moveToFirst()) }
         db.query("SELECT displayName FROM career_metadata WHERE id='career-v9'").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals("Migration V9 probe", cursor.getString(0))

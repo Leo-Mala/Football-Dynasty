@@ -23,9 +23,6 @@ class Migration9To10Test {
         val name = "phase13-migration-9-10"
         context.deleteDatabase(name)
 
-        // Materialize a structurally valid current database first. The test then rewinds the
-        // construction table to its certified V9 shape and stamps the certified V9 Room identity.
-        // Reopening traverses the real 9->10 ownership step and the additive 10->11 coach step.
         val current = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
             .build()
@@ -78,6 +75,7 @@ class Migration9To10Test {
             .addMigrations(
                 Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
                 Phase14CoachRuntimeMigration.MIGRATION_10_11,
+                Phase14CompetitionInputsMigration.MIGRATION_11_12,
             )
             .build()
         val row = migrated.careerManagerRuntimeDao().stadiumConstructions(CAREER).single()

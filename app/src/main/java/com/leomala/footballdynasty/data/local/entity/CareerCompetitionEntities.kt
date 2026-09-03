@@ -26,6 +26,8 @@ data class CareerCompetitionEntity(
     val legacyFormatCode: Int,
     val currentRoundNumber: Int,
     val totalRounds: Int,
+    /** Exact serialized `LoadLigaOptions.nRebaixados`; null means the V11 row has no proven source. */
+    val legacyRelegationCount: Int? = null,
 )
 
 /** Persisted `best.e0` counters plus the current stable ordering used by the legacy comparator. */

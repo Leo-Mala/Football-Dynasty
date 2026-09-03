@@ -32,11 +32,12 @@ class Migration5To6Test {
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
             Phase14CoachRuntimeMigration.MIGRATION_10_11,
+            Phase14CompetitionInputsMigration.MIGRATION_11_12,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         db.execSQL("INSERT INTO career_competitions (careerId,competitionId,legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds) VALUES ('career-v6','league-1',1,11,1,12)")
-        db.query("SELECT legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds FROM career_competitions WHERE careerId='career-v6' AND competitionId='league-1'").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(1,c.getInt(0)); assertEquals(11,c.getInt(1)); assertEquals(1,c.getInt(2)); assertEquals(12,c.getInt(3))
+        db.query("SELECT legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds,legacyRelegationCount FROM career_competitions WHERE careerId='career-v6' AND competitionId='league-1'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(1,c.getInt(0)); assertEquals(11,c.getInt(1)); assertEquals(1,c.getInt(2)); assertEquals(12,c.getInt(3)); assertTrue(c.isNull(4))
         }
         db.query("PRAGMA table_info('career_competition_standings')").use { c ->
             val names=mutableSetOf<String>(); val i=c.getColumnIndex("name"); while(c.moveToNext()) names+=c.getString(i)

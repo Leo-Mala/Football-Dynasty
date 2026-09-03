@@ -36,6 +36,7 @@ class Migration4To5Test {
             Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,
             Phase14CoachRuntimeMigration.MIGRATION_10_11,
+            Phase14CompetitionInputsMigration.MIGRATION_11_12,
         )
         db.execSQL("PRAGMA foreign_keys=ON")
         db.query("SELECT age,overall,energy,injuryUntilEpochDay FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c ->
