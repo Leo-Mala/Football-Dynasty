@@ -25,6 +25,7 @@ class V1AdaptersIdentityTest {
         assertEquals(first.id, second.id)
         assertEquals(first.players.map { it.id }, second.players.map { it.id })
         assertEquals(snapshot.fileRef, first.sourceFileRef)
+        assertEquals(snapshot.level, first.level)
         assertEquals(snapshot.primaryColor, first.primaryColor)
         assertEquals(snapshot.secondaryColor, first.secondaryColor)
         assertEquals(snapshot.coach, first.coach)
@@ -56,6 +57,20 @@ class V1AdaptersIdentityTest {
     }
 
     @Test
+    fun `legacy team level reaches modern club unchanged through every V1 adapter`() {
+        val snapshot = legacySnapshot()
+        val data = LegacyBanToV1Adapter().adapt(snapshot)
+        val domain = V1DomainAdapter.club(data)
+        val entity = V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
+        val roundTrip = V1RoomAdapter.clubData(entity, emptyList(), emptyList())
+
+        assertEquals(snapshot.level, data.level)
+        assertEquals(snapshot.level, domain.level)
+        assertEquals(snapshot.level, entity.level)
+        assertEquals(snapshot.level, roundTrip.level)
+    }
+
+    @Test
     fun `club V1 round trip through Room entities is lossless and row order independent`() {
         val data = LegacyBanToV1Adapter().adapt(legacySnapshot())
         val clubEntity = V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
@@ -65,6 +80,8 @@ class V1AdaptersIdentityTest {
         val roundTrip = V1RoomAdapter.clubData(clubEntity, players.reversed(), memberships)
 
         assertEquals(data, roundTrip)
+        assertEquals(data.level, clubEntity.level)
+        assertEquals(data.level, roundTrip.level)
         assertEquals(data.players.map { it.id }, roundTrip.players.map { it.id })
         assertEquals(V1Fingerprint.corpus(listOf(data)), V1Fingerprint.corpus(listOf(roundTrip)))
     }
