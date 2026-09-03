@@ -118,7 +118,12 @@ jobs:
             'Migration4To5Test','Migration5To6Test','Migration6To7Test','Migration7To8Test','Migration8To9Test',
             'Migration9To10Test','Migration10To11Test','CareerManagerRuntimeStoreTest','CareerTicketRuntimeStoreTest',
             'CareerStadiumConstructionRuntimeStoreTest','CareerStadiumConstructionCompletionStoreTest',
-            'CareerCoachRuntimeStoreTest',
+            'CareerCoachRuntimeStoreTest','CareerCoachEmploymentPersistenceTest','CareerManagerProgressionRandomStoreTest',
+            'CareerCoachPostMatchUpdateResolverTest','LegacyCareerContinuationRuleTest',
+            'LegacyCoachMatchManagerResolutionRuleTest','LegacyCoachPostMatchRuntimeRuleTest',
+            'LegacyDismissalContinuationRuleTest','LegacyEndOfYearProgressionRuleTest',
+            'LegacyManagerEmploymentTransitionRuleTest','LegacyReplacementClubDiscoveryRuleTest',
+            'LegacyReplacementManagerCandidateRuleTest','LegacyReplacementManagerResolutionRuleTest',
           }
           seen=set(); tests=failures=errors=skipped=0; benchmark=[]
           files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
