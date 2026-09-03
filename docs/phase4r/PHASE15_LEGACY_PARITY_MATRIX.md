@@ -1,0 +1,29 @@
+# Fase 15 — matriz de paridade completa com o legado
+
+Status: **ACTIVE / MARCO C**
+
+Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — `com.brasfoot.v2020` — versionCode `202632`.
+
+A matriz é incremental e não converte inferência em gameplay. `SMALI/executável` prevalece sobre Java decompilado em caso de divergência.
+
+| LEGACY_FUNCTION | LEGACY_CLASS | JAVA_PATH | SMALI_PATH | CALL_PATH | REACHABILITY | INPUTS | RNG | MUTATIONS | PERSISTENCE | MODERN_EQUIVALENT | STATUS | EVIDENCE | TEST | ACTION |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `z()` | `best.m` | corpus `best/m.java` | corpus `best/m.smali` | `best.n.n()` → `best.b.d()` → `best.c0.l1()` → `best.m.z()` | reachable, annual flow | finance ledger instance | none | zeroes 10 periodic finance accumulators; preserves borrowed principal and monthly charge | serialized finance object in legacy; `career_club_manager_runtime` in modern | `LegacyFinanceLedgerRule.resetPeriod()` + Room transition boundary | `IMPLEMENTED_NEEDS_REVALIDATION` | Java+SMALI body; corpus-wide caller chain; `PHASE15_FINANCE_PERIOD_RESET_REACHABILITY.md` | `LegacyFinanceLedgerRuleTest`; public Room transition/reopen regression | certify exact Phase 15 HEAD in CI |
+| `l1()` | `best.c0` | corpus `best/c0.java` | corpus `best/c0.smali` | all clubs inside opening stage of `best.b.d()` | reachable | nullable finance object `Y` | none | calls `Y.z()` only when finance object exists | club finance object | iterate only already-materialized club runtime rows; no synthetic row | `IMPLEMENTED_NEEDS_REVALIDATION` | Java+SMALI null-check + invoke; lifecycle order characterization | public Room transition test includes two materialized clubs and one absent runtime | certify exact Phase 15 HEAD in CI |
+| `d()` (`NovoAno`) | `best.b` | corpus `best/b.java` | corpus `best/b.smali` | `best.n.n()` when `E1()` | reachable | global career/club/competition state and characterized flags | mixed; remaining stages require per-stage audit | multi-stage annual mutation | legacy career/save state | `LegacySeasonLifecycleOrder` characterizes order; first finance stage + calendar transition are promoted, whole routine is not claimed complete | `UNKNOWN_NEEDS_INVESTIGATION` | `LegacySeasonLifecycleOrder`; finance reachability evidence | `LegacySeasonLifecycleOrderTest` plus finance public-path regression | continue stage-by-stage audit; do not synthesize opaque stages |
+| `n()` | `best.n` | corpus `best/n.java` | corpus `best/n.smali` | callers include `ActivityEscolhaTimes`, `ActivityTeste`, `ActivityFimAno`, `best.b.d()` | reachable | router/global state including `E1()` | pending complete caller/branch audit | routes into annual flow among other behavior | pending complete audit | no whole-method modern equivalence claimed | `UNKNOWN_NEEDS_INVESTIGATION` | caller search already proves annual route | pending Phase 15 router characterization | finish Java↔SMALI branches/callers before promotion |
+| annual/end-year entry surface | `ActivityFimAno` | corpus `ActivityFimAno.java` | corpus `ActivityFimAno.smali` | activity reaches `best.n.n()` | reachable | UI/end-year state | pending | presentation plus calls into substantive router | activity/UI state plus career side effects through callees | UI not yet claimed equivalent; substantive finance callee mapped separately | `UNKNOWN_NEEDS_INVESTIGATION` | caller to `best.n.n()` already located | pending Phase 15 activity boundary characterization | separate presentation-only behavior from substantive calls |
+| `y()` | `best.c0` | corpus `best/c0.java` | corpus `best/c0.smali` | callers include `best.a0`, `ActivityConvite`, `konrent.t`, `ActivityResults`, `ActivityMainTeam` | reachable | club/manager replacement state | deterministic path uses persisted career RNG where characterized | replacement-manager selection/attachment path | V11+ manager/coach runtime and persisted career RNG | manager replacement path promoted in Marco B / Fase 14 | `IMPLEMENTED_AND_CERTIFIED` | `MANAGER_METHOD_EVIDENCE.md` documents Java+SMALI characterization and persisted RNG promotion | replacement-manager and progression RNG tests certified in Marco B | Phase 15 only re-audits if new contradictory evidence appears |
+| youth-team activity surface (`onCreate`, `f/h/j/k/e/g/i/l`) | `ActivityJuniores` | corpus `ActivityJuniores.java` | corpus `ActivityJuniores.smali` | menu path from `ActivityMainTeam` | reachable | `best.p`, `best.c0`, `best.j0.O1[...]` and activity state | pending method-by-method audit | pending | pending | no whole-activity equivalence claimed | `UNKNOWN_NEEDS_INVESTIGATION` | reachability from `ActivityMainTeam` already established | pending Java↔SMALI/RNG/mutation/persistence characterization | audit methods and callers before classifying youth functionality |
+
+## Status rules
+
+- `IMPLEMENTED_AND_CERTIFIED`: implementation and relevant behavior were already certified on an exact historical gate or, later, on the Phase 15 FINAL_HEAD.
+- `IMPLEMENTED_NEEDS_REVALIDATION`: implementation exists but the current Phase 15 HEAD still needs its mandatory gate.
+- `REACHABLE_NOT_IMPLEMENTED`: executable behavior is proven reachable and the modern lifecycle has no equivalent.
+- `UNREACHABLE`: no executable path after caller/callee audit.
+- `PRESENTATION_ONLY`: behavior changes presentation only and carries no substantive gameplay mutation.
+- `SMALI_REQUIRED`: Java is insufficient or ambiguous and executable evidence is still required.
+- `UNKNOWN_NEEDS_INVESTIGATION`: evidence is incomplete; no gameplay is inferred.
+
+The Fase 13 historical conclusion about `best.m.z()` having no caller is explicitly superseded by the Fase 15 corpus-wide chain documented in `PHASE15_FINANCE_PERIOD_RESET_REACHABILITY.md`; historical files are not rewritten.
