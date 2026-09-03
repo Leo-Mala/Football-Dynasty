@@ -31,6 +31,7 @@ class CareerMatchExecutionCoordinator(
     private val managerStore = CareerManagerRuntimeStore(database)
     private val stadiumStore = CareerStadiumRuntimeStore(database)
     private val ticketInputResolver = CareerMatchTicketInputResolver(database)
+    private val coachPostMatchResolver = CareerCoachPostMatchPersistedResolver(database)
     private val atomicCommitter = CareerMatchAtomicCommitter(database, clockMillis)
 
     suspend fun executeManagerMatch(
@@ -109,7 +110,8 @@ class CareerMatchExecutionCoordinator(
      * state. Legacy `best.s.Q0()` performs stadium attendance before its later match RNG sites, so
      * ticket calculation consumes the exact career [RandomSource] before [simulate]. The gross is
      * credited only after simulation, matching the later `best.s.h()` step. Finance, score, player
-     * effects, calendar and advanced RNG are committed by [CareerMatchAtomicCommitter] atomically.
+     * effects, type-7 coach post-match state, calendar and advanced RNG are committed by
+     * [CareerMatchAtomicCommitter] atomically.
      */
     suspend fun execute(
         careerId: String,
@@ -187,6 +189,14 @@ class CareerMatchExecutionCoordinator(
             match
         }
 
+        val coachUpdates = coachPostMatchResolver.resolveTypeSeven(
+            careerId = careerId,
+            scheduled = scheduled,
+            seasonId = state.season.number,
+            homeGoals = requireNotNull(result.match.homeGoals),
+            awayGoals = requireNotNull(result.match.awayGoals),
+        )
+
         atomicCommitter.commit(
             result = result,
             playerRuntimeUpdates = CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(
@@ -202,6 +212,7 @@ class CareerMatchExecutionCoordinator(
                     after = after,
                 )
             },
+            coachUpdatesInLegacyOrder = coachUpdates,
         )
         return result
     }

@@ -56,8 +56,26 @@ data class CareerCoachPostMatchLegacyEvidence(
  * manager resolution order.
  */
 object CareerCoachPostMatchUpdateResolver {
+    /** Convenience path for fully materialized fixtures/tests. */
     fun resolve(
         managersInWorldOrder: List<CareerCoachRuntimeState>,
+        evidence: CareerCoachPostMatchLegacyEvidence,
+    ): List<CareerMatchCoachUpdate> = resolve(
+        managersInWorldOrder = managersInWorldOrder.map {
+            LegacyManagerIdentityRef(it.sourceOrdinal, it.legacyManagerId)
+        },
+        coachStateBySourceOrdinal = managersInWorldOrder.associateBy { it.sourceOrdinal },
+        evidence = evidence,
+    )
+
+    /**
+     * Production path: V9 owns the complete ordered manager identity list while V11 is required
+     * only for managers actually resolved by `c0.y0()`. Unrelated managers therefore do not need a
+     * synthesized coach row, while a resolved manager with missing V11 state still fails closed.
+     */
+    fun resolve(
+        managersInWorldOrder: List<LegacyManagerIdentityRef>,
+        coachStateBySourceOrdinal: Map<Int, CareerCoachRuntimeState>,
         evidence: CareerCoachPostMatchLegacyEvidence,
     ): List<CareerMatchCoachUpdate> {
         require(evidence.homeClub.clubId != evidence.awayClub.clubId) {
@@ -70,12 +88,20 @@ object CareerCoachPostMatchUpdateResolver {
             "Away club legacy identity must be explicit in associated club evidence"
         }
         require(managersInWorldOrder.map { it.sourceOrdinal } == managersInWorldOrder.indices.toList()) {
-            "Coach states must preserve contiguous legacy manager ArrayList order"
+            "Manager identities must preserve contiguous legacy ArrayList order"
+        }
+        coachStateBySourceOrdinal.forEach { (ordinal, state) ->
+            require(state.sourceOrdinal == ordinal) {
+                "V11 coach state key $ordinal diverges from source ordinal ${state.sourceOrdinal}"
+            }
+            val identity = requireNotNull(managersInWorldOrder.getOrNull(ordinal)) {
+                "V11 coach state $ordinal has no ordered V9 manager identity"
+            }
+            require(identity.legacyManagerId == state.legacyManagerId) {
+                "V11 coach manager id ${state.legacyManagerId} diverges from V9 id ${identity.legacyManagerId} at $ordinal"
+            }
         }
 
-        val identities = managersInWorldOrder.map {
-            LegacyManagerIdentityRef(it.sourceOrdinal, it.legacyManagerId)
-        }
         val resolvedManagers = LegacyCoachMatchManagerResolutionRule.orderedForMatch(
             home = LegacyCoachMatchClubManagerRef(
                 clubId = evidence.homeClub.clubId,
@@ -85,14 +111,17 @@ object CareerCoachPostMatchUpdateResolver {
                 clubId = evidence.awayClub.clubId,
                 storedManagerId = evidence.awayStoredManagerId,
             ),
-            managersInWorldOrder = identities,
+            managersInWorldOrder = managersInWorldOrder,
         )
-        val stateByOrdinal = managersInWorldOrder.associateBy { it.sourceOrdinal }.toMutableMap()
+        val stateByOrdinal = coachStateBySourceOrdinal.toMutableMap()
 
         return buildList {
             resolvedManagers.forEach { resolved ->
                 val before = requireNotNull(stateByOrdinal[resolved.manager.sourceOrdinal]) {
                     "Resolved legacy manager ${resolved.manager.sourceOrdinal} has no V11 coach state"
+                }
+                require(before.legacyManagerId == resolved.manager.legacyManagerId) {
+                    "Resolved V9/V11 manager identity diverged at ${resolved.manager.sourceOrdinal}"
                 }
                 val currentClub = resolveAssociatedClub(before.currentClubId, evidence.associatedClubsById)
                 val alternativeClub = resolveAssociatedClub(before.alternativeClubId, evidence.associatedClubsById)
