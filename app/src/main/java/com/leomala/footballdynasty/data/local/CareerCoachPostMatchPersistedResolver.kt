@@ -4,21 +4,59 @@ import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyCoachAssociatedClub
 import com.leomala.footballdynasty.domain.manager.LegacyCoachMatchClubManagerRef
 import com.leomala.footballdynasty.domain.manager.LegacyCoachMatchManagerResolutionRule
+import com.leomala.footballdynasty.domain.manager.LegacyCoachPostMatchAdjustmentRule
 import com.leomala.footballdynasty.domain.manager.LegacyManagerIdentityRef
 
 /**
- * Persisted production adapter for the fully reachable type-7 `best.s.f() -> f0.j()` path.
+ * Persisted production adapter for reachable `best.s.f() -> f0.j()/i()` coach post-match paths.
  *
- * Type 7 is intentionally the only automatic path here: legacy `best.s.f()` does not call `f0.i()`
- * for that competition type, so every required `j()` input is already available losslessly from
- * persisted/source state. Types 1,2,3,4,5,6,8 remain outside this adapter until raw club strength,
- * `c0.I(...)` relegation inputs and concrete `konrent.t.x0()` are all proven and persisted.
+ * Type 7 is fully executable because legacy excludes `f0.i()` for that type and every `f0.j()`
+ * input is already persisted losslessly. Types 1,2,3,4,5,6,8 are deliberately fail-closed when a
+ * persisted manager is attached to either match club: their raw `konrent.t.x0()` / c0.I(k0)
+ * inputs are not yet losslessly persisted, so silently dropping the coach mutation would be a
+ * false-success implementation. Matches with no attached persisted manager remain exact no-ops.
  */
 class CareerCoachPostMatchPersistedResolver(
     private val database: FootballDynastyDatabase,
 ) {
     private val ticketStore = CareerTicketRuntimeStore(database)
     private val coachStore = CareerCoachRuntimeStore(database)
+
+    suspend fun resolveReachable(
+        careerId: String,
+        scheduled: ScheduledCareerMatch,
+        seasonId: Int,
+        homeGoals: Int,
+        awayGoals: Int,
+    ): List<CareerMatchCoachUpdate> {
+        require(careerId.isNotBlank()) { "Career id must not be blank" }
+        val competitionDao = database.careerCompetitionDao()
+        val links = competitionDao.matchLinksForMatch(careerId, scheduled.matchId)
+        if (links.isEmpty()) return emptyList()
+        require(links.size == 1) {
+            "Scheduled match ${scheduled.matchId} belongs to multiple persisted competitions"
+        }
+        val competition = requireNotNull(
+            competitionDao.findCompetition(careerId, links.single().competitionId)
+        ) { "Missing persisted competition ${links.single().competitionId} for match ${scheduled.matchId}" }
+
+        if (competition.legacyCompetitionType == 7) {
+            return resolveTypeSeven(careerId, scheduled, seasonId, homeGoals, awayGoals)
+        }
+        if (competition.legacyCompetitionType !in LegacyCoachPostMatchAdjustmentRule.callerCompetitionTypes) {
+            return emptyList()
+        }
+
+        val homeManagerId = ticketStore.findClubState(careerId, scheduled.homeClubId)?.legacyManagerId
+        val awayManagerId = ticketStore.findClubState(careerId, scheduled.awayClubId)?.legacyManagerId
+        val hasAttachedManager = sequenceOf(homeManagerId, awayManagerId).any { it != null && it != -1 }
+        if (!hasAttachedManager) return emptyList()
+
+        throw IllegalStateException(
+            "Coach post-match type ${competition.legacyCompetitionType} requires raw legacy " +
+                "konrent.t.x0() and LoadLigaOptions.nRebaixados inputs before f0.j()/i() can execute"
+        )
+    }
 
     suspend fun resolveTypeSeven(
         careerId: String,
