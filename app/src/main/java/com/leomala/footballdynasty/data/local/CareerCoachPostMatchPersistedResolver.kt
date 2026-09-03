@@ -37,6 +37,11 @@ class CareerCoachPostMatchPersistedResolver(
             competitionDao.findCompetition(careerId, links.single().competitionId)
         ) { "Missing persisted competition ${links.single().competitionId} for match ${scheduled.matchId}" }
 
+        val homeManagerId = ticketStore.findClubState(careerId, scheduled.homeClubId)?.legacyManagerId
+        val awayManagerId = ticketStore.findClubState(careerId, scheduled.awayClubId)?.legacyManagerId
+        val hasAttachedManager = sequenceOf(homeManagerId, awayManagerId).any { it != null && it != -1 }
+        if (!hasAttachedManager) return emptyList()
+
         val home = exactLegacyClub(scheduled.homeClubId)
         val away = exactLegacyClub(scheduled.awayClubId)
         val homeTicket = requireNotNull(ticketStore.findClubState(careerId, scheduled.homeClubId)) {
@@ -45,7 +50,6 @@ class CareerCoachPostMatchPersistedResolver(
         val awayTicket = requireNotNull(ticketStore.findClubState(careerId, scheduled.awayClubId)) {
             "Missing materialized away club manager state $careerId/${scheduled.awayClubId}"
         }
-        if (homeTicket.legacyManagerId == -1 && awayTicket.legacyManagerId == -1) return emptyList()
 
         val managerIdentities = ticketStore.managersInWorldOrder(careerId).map {
             LegacyManagerIdentityRef(it.sourceOrdinal, it.legacyManagerId)
