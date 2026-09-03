@@ -16,6 +16,8 @@ data class CareerCompetitionSnapshot(
     val standings: List<LegacyLeagueStandingsRules.Row>,
     /** Exact serialized `LoadLigaOptions.nRebaixados`; null means the source is not proven. */
     val legacyRelegationCount: Int? = null,
+    /** Exact serialized `konrent.t.x0()`; null means the source is not proven. */
+    val legacyLeagueSubtype: Int? = null,
 ) {
     val finished: Boolean
         get() = currentRoundNumber > totalRounds
@@ -33,10 +35,14 @@ class CareerCompetitionStore(
         clubIds: List<String>,
         roundMatchIds: List<List<String>>,
         legacyRelegationCount: Int? = null,
+        legacyLeagueSubtype: Int? = null,
     ) {
         validateInitialization(careerId, competitionId, clubIds, roundMatchIds)
         legacyRelegationCount?.let {
             require(it >= 0) { "Legacy LoadLigaOptions.nRebaixados must not be negative" }
+        }
+        legacyLeagueSubtype?.let {
+            require(it >= 0) { "Legacy konrent.t.x0() must not be negative" }
         }
         database.withTransaction {
             requireNotNull(database.careerMetadataDao().findById(careerId)) {
@@ -78,6 +84,7 @@ class CareerCompetitionStore(
                     currentRoundNumber = 1,
                     totalRounds = roundMatchIds.size,
                     legacyRelegationCount = legacyRelegationCount,
+                    legacyLeagueSubtype = legacyLeagueSubtype,
                 )
             )
             dao.upsertStandings(
@@ -202,6 +209,7 @@ class CareerCompetitionStore(
         totalRounds = totalRounds,
         standings = rows,
         legacyRelegationCount = legacyRelegationCount,
+        legacyLeagueSubtype = legacyLeagueSubtype,
     )
 
     private fun CareerCompetitionStandingEntity.toRow() = LegacyLeagueStandingsRules.Row(
