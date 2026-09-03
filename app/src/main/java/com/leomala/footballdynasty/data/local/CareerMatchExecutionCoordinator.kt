@@ -45,7 +45,7 @@ class CareerMatchExecutionCoordinator(
         awaySubstitutionsRemaining: Int,
         homeLegacyModeFlag: Boolean,
         awayLegacyModeFlag: Boolean,
-        includeTicketFinance: Boolean = false,
+        includeTicketFinance: Boolean = true,
         simulate: (
             scheduled: ScheduledCareerMatch,
             state: PersistedState,
