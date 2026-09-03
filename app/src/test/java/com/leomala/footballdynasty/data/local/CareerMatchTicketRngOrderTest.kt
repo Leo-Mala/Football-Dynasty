@@ -12,7 +12,10 @@ import com.leomala.footballdynasty.domain.career.CareerStateFactory
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyFinanceLedgerState
 import com.leomala.footballdynasty.domain.manager.LegacyFinanceRuntimeState
+import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitRule
+import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitSlot
 import com.leomala.footballdynasty.domain.manager.LegacyMatchConstructionSource
+import com.leomala.footballdynasty.domain.manager.LegacyTacticsRawState
 import com.leomala.footballdynasty.domain.manager.LegacyTransferClubRuntimeState
 import com.leomala.footballdynasty.domain.model.Career
 import com.leomala.footballdynasty.domain.model.Match
@@ -28,7 +31,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchTicketRngOrderTest {
     @Test
-    fun `V9 ticket state consumes career rng before match simulation and final state persists both`() = runBlocking {
+    fun `default manager match ticket path consumes career rng before simulation and persists finance`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase13-ticket-rng-order"
         context.deleteDatabase(name)
@@ -90,14 +93,39 @@ class CareerMatchTicketRngOrderTest {
             LegacyMatchConstructionSource.LEAGUE_T,
         )
 
+        val homeLineup = LegacyLineupCommitRule.commit(
+            starterSlots = listOf(LegacyLineupCommitSlot(HOME_PLAYER, 2)),
+            benchPlayers = emptyList(),
+            eligibleRoster = listOf(HOME_PLAYER),
+            matchSideIndex = 0,
+            mainTeamActivityPresent = false,
+        )
+        val awayLineup = LegacyLineupCommitRule.commit(
+            starterSlots = listOf(LegacyLineupCommitSlot(AWAY_PLAYER, 2)),
+            benchPlayers = emptyList(),
+            eligibleRoster = listOf(AWAY_PLAYER),
+            matchSideIndex = 1,
+            mainTeamActivityPresent = false,
+        )
+        val tactics = LegacyTacticsRawState(
+            optionSlots = listOf(0, 0, 0, 0),
+            checkboxT = false,
+        )
+
         var drawsAtSimulationEntry = -1L
         val coordinator = CareerMatchExecutionCoordinator(database) { 77L }
-        val result = coordinator.execute(
+        val result = coordinator.executeManagerMatch(
             careerId = CAREER,
             matchId = MATCH,
-            transientEvidence = transientEvidence(),
-            includeTicketFinance = true,
-        ) { event, _, random ->
+            homeLineup = homeLineup,
+            awayLineup = awayLineup,
+            homeTactics = tactics,
+            awayTactics = tactics,
+            homeSubstitutionsRemaining = 0,
+            awaySubstitutionsRemaining = 0,
+            homeLegacyModeFlag = false,
+            awayLegacyModeFlag = false,
+        ) { event, _, _, _, random ->
             drawsAtSimulationEntry = random.draws
             random.nextInt(100)
             Match(event.matchId, event.homeClubId, event.awayClubId, 0, 0)
@@ -113,25 +141,6 @@ class CareerMatchTicketRngOrderTest {
         context.deleteDatabase(name)
         Unit
     }
-
-    private fun transientEvidence() = CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
-        home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-            active = listOf(
-                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence(HOME_PLAYER, legacyG0 = 2)
-            ),
-            bench = emptyList(),
-            substitutionsRemaining = 0,
-            legacyModeFlag = false,
-        ),
-        away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
-            active = listOf(
-                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence(AWAY_PLAYER, legacyG0 = 2)
-            ),
-            bench = emptyList(),
-            substitutionsRemaining = 0,
-            legacyModeFlag = false,
-        ),
-    )
 
     private suspend fun seed(database: FootballDynastyDatabase) {
         database.clubDao().upsertAll(
