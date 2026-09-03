@@ -8,7 +8,7 @@ This note records the replacement-manager helpers promoted while the larger `bes
 
 SMALI: `best/b.smali`, descriptor `t(Lbest/c0;I)Lbest/f0;`, 120 useful instructions / 20 branches, method-block SHA-256 `e5a323a42a6a8a843794b78e96c7cf55dc04885b9680dc992e339a58f1f2e0fc`.
 
-Candidate requirements are exact: unemployed, non-human, primary or secondary country code equals `club.j0()`, and manager `w()` falls inside the mode range. Ranges are `-1 => 0..5`, `0 => p0..p0`, `1 => p0-1..p0`, `2 => p0-2..p0`. Mode 2 briefly writes `p0+1` but the same legacy block immediately overwrites the upper bound with `p0`; the effective bound is therefore `p0`.
+Candidate requirements are exact: unemployed, non-human, primary or secondary country code equals `club.j0()`, and manager `w()` falls inside the mode range. Ranges are `-1 => 0..5`, `0 => p0..p0`, `1 => p0-1..p0`, `2 => p0-2..p0+1`. In mode 2 the SMALI computes the lower bound from `p0-2`, then computes the upper bound from a fresh `p0()` read plus one and falls directly into the shared inclusive filtering block; there is no later overwrite to `p0`.
 
 An empty pool consumes no random draw. A non-empty pool draws `nextInt(100)`: values `<50` stable-sort by `v()` descending, `H()` descending, `s()` ascending; values `>=50` use `Collections.shuffle`. Modern code uses the project `RandomSource` and explicit Fisher-Yates bounds, preserving branch/draw structure without claiming equivalence to the legacy implicit seed.
 
