@@ -55,6 +55,7 @@ class Migration9To10Test {
         val path = context.getDatabasePath(name).absolutePath
         val raw = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("ALTER TABLE `career_competitions` DROP COLUMN `legacyRelegationCount`")
         raw.execSQL("ALTER TABLE `career_stadium_constructions` RENAME TO `career_stadium_constructions_v10`")
         raw.execSQL(
             """CREATE TABLE IF NOT EXISTS `career_stadium_constructions` (`careerId` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL, `stadiumCode` INTEGER NOT NULL, `endTimestampMillis` INTEGER NOT NULL, `addition0` INTEGER NOT NULL, `addition1` INTEGER NOT NULL, `addition2` INTEGER NOT NULL, `addition3` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `sourceOrdinal`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"""
