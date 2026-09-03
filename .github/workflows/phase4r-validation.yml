@@ -8,7 +8,7 @@ on:
     branches: [phase4/core-game-domain]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: phase7-validation-${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -83,6 +83,25 @@ jobs:
 
       - name: Generate Room schemas through V13
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
+
+      - name: Materialize generated Room V13 baseline
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          SCHEMA=app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/13.json
+          test -f "$SCHEMA"
+          if git ls-files --error-unmatch "$SCHEMA" >/dev/null 2>&1; then
+            echo 'Room V13 baseline already versioned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$SCHEMA"
+          git commit -m 'chore: version generated Room V13 schema'
+          git push origin "HEAD:${HEAD_REF}"
 
       - name: Retain generated Room schemas
         uses: actions/upload-artifact@v4
@@ -197,19 +216,22 @@ jobs:
           from pathlib import Path
           d=Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
           b=Path('/tmp/versioned-room-schemas')
-          versioned={'1.json','2.json','3.json'}
+          versioned={'1.json','2.json','3.json','13.json'}
           generated={'1.json','2.json','3.json','13.json'}
           if {p.name for p in d.glob('*.json')}!=generated: raise SystemExit('Unexpected generated Room schema set')
           if {p.name for p in b.glob('*.json')}!=versioned: raise SystemExit('Unexpected versioned Room schema baseline')
-          ids={1:'37c2e4df984290903730a25553bdbed5',2:'fc4ed30d6548037a1226144e0c576c59',3:'a6d299fb67fcdcc51340cc62982e2d5a',9:'e246b6749364b3d2f7891177c2179fb4',10:'086ae14fb0b6a625e6f22446d47df0b7',11:'4d06657c2d3a4c3300b1fa598e4c9b4d',12:'6b87dfc792ccf982f9e1a83cfcc8e8b6'}
+          ids={1:'37c2e4df984290903730a25553bdbed5',2:'fc4ed30d6548037a1226144e0c576c59',3:'a6d299fb67fcdcc51340cc62982e2d5a',9:'e246b6749364b3d2f7891177c2179fb4',10:'086ae14fb0b6a625e6f22446d47df0b7',11:'4d06657c2d3a4c3300b1fa598e4c9b4d',12:'6b87dfc792ccf982f9e1a83cfcc8e8b6',13:'6575d77e3eef9ea84d059c2aa2bdf14b'}
           db={}
           for v in (1,2,3):
               name=f'{v}.json'; before=json.loads((b/name).read_text()); after=json.loads((d/name).read_text())
               if before!=after: raise SystemExit(f'Generated Room schema {name} differs from versioned schema')
               x=after['database']; db[v]=x
               if x.get('version')!=v or x.get('identityHash')!=ids[v]: raise SystemExit(f'Room schema {v} identity/version changed')
-          v13=json.loads((d/'13.json').read_text())['database']; db[13]=v13
-          if v13.get('version')!=13 or not v13.get('identityHash'): raise SystemExit('Room V13 identity/version missing')
+          v13_before=json.loads((b/'13.json').read_text())
+          v13_after=json.loads((d/'13.json').read_text())
+          if v13_before!=v13_after: raise SystemExit('Generated Room schema 13.json differs from versioned schema')
+          v13=v13_after['database']; db[13]=v13
+          if v13.get('version')!=13 or v13.get('identityHash')!=ids[13]: raise SystemExit('Room V13 identity/version changed')
           v1=json.loads(subprocess.check_output(['git','show','origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json'],text=True))
           if json.loads((d/'1.json').read_text())!=v1: raise SystemExit('Room V1 changed from phase3/versioned-persistence')
           e3={e['tableName']:e for e in db[3]['entities']}; e13={e['tableName']:e for e in db[13]['entities']}
@@ -281,7 +303,7 @@ jobs:
           echo "Exact Phase 7 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
           echo "Raw RNG/destructive migration guards: PASS"
           echo "Gradle help: PASS"
-          echo "Room V1/V2/V3 immutable regression + V4/V5/V6/V7/V8/V9/V10/V11/V12 contract preservation inside V13: PASS"
+          echo "Room V1/V2/V3/V13 immutable regression + V4/V5/V6/V7/V8/V9/V10/V11/V12 contract preservation inside V13: PASS"
           echo "Unit tests + migrations through 12->13 + manager/stadium/ticket/coach/competition-input persistence: PASS"
           echo "Brasfoot 2026 corpus/fixture integrity: PASS"
           echo "Phase 9/10 persisted runtime regressions: PASS"
