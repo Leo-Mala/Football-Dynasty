@@ -56,6 +56,27 @@ interface CareerPlayerRuntimeDao {
     suspend fun findMembership(careerId: String, playerId: String): CareerSquadMembershipEntity?
 
     @Query(
+        "SELECT MAX(sourceOrdinal) FROM career_squad_memberships " +
+            "WHERE careerId = :careerId AND clubId = :clubId AND rosterKind = :rosterKind"
+    )
+    suspend fun maxMembershipOrdinal(
+        careerId: String,
+        clubId: String,
+        rosterKind: String,
+    ): Int?
+
+    @Query(
+        "SELECT * FROM career_squad_memberships " +
+            "WHERE careerId = :careerId AND clubId = :clubId AND rosterKind = :rosterKind " +
+            "ORDER BY sourceOrdinal, playerId"
+    )
+    suspend fun membershipsForClub(
+        careerId: String,
+        clubId: String,
+        rosterKind: String,
+    ): List<CareerSquadMembershipEntity>
+
+    @Query(
         "SELECT * FROM career_player_club_season_stats " +
             "WHERE careerId = :careerId AND playerId = :playerId " +
             "ORDER BY legacySeasonId, legacyClubId"

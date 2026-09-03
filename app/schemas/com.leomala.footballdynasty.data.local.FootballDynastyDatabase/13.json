@@ -1,0 +1,2582 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 13,
+    "identityHash": "6575d77e3eef9ea84d059c2aa2bdf14b",
+    "entities": [
+      {
+        "tableName": "clubs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dataVersion` INTEGER NOT NULL, `importScope` TEXT, `sourceFileRef` TEXT NOT NULL, `name` TEXT NOT NULL, `country` INTEGER NOT NULL, `state` INTEGER NOT NULL, `level` INTEGER NOT NULL, `stadium` TEXT NOT NULL, `capacity` INTEGER NOT NULL, `reputation` INTEGER NOT NULL, `primaryColor` TEXT NOT NULL, `secondaryColor` TEXT NOT NULL, `coach` TEXT NOT NULL, `coachCountry` INTEGER NOT NULL, `baseColor` INTEGER NOT NULL, `legacyAid` INTEGER NOT NULL, `legacySid` INTEGER NOT NULL, `legacyTid` INTEGER NOT NULL, `legacyVid` INTEGER NOT NULL, `legacyId` INTEGER NOT NULL, `legacyValid` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataVersion",
+            "columnName": "dataVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importScope",
+            "columnName": "importScope",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sourceFileRef",
+            "columnName": "sourceFileRef",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "country",
+            "columnName": "country",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stadium",
+            "columnName": "stadium",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capacity",
+            "columnName": "capacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reputation",
+            "columnName": "reputation",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryColor",
+            "columnName": "primaryColor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryColor",
+            "columnName": "secondaryColor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coach",
+            "columnName": "coach",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coachCountry",
+            "columnName": "coachCountry",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseColor",
+            "columnName": "baseColor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyAid",
+            "columnName": "legacyAid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacySid",
+            "columnName": "legacySid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyTid",
+            "columnName": "legacyTid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyVid",
+            "columnName": "legacyVid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyId",
+            "columnName": "legacyId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyValid",
+            "columnName": "legacyValid",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_clubs_sourceFileRef",
+            "unique": true,
+            "columnNames": [
+              "sourceFileRef"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_clubs_sourceFileRef` ON `${TABLE_NAME}` (`sourceFileRef`)"
+          },
+          {
+            "name": "index_clubs_importScope",
+            "unique": false,
+            "columnNames": [
+              "importScope"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_clubs_importScope` ON `${TABLE_NAME}` (`importScope`)"
+          }
+        ]
+      },
+      {
+        "tableName": "players",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dataVersion` INTEGER NOT NULL, `importScope` TEXT, `name` TEXT NOT NULL, `age` INTEGER NOT NULL, `country` INTEGER NOT NULL, `position` INTEGER NOT NULL, `status` INTEGER NOT NULL, `side` INTEGER NOT NULL, `cr1` INTEGER NOT NULL, `cr2` INTEGER NOT NULL, `star` INTEGER NOT NULL, `worldTop` INTEGER NOT NULL, `legacyAid` INTEGER NOT NULL, `legacySid` INTEGER NOT NULL, `legacyTid` INTEGER NOT NULL, `legacyHash` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataVersion",
+            "columnName": "dataVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importScope",
+            "columnName": "importScope",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "age",
+            "columnName": "age",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "country",
+            "columnName": "country",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "side",
+            "columnName": "side",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cr1",
+            "columnName": "cr1",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cr2",
+            "columnName": "cr2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "star",
+            "columnName": "star",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "worldTop",
+            "columnName": "worldTop",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyAid",
+            "columnName": "legacyAid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacySid",
+            "columnName": "legacySid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyTid",
+            "columnName": "legacyTid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyHash",
+            "columnName": "legacyHash",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_players_importScope",
+            "unique": false,
+            "columnNames": [
+              "importScope"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_players_importScope` ON `${TABLE_NAME}` (`importScope`)"
+          }
+        ]
+      },
+      {
+        "tableName": "squad_memberships",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`playerId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `rosterKind` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL, PRIMARY KEY(`playerId`), FOREIGN KEY(`playerId`) REFERENCES `players`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rosterKind",
+            "columnName": "rosterKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceOrdinal",
+            "columnName": "sourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_squad_memberships_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_squad_memberships_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          },
+          {
+            "name": "index_squad_memberships_clubId_rosterKind_sourceOrdinal",
+            "unique": true,
+            "columnNames": [
+              "clubId",
+              "rosterKind",
+              "sourceOrdinal"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_squad_memberships_clubId_rosterKind_sourceOrdinal` ON `${TABLE_NAME}` (`clubId`, `rosterKind`, `sourceOrdinal`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "players",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "playerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "legacy_import_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scope` TEXT NOT NULL, `status` TEXT NOT NULL, `adapterVersion` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `sourceManifestSha256` TEXT, `semanticFingerprint` TEXT, `updatedAtEpochMillis` INTEGER NOT NULL, `lastError` TEXT, PRIMARY KEY(`scope`))",
+        "fields": [
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adapterVersion",
+            "columnName": "adapterVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceManifestSha256",
+            "columnName": "sourceManifestSha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "semanticFingerprint",
+            "columnName": "semanticFingerprint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scope"
+          ]
+        }
+      },
+      {
+        "tableName": "legacy_import_manifest",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scope` TEXT NOT NULL, `adapterVersion` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `sourceCount` INTEGER NOT NULL, `clubCount` INTEGER NOT NULL, `seniorCount` INTEGER NOT NULL, `juniorCount` INTEGER NOT NULL, `sourceManifestSha256` TEXT NOT NULL, `semanticFingerprint` TEXT NOT NULL, `importedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`scope`))",
+        "fields": [
+          {
+            "fieldPath": "scope",
+            "columnName": "scope",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adapterVersion",
+            "columnName": "adapterVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceCount",
+            "columnName": "sourceCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubCount",
+            "columnName": "clubCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seniorCount",
+            "columnName": "seniorCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "juniorCount",
+            "columnName": "juniorCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceManifestSha256",
+            "columnName": "sourceManifestSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semanticFingerprint",
+            "columnName": "semanticFingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importedAtEpochMillis",
+            "columnName": "importedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scope"
+          ]
+        }
+      },
+      {
+        "tableName": "career_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `dataVersion` INTEGER NOT NULL, `displayName` TEXT, `legacyMetadataFingerprint` TEXT, `legacyCareerFingerprint` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataVersion",
+            "columnName": "dataVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "legacyMetadataFingerprint",
+            "columnName": "legacyMetadataFingerprint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "legacyCareerFingerprint",
+            "columnName": "legacyCareerFingerprint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "career_core_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `stateVersion` INTEGER NOT NULL, `seasonNumber` INTEGER NOT NULL, `seasonYear` INTEGER NOT NULL, `calendarYear` INTEGER NOT NULL, `currentDayIndex` INTEGER NOT NULL, `startDayIndex` INTEGER NOT NULL, `dayCount` INTEGER NOT NULL, `rngInitialSeed` INTEGER NOT NULL, `rngInternalState` INTEGER NOT NULL, `rngDraws` INTEGER NOT NULL, `managedClubId` TEXT, `transitionCount` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`careerId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stateVersion",
+            "columnName": "stateVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seasonNumber",
+            "columnName": "seasonNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seasonYear",
+            "columnName": "seasonYear",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calendarYear",
+            "columnName": "calendarYear",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentDayIndex",
+            "columnName": "currentDayIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDayIndex",
+            "columnName": "startDayIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayCount",
+            "columnName": "dayCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rngInitialSeed",
+            "columnName": "rngInitialSeed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rngInternalState",
+            "columnName": "rngInternalState",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rngDraws",
+            "columnName": "rngDraws",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "managedClubId",
+            "columnName": "managedClubId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "transitionCount",
+            "columnName": "transitionCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_core_state_managedClubId",
+            "unique": false,
+            "columnNames": [
+              "managedClubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_core_state_managedClubId` ON `${TABLE_NAME}` (`managedClubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_player_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `stateVersion` INTEGER NOT NULL, `age` INTEGER NOT NULL, `overall` INTEGER NOT NULL, `marketValue` INTEGER NOT NULL, `star` INTEGER NOT NULL, `worldTop` INTEGER NOT NULL, `legacyHash` INTEGER NOT NULL, `legacyGeneratedO` INTEGER NOT NULL, `legacyCreatedYear` INTEGER NOT NULL, `contractEndEpochMillis` INTEGER NOT NULL, `legacyPreviousMarketValue` INTEGER NOT NULL, `legacyQ` INTEGER NOT NULL, `legacyX` INTEGER NOT NULL, `legacyY` INTEGER NOT NULL, `legacyZ` INTEGER NOT NULL, `energy` INTEGER NOT NULL DEFAULT 100, `injuryUntilEpochDay` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceType",
+            "columnName": "sourceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stateVersion",
+            "columnName": "stateVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "age",
+            "columnName": "age",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overall",
+            "columnName": "overall",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "marketValue",
+            "columnName": "marketValue",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "star",
+            "columnName": "star",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "worldTop",
+            "columnName": "worldTop",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyHash",
+            "columnName": "legacyHash",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyGeneratedO",
+            "columnName": "legacyGeneratedO",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyCreatedYear",
+            "columnName": "legacyCreatedYear",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contractEndEpochMillis",
+            "columnName": "contractEndEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyPreviousMarketValue",
+            "columnName": "legacyPreviousMarketValue",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyQ",
+            "columnName": "legacyQ",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyX",
+            "columnName": "legacyX",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyY",
+            "columnName": "legacyY",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyZ",
+            "columnName": "legacyZ",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "energy",
+            "columnName": "energy",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "100"
+          },
+          {
+            "fieldPath": "injuryUntilEpochDay",
+            "columnName": "injuryUntilEpochDay",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_player_runtime_careerId",
+            "unique": false,
+            "columnNames": [
+              "careerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_careerId` ON `${TABLE_NAME}` (`careerId`)"
+          },
+          {
+            "name": "index_career_player_runtime_playerId",
+            "unique": false,
+            "columnNames": [
+              "playerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_player_runtime_playerId` ON `${TABLE_NAME}` (`playerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_procedural_players",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `name` TEXT NOT NULL, `country` INTEGER NOT NULL, `position` INTEGER NOT NULL, `status` INTEGER NOT NULL, `side` INTEGER NOT NULL, `cr1` INTEGER NOT NULL, `cr2` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "country",
+            "columnName": "country",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "side",
+            "columnName": "side",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cr1",
+            "columnName": "cr1",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cr2",
+            "columnName": "cr2",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_procedural_players_playerId",
+            "unique": false,
+            "columnNames": [
+              "playerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_procedural_players_playerId` ON `${TABLE_NAME}` (`playerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_squad_memberships",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `rosterKind` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rosterKind",
+            "columnName": "rosterKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceOrdinal",
+            "columnName": "sourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_squad_memberships_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_squad_memberships_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          },
+          {
+            "name": "index_career_squad_memberships_careerId_clubId_rosterKind_sourceOrdinal",
+            "unique": true,
+            "columnNames": [
+              "careerId",
+              "clubId",
+              "rosterKind",
+              "sourceOrdinal"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_career_squad_memberships_careerId_clubId_rosterKind_sourceOrdinal` ON `${TABLE_NAME}` (`careerId`, `clubId`, `rosterKind`, `sourceOrdinal`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_scheduled_matches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `matchId` TEXT NOT NULL, `dayIndex` INTEGER NOT NULL, `eventTypeCode` INTEGER NOT NULL, `homeClubId` TEXT NOT NULL, `awayClubId` TEXT NOT NULL, `processed` INTEGER NOT NULL, `homeGoals` INTEGER, `awayGoals` INTEGER, PRIMARY KEY(`careerId`, `matchId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`homeClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`awayClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchId",
+            "columnName": "matchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayIndex",
+            "columnName": "dayIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventTypeCode",
+            "columnName": "eventTypeCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeClubId",
+            "columnName": "homeClubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "awayClubId",
+            "columnName": "awayClubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "processed",
+            "columnName": "processed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "homeGoals",
+            "columnName": "homeGoals",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "awayGoals",
+            "columnName": "awayGoals",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "matchId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_scheduled_matches_careerId_dayIndex",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "dayIndex"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_careerId_dayIndex` ON `${TABLE_NAME}` (`careerId`, `dayIndex`)"
+          },
+          {
+            "name": "index_career_scheduled_matches_homeClubId",
+            "unique": false,
+            "columnNames": [
+              "homeClubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_homeClubId` ON `${TABLE_NAME}` (`homeClubId`)"
+          },
+          {
+            "name": "index_career_scheduled_matches_awayClubId",
+            "unique": false,
+            "columnNames": [
+              "awayClubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_scheduled_matches_awayClubId` ON `${TABLE_NAME}` (`awayClubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "homeClubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "awayClubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_player_club_season_stats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `legacySeasonId` INTEGER NOT NULL, `legacyClubId` INTEGER NOT NULL, `legacyC` INTEGER NOT NULL, `legacyD` INTEGER NOT NULL, `legacyE` INTEGER NOT NULL, `legacyF` INTEGER NOT NULL, `legacyG` INTEGER NOT NULL, `legacyH` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`, `legacySeasonId`, `legacyClubId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacySeasonId",
+            "columnName": "legacySeasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyClubId",
+            "columnName": "legacyClubId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyC",
+            "columnName": "legacyC",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyD",
+            "columnName": "legacyD",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyE",
+            "columnName": "legacyE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyF",
+            "columnName": "legacyF",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyG",
+            "columnName": "legacyG",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyH",
+            "columnName": "legacyH",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId",
+            "legacySeasonId",
+            "legacyClubId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_player_club_season_stats_careerId_playerId",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "playerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_player_club_season_stats_careerId_playerId` ON `${TABLE_NAME}` (`careerId`, `playerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_competitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `competitionId` TEXT NOT NULL, `legacyCompetitionType` INTEGER NOT NULL, `legacyFormatCode` INTEGER NOT NULL, `currentRoundNumber` INTEGER NOT NULL, `totalRounds` INTEGER NOT NULL, `legacyRelegationCount` INTEGER, `legacyLeagueSubtype` INTEGER, PRIMARY KEY(`careerId`, `competitionId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyCompetitionType",
+            "columnName": "legacyCompetitionType",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyFormatCode",
+            "columnName": "legacyFormatCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentRoundNumber",
+            "columnName": "currentRoundNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRounds",
+            "columnName": "totalRounds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyRelegationCount",
+            "columnName": "legacyRelegationCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "legacyLeagueSubtype",
+            "columnName": "legacyLeagueSubtype",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "competitionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_competitions_careerId",
+            "unique": false,
+            "columnNames": [
+              "careerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_competitions_careerId` ON `${TABLE_NAME}` (`careerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_competition_standings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `competitionId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `stableOrdinal` INTEGER NOT NULL, `points` INTEGER NOT NULL, `played` INTEGER NOT NULL, `wins` INTEGER NOT NULL, `losses` INTEGER NOT NULL, `goalsFor` INTEGER NOT NULL, `goalsAgainst` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `competitionId`, `clubId`), FOREIGN KEY(`careerId`, `competitionId`) REFERENCES `career_competitions`(`careerId`, `competitionId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stableOrdinal",
+            "columnName": "stableOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "points",
+            "columnName": "points",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "wins",
+            "columnName": "wins",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "losses",
+            "columnName": "losses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalsFor",
+            "columnName": "goalsFor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalsAgainst",
+            "columnName": "goalsAgainst",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "competitionId",
+            "clubId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_competition_standings_careerId_competitionId",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_competition_standings_careerId_competitionId` ON `${TABLE_NAME}` (`careerId`, `competitionId`)"
+          },
+          {
+            "name": "index_career_competition_standings_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_competition_standings_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "competitionId"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_competition_matches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `competitionId` TEXT NOT NULL, `matchId` TEXT NOT NULL, `roundNumber` INTEGER NOT NULL, `fixtureOrdinal` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `competitionId`, `matchId`), FOREIGN KEY(`careerId`, `competitionId`) REFERENCES `career_competitions`(`careerId`, `competitionId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`careerId`, `matchId`) REFERENCES `career_scheduled_matches`(`careerId`, `matchId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "competitionId",
+            "columnName": "competitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchId",
+            "columnName": "matchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roundNumber",
+            "columnName": "roundNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fixtureOrdinal",
+            "columnName": "fixtureOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "competitionId",
+            "matchId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_competition_matches_careerId_competitionId",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "competitionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_competition_matches_careerId_competitionId` ON `${TABLE_NAME}` (`careerId`, `competitionId`)"
+          },
+          {
+            "name": "index_career_competition_matches_careerId_matchId",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "matchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_competition_matches_careerId_matchId` ON `${TABLE_NAME}` (`careerId`, `matchId`)"
+          },
+          {
+            "name": "index_career_competition_matches_careerId_competitionId_roundNumber_fixtureOrdinal",
+            "unique": true,
+            "columnNames": [
+              "careerId",
+              "competitionId",
+              "roundNumber",
+              "fixtureOrdinal"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_career_competition_matches_careerId_competitionId_roundNumber_fixtureOrdinal` ON `${TABLE_NAME}` (`careerId`, `competitionId`, `roundNumber`, `fixtureOrdinal`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_competitions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "competitionId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "competitionId"
+            ]
+          },
+          {
+            "table": "career_scheduled_matches",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "matchId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "matchId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_player_commercial",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `salario` INTEGER NOT NULL, `rcClause` INTEGER NOT NULL, `rcRenewYear` INTEGER NOT NULL, `rcConvYear` INTEGER NOT NULL, `pendSaleClub` INTEGER NOT NULL, `pendSaleValue` INTEGER NOT NULL, `pendIsLoan` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "salario",
+            "columnName": "salario",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rcClause",
+            "columnName": "rcClause",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rcRenewYear",
+            "columnName": "rcRenewYear",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rcConvYear",
+            "columnName": "rcConvYear",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pendSaleClub",
+            "columnName": "pendSaleClub",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pendSaleValue",
+            "columnName": "pendSaleValue",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pendIsLoan",
+            "columnName": "pendIsLoan",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_player_commercial_playerId",
+            "unique": false,
+            "columnNames": [
+              "playerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_player_commercial_playerId` ON `${TABLE_NAME}` (`playerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_player_transfer_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `legacyPlayerCode` INTEGER NOT NULL, `legacyClubCode` INTEGER NOT NULL, `rawCrossActiveFlag` INTEGER NOT NULL, `rawOCode` INTEGER NOT NULL, `rawDCode` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyPlayerCode",
+            "columnName": "legacyPlayerCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyClubCode",
+            "columnName": "legacyClubCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCrossActiveFlag",
+            "columnName": "rawCrossActiveFlag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawOCode",
+            "columnName": "rawOCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawDCode",
+            "columnName": "rawDCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_player_transfer_state_playerId",
+            "unique": false,
+            "columnNames": [
+              "playerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_player_transfer_state_playerId` ON `${TABLE_NAME}` (`playerId`)"
+          },
+          {
+            "name": "index_career_player_transfer_state_careerId_legacyPlayerCode",
+            "unique": true,
+            "columnNames": [
+              "careerId",
+              "legacyPlayerCode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_career_player_transfer_state_careerId_legacyPlayerCode` ON `${TABLE_NAME}` (`careerId`, `legacyPlayerCode`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_club_manager_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `active` INTEGER NOT NULL, `cash` INTEGER NOT NULL, `primarySlotPlayerCode` INTEGER, `secondarySlotPlayerCode` INTEGER, `rawStateFlag` INTEGER NOT NULL, `ticketIncome` INTEGER NOT NULL, `playerSaleIncome` INTEGER NOT NULL, `prizeIncome` INTEGER NOT NULL, `sponsorIncome` INTEGER NOT NULL, `playerPurchaseExpense` INTEGER NOT NULL, `stadiumExpense` INTEGER NOT NULL, `salaryExpense` INTEGER NOT NULL, `borrowingChargeExpense` INTEGER NOT NULL, `fineExpense` INTEGER NOT NULL, `miscellaneousExpense` INTEGER NOT NULL, `borrowed` INTEGER NOT NULL, `monthlyBorrowingCharge` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `clubId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "active",
+            "columnName": "active",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cash",
+            "columnName": "cash",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primarySlotPlayerCode",
+            "columnName": "primarySlotPlayerCode",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "secondarySlotPlayerCode",
+            "columnName": "secondarySlotPlayerCode",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "rawStateFlag",
+            "columnName": "rawStateFlag",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ticketIncome",
+            "columnName": "ticketIncome",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerSaleIncome",
+            "columnName": "playerSaleIncome",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prizeIncome",
+            "columnName": "prizeIncome",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sponsorIncome",
+            "columnName": "sponsorIncome",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerPurchaseExpense",
+            "columnName": "playerPurchaseExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stadiumExpense",
+            "columnName": "stadiumExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "salaryExpense",
+            "columnName": "salaryExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "borrowingChargeExpense",
+            "columnName": "borrowingChargeExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fineExpense",
+            "columnName": "fineExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "miscellaneousExpense",
+            "columnName": "miscellaneousExpense",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "borrowed",
+            "columnName": "borrowed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "monthlyBorrowingCharge",
+            "columnName": "monthlyBorrowingCharge",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "clubId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_club_manager_runtime_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_club_manager_runtime_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_active_loans",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `sourceClubId` TEXT NOT NULL, `destinationClubId` TEXT NOT NULL, `expiresAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `playerId`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`sourceClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`destinationClubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playerId",
+            "columnName": "playerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceClubId",
+            "columnName": "sourceClubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinationClubId",
+            "columnName": "destinationClubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expiresAtEpochMillis",
+            "columnName": "expiresAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "playerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_active_loans_sourceClubId",
+            "unique": false,
+            "columnNames": [
+              "sourceClubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_active_loans_sourceClubId` ON `${TABLE_NAME}` (`sourceClubId`)"
+          },
+          {
+            "name": "index_career_active_loans_destinationClubId",
+            "unique": false,
+            "columnNames": [
+              "destinationClubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_active_loans_destinationClubId` ON `${TABLE_NAME}` (`destinationClubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_player_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "playerId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "playerId"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sourceClubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "destinationClubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_stadium_constructions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL, `stadiumCode` INTEGER NOT NULL, `endTimestampMillis` INTEGER NOT NULL, `addition0` INTEGER NOT NULL, `addition1` INTEGER NOT NULL, `addition2` INTEGER NOT NULL, `addition3` INTEGER NOT NULL, `ownerClubId` TEXT, PRIMARY KEY(`careerId`, `sourceOrdinal`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceOrdinal",
+            "columnName": "sourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stadiumCode",
+            "columnName": "stadiumCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTimestampMillis",
+            "columnName": "endTimestampMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addition0",
+            "columnName": "addition0",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addition1",
+            "columnName": "addition1",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addition2",
+            "columnName": "addition2",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addition3",
+            "columnName": "addition3",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerClubId",
+            "columnName": "ownerClubId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "sourceOrdinal"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_stadium_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `sector0Capacity` INTEGER NOT NULL, `sector1Capacity` INTEGER NOT NULL, `sector2Capacity` INTEGER NOT NULL, `sector3Capacity` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `clubId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sector0Capacity",
+            "columnName": "sector0Capacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sector1Capacity",
+            "columnName": "sector1Capacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sector2Capacity",
+            "columnName": "sector2Capacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sector3Capacity",
+            "columnName": "sector3Capacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "clubId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_stadium_runtime_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_stadium_runtime_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_club_ticket_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `clubId` TEXT NOT NULL, `rawDivisionCode` INTEGER NOT NULL, `legacyManagerId` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `clubId`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`clubId`) REFERENCES `clubs`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clubId",
+            "columnName": "clubId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawDivisionCode",
+            "columnName": "rawDivisionCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyManagerId",
+            "columnName": "legacyManagerId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "clubId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_club_ticket_runtime_clubId",
+            "unique": false,
+            "columnNames": [
+              "clubId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_club_ticket_runtime_clubId` ON `${TABLE_NAME}` (`clubId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "clubs",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clubId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_manager_ticket_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `sourceOrdinal` INTEGER NOT NULL, `legacyManagerId` INTEGER NOT NULL, `rawH` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `sourceOrdinal`), FOREIGN KEY(`careerId`) REFERENCES `career_metadata`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceOrdinal",
+            "columnName": "sourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyManagerId",
+            "columnName": "legacyManagerId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawH",
+            "columnName": "rawH",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "sourceOrdinal"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_manager_ticket_runtime_careerId_legacyManagerId",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "legacyManagerId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_manager_ticket_runtime_careerId_legacyManagerId` ON `${TABLE_NAME}` (`careerId`, `legacyManagerId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_metadata",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_match_construction_source",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `matchId` TEXT NOT NULL, `sourceCode` TEXT NOT NULL, PRIMARY KEY(`careerId`, `matchId`), FOREIGN KEY(`careerId`, `matchId`) REFERENCES `career_scheduled_matches`(`careerId`, `matchId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchId",
+            "columnName": "matchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceCode",
+            "columnName": "sourceCode",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "matchId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_match_construction_source_matchId",
+            "unique": false,
+            "columnNames": [
+              "matchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_match_construction_source_matchId` ON `${TABLE_NAME}` (`matchId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_scheduled_matches",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "matchId"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "matchId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_coach_runtime",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `managerSourceOrdinal` INTEGER NOT NULL, `isUserControlled` INTEGER NOT NULL, `currentClubId` TEXT, `alternativeClubId` TEXT, `previousClubId` TEXT, `previousClubCountry` INTEGER, `previousClubDivisionIndex` INTEGER, `rawG` INTEGER NOT NULL, `rawD` INTEGER NOT NULL, `rawE` INTEGER NOT NULL, `rawF` INTEGER NOT NULL, `rawO` INTEGER NOT NULL, `rawM` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `managerSourceOrdinal`), FOREIGN KEY(`careerId`, `managerSourceOrdinal`) REFERENCES `career_manager_ticket_runtime`(`careerId`, `sourceOrdinal`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "managerSourceOrdinal",
+            "columnName": "managerSourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isUserControlled",
+            "columnName": "isUserControlled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentClubId",
+            "columnName": "currentClubId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "alternativeClubId",
+            "columnName": "alternativeClubId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousClubId",
+            "columnName": "previousClubId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "previousClubCountry",
+            "columnName": "previousClubCountry",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "previousClubDivisionIndex",
+            "columnName": "previousClubDivisionIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "rawG",
+            "columnName": "rawG",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawD",
+            "columnName": "rawD",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawE",
+            "columnName": "rawE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawF",
+            "columnName": "rawF",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawO",
+            "columnName": "rawO",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawM",
+            "columnName": "rawM",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "managerSourceOrdinal"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "career_manager_ticket_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "managerSourceOrdinal"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "sourceOrdinal"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "career_coach_season_club_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`careerId` TEXT NOT NULL, `managerSourceOrdinal` INTEGER NOT NULL, `sourceOrdinal` INTEGER NOT NULL, `legacySeasonId` INTEGER NOT NULL, `legacyClubId` INTEGER NOT NULL, `rawMatches` INTEGER NOT NULL, `rawWins` INTEGER NOT NULL, `rawLosses` INTEGER NOT NULL, `rawPoints` INTEGER NOT NULL, `rawOtherCount` INTEGER NOT NULL, PRIMARY KEY(`careerId`, `managerSourceOrdinal`, `sourceOrdinal`), FOREIGN KEY(`careerId`, `managerSourceOrdinal`) REFERENCES `career_coach_runtime`(`careerId`, `managerSourceOrdinal`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "careerId",
+            "columnName": "careerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "managerSourceOrdinal",
+            "columnName": "managerSourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceOrdinal",
+            "columnName": "sourceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacySeasonId",
+            "columnName": "legacySeasonId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legacyClubId",
+            "columnName": "legacyClubId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawMatches",
+            "columnName": "rawMatches",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawWins",
+            "columnName": "rawWins",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawLosses",
+            "columnName": "rawLosses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawPoints",
+            "columnName": "rawPoints",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawOtherCount",
+            "columnName": "rawOtherCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "careerId",
+            "managerSourceOrdinal",
+            "sourceOrdinal"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_career_coach_season_club_records_careerId_managerSourceOrdinal",
+            "unique": false,
+            "columnNames": [
+              "careerId",
+              "managerSourceOrdinal"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_career_coach_season_club_records_careerId_managerSourceOrdinal` ON `${TABLE_NAME}` (`careerId`, `managerSourceOrdinal`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "career_coach_runtime",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "careerId",
+              "managerSourceOrdinal"
+            ],
+            "referencedColumns": [
+              "careerId",
+              "managerSourceOrdinal"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6575d77e3eef9ea84d059c2aa2bdf14b')"
+    ]
+  }
+}

@@ -14,4 +14,32 @@ class LegacySchemaCatalogTest {
         assertTrue("posicao" in LegacySchemaCatalog.player.confirmedFields)
         assertTrue("nRebaixados" in LegacySchemaCatalog.competition.confirmedFields)
     }
+
+    @Test
+    fun playerCommercialCatalogUsesTheSingleProvenFieldBoundary() {
+        assertEquals(
+            linkedSetOf(
+                "anoIn",
+                "aposentado",
+                "energiaBase",
+                "forca",
+                "pais",
+                "posicao",
+                "status",
+            ) + LegacyCareerPlayerCommercialFields.confirmedNames,
+            LegacySchemaCatalog.player.confirmedFields,
+        )
+        assertTrue(LegacyCareerPlayerCommercialFields.SALARY in LegacySchemaCatalog.player.confirmedFields)
+        assertTrue(LegacyCareerPlayerCommercialFields.PENDING_IS_LOAN in LegacySchemaCatalog.player.confirmedFields)
+    }
+
+    @Test
+    fun clubCommercialCatalogUsesTheSingleProvenFieldBoundary() {
+        assertEquals(
+            linkedSetOf("xp") + LegacyCareerClubCommercialFields.confirmedNames,
+            LegacySchemaCatalog.club.confirmedFields,
+        )
+        assertTrue(LegacyCareerClubCommercialFields.INVESTMENT in LegacySchemaCatalog.club.confirmedFields)
+        assertTrue(LegacyCareerClubCommercialFields.SPONSOR in LegacySchemaCatalog.club.confirmedFields)
+    }
 }

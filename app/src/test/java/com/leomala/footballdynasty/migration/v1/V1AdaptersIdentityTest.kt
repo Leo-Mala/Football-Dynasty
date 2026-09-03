@@ -25,6 +25,7 @@ class V1AdaptersIdentityTest {
         assertEquals(first.id, second.id)
         assertEquals(first.players.map { it.id }, second.players.map { it.id })
         assertEquals(snapshot.fileRef, first.sourceFileRef)
+        assertEquals(snapshot.level, first.level)
         assertEquals(snapshot.primaryColor, first.primaryColor)
         assertEquals(snapshot.secondaryColor, first.secondaryColor)
         assertEquals(snapshot.coach, first.coach)
@@ -56,6 +57,20 @@ class V1AdaptersIdentityTest {
     }
 
     @Test
+    fun `legacy team level reaches modern club unchanged through every V1 adapter`() {
+        val snapshot = legacySnapshot()
+        val data = LegacyBanToV1Adapter().adapt(snapshot)
+        val domain = V1DomainAdapter.club(data)
+        val entity = V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
+        val roundTrip = V1RoomAdapter.clubData(entity, emptyList(), emptyList())
+
+        assertEquals(snapshot.level, data.level)
+        assertEquals(snapshot.level, domain.level)
+        assertEquals(snapshot.level, entity.level)
+        assertEquals(snapshot.level, roundTrip.level)
+    }
+
+    @Test
     fun `club V1 round trip through Room entities is lossless and row order independent`() {
         val data = LegacyBanToV1Adapter().adapt(legacySnapshot())
         val clubEntity = V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
@@ -65,6 +80,8 @@ class V1AdaptersIdentityTest {
         val roundTrip = V1RoomAdapter.clubData(clubEntity, players.reversed(), memberships)
 
         assertEquals(data, roundTrip)
+        assertEquals(data.level, clubEntity.level)
+        assertEquals(data.level, roundTrip.level)
         assertEquals(data.players.map { it.id }, roundTrip.players.map { it.id })
         assertEquals(V1Fingerprint.corpus(listOf(data)), V1Fingerprint.corpus(listOf(roundTrip)))
     }
@@ -77,12 +94,7 @@ class V1AdaptersIdentityTest {
             legacyMetadataFingerprint = "metadata-fingerprint-probe",
             legacyCareerFingerprint = "career-fingerprint-probe",
         )
-        val entity = V1RoomAdapter.careerEntity(
-            data = data,
-            createdAtEpochMillis = 10L,
-            updatedAtEpochMillis = 20L,
-        )
-
+        val entity = V1RoomAdapter.careerEntity(data, createdAtEpochMillis = 10L, updatedAtEpochMillis = 20L)
         assertEquals(data, V1RoomAdapter.careerData(entity))
         assertEquals(data, V1DomainAdapter.careerData(V1DomainAdapter.career(data)))
     }
@@ -90,19 +102,16 @@ class V1AdaptersIdentityTest {
     @Test
     fun `unsupported V1 entity version fails explicitly`() {
         val data = LegacyBanToV1Adapter().adapt(legacySnapshot()).copy(schemaVersion = 99)
-        val error = runCatching {
-            V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE)
-        }.exceptionOrNull()
-
+        val error = runCatching { V1RoomAdapter.clubEntity(data, LEGACY_BAN_IMPORT_SCOPE) }.exceptionOrNull()
         assertTrue(error is ImportVersionException)
     }
 
     @Test
-    fun `database V6 preserves explicit ordered migration registry from V1`() {
-        assertEquals(6, FootballDynastyDatabase.SCHEMA_VERSION)
-        assertEquals(5, FootballDynastyMigrations.ALL.size)
+    fun `database V13 preserves explicit ordered migration registry from V1`() {
+        assertEquals(13, FootballDynastyDatabase.SCHEMA_VERSION)
+        assertEquals(12, FootballDynastyMigrations.ALL.size)
         assertEquals(
-            listOf(1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6),
+            listOf(1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7, 7 to 8, 8 to 9, 9 to 10, 10 to 11, 11 to 12, 12 to 13),
             FootballDynastyMigrations.ALL.map { it.startVersion to it.endVersion },
         )
     }
@@ -112,16 +121,12 @@ class V1AdaptersIdentityTest {
         val error = runCatching {
             LegacySaveReader().readCareer(ByteArrayInputStream(byteArrayOf(1, 2, 3)))
         }.exceptionOrNull()
-
         assertTrue(error is UnsupportedLegacySaveException)
     }
 
     private fun legacySnapshot() = LegacySerialization.readBan(
         ByteArrayInputStream(
-            LegacyFixtureLoader.bytes(
-                "/legacy/12deoctubre_par.ban.b64",
-                javaClass,
-            )
+            LegacyFixtureLoader.bytes("/legacy/12deoctubre_par.ban.b64", javaClass)
         )
     )
 }
