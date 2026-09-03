@@ -49,6 +49,7 @@ data class CareerCoachEmploymentUpdate(
 class CareerCoachRuntimeStore(private val database: FootballDynastyDatabase) {
     private val coachDao = database.careerCoachRuntimeDao()
     private val ticketDao = database.careerTicketRuntimeDao()
+    private val managerDao = database.careerManagerRuntimeDao()
 
     suspend fun materialize(
         careerId: String,
@@ -123,9 +124,10 @@ class CareerCoachRuntimeStore(private val database: FootballDynastyDatabase) {
      * `best.b.G(target,outgoing,incoming) -> f0.l/e`.
      *
      * The caller supplies the in-memory states produced by that rule in exact outgoing->incoming
-     * order. This seam persists only fields already owned by V9/V11: manager H, V11 coach state and
-     * the target club's stored manager id. World history/controlled-club lists and deep club helper
-     * effects remain outside this boundary until their own persisted representation is proven.
+     * order. This seam persists fields already owned by V9/V11 plus the target club's persisted
+     * `Q0()/t1()` control flag when that manager-runtime slice exists. World-history/controlled-club
+     * lists and deeper helper effects remain outside this boundary until their own representation
+     * is proven; a missing manager-runtime slice is not replaced with an invented default.
      */
     suspend fun commitEmploymentTransition(
         careerId: String,
@@ -165,6 +167,23 @@ class CareerCoachRuntimeStore(private val database: FootballDynastyDatabase) {
         } else {
             require(clubLegacyManagerIdAfter == incoming.after.legacyManagerId) {
                 "Target club manager id must match incoming manager"
+            }
+        }
+
+        managerDao.findClubRuntime(careerId, targetClubId)?.let { managerRuntime ->
+            var activeAfter = managerRuntime.active
+            updatesInLegacyOrder.forEach { update ->
+                when (update.role) {
+                    CareerCoachEmploymentRole.OUTGOING -> {
+                        if (update.expectedBefore.isUserControlled) activeAfter = false
+                    }
+                    CareerCoachEmploymentRole.INCOMING -> {
+                        if (update.after.isUserControlled) activeAfter = true
+                    }
+                }
+            }
+            if (activeAfter != managerRuntime.active) {
+                managerDao.upsertClubRuntime(managerRuntime.copy(active = activeAfter))
             }
         }
 
