@@ -254,23 +254,25 @@ class CareerManagerRuntimeStore(
                 "Missing materialized source club runtime $sourceClubId"
             }
             var sourceLedger = ledger(sourceEntity)
-            val grossSale = plan.sellerFundsDelta + plan.secondarySellerCharge.toLong()
-            if (grossSale > 0L) {
-                require(grossSale <= Int.MAX_VALUE.toLong()) {
-                    "Legacy sale ledger amount exceeds Int: $grossSale"
+            if (sourceEntity.active) {
+                val grossSale = plan.sellerFundsDelta + plan.secondarySellerCharge.toLong()
+                if (grossSale > 0L) {
+                    require(grossSale <= Int.MAX_VALUE.toLong()) {
+                        "Legacy sale ledger amount exceeds Int: $grossSale"
+                    }
+                    sourceLedger = LegacyFinanceLedgerRule.addIncome(
+                        sourceLedger,
+                        grossSale.toInt(),
+                        LegacyFinanceLedgerRule.INCOME_PLAYER_SALE,
+                    )
                 }
-                sourceLedger = LegacyFinanceLedgerRule.addIncome(
-                    sourceLedger,
-                    grossSale.toInt(),
-                    LegacyFinanceLedgerRule.INCOME_PLAYER_SALE,
-                )
-            }
-            if (plan.secondarySellerCharge > 0) {
-                sourceLedger = LegacyFinanceLedgerRule.addExpense(
-                    sourceLedger,
-                    plan.secondarySellerCharge,
-                    LegacyFinanceLedgerRule.EXPENSE_FINE,
-                )
+                if (plan.secondarySellerCharge > 0) {
+                    sourceLedger = LegacyFinanceLedgerRule.addExpense(
+                        sourceLedger,
+                        plan.secondarySellerCharge,
+                        LegacyFinanceLedgerRule.EXPENSE_FINE,
+                    )
+                }
             }
             managerDao.upsertClubRuntime(
                 sourceEntity.copy(
@@ -332,7 +334,7 @@ class CareerManagerRuntimeStore(
         require(current.toFinanceState() == expectedFinanceBefore) { "Stale finance state for $clubId" }
         managerDao.upsertClubRuntime(current.withFinance(result.state))
         val ordinal = (managerDao.maxStadiumConstructionOrdinal(careerId) ?: -1) + 1
-        managerDao.upsertStadiumConstruction(record.toEntity(careerId, ordinal))
+        managerDao.upsertStadiumConstruction(record.toEntity(careerId, ordinal, clubId))
     }
 
     /**
@@ -343,11 +345,14 @@ class CareerManagerRuntimeStore(
         careerId: String,
         currentTimestampMillis: Long,
     ): LegacyStadiumConstructionSweep = database.withTransaction {
-        val before = managerDao.stadiumConstructions(careerId).map { it.toDomain() }
+        val entities = managerDao.stadiumConstructions(careerId)
+        val before = entities.map { it.toDomain() }
         val sweep = LegacyStadiumConstructionRule.sweepCompleted(before, currentTimestampMillis)
+        val completedIndexes = sweep.completed.mapTo(mutableSetOf()) { it.recordIndex }
+        val remaining = entities.filterIndexed { index, _ -> index !in completedIndexes }
         managerDao.deleteStadiumConstructions(careerId)
         managerDao.upsertStadiumConstructions(
-            sweep.remainingRecords.mapIndexed { index, record -> record.toEntity(careerId, index) }
+            remaining.mapIndexed { index, entity -> entity.copy(sourceOrdinal = index) }
         )
         sweep
     }
@@ -556,6 +561,7 @@ class CareerManagerRuntimeStore(
     private fun LegacyStadiumConstructionRecord.toEntity(
         careerId: String,
         ordinal: Int,
+        ownerClubId: String,
     ): CareerStadiumConstructionEntity {
         require(additions.size == 4)
         return CareerStadiumConstructionEntity(
@@ -567,6 +573,7 @@ class CareerManagerRuntimeStore(
             addition1 = additions[1],
             addition2 = additions[2],
             addition3 = additions[3],
+            ownerClubId = ownerClubId,
         )
     }
 }
