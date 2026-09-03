@@ -8,6 +8,7 @@ import com.leomala.footballdynasty.data.local.entity.CareerScheduledMatchEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,6 +44,34 @@ class CareerCoachPostMatchPersistedResolverTest {
     }
 
     @Test
+    fun `legacy format code is not accepted as unproven x0 substitute`() = runBlocking {
+        val database = database()
+        seed(database, legacyFormatCode = 73)
+        val ticketStore = CareerTicketRuntimeStore(database)
+        ticketStore.materializeClubState(CAREER, HOME, CareerClubTicketRuntimeState(0, 100))
+        ticketStore.materializeClubState(CAREER, AWAY, CareerClubTicketRuntimeState(0, -1))
+        ticketStore.materializeManagers(CAREER, listOf(CareerManagerTicketRuntimeState(0, 100, 80)))
+
+        assertEquals(
+            73,
+            requireNotNull(database.careerCompetitionDao().findCompetition(CAREER, COMPETITION)).legacyFormatCode,
+        )
+        val failure = runCatching {
+            CareerCoachPostMatchPersistedResolver(database).resolveReachable(
+                careerId = CAREER,
+                scheduled = scheduled(),
+                seasonId = 1,
+                homeGoals = 1,
+                awayGoals = 0,
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(failure)
+        assertTrue(requireNotNull(failure).message.orEmpty().contains("konrent.t.x0()"))
+        database.close()
+    }
+
+    @Test
     fun `reachable non type seven without attached manager remains no op`() = runBlocking {
         val database = database()
         seed(database)
@@ -63,7 +92,7 @@ class CareerCoachPostMatchPersistedResolverTest {
         database.close()
     }
 
-    private suspend fun seed(database: FootballDynastyDatabase) {
+    private suspend fun seed(database: FootballDynastyDatabase, legacyFormatCode: Int = 0) {
         database.clubDao().upsertAll(listOf(club(HOME, 101), club(AWAY, 202)))
         database.careerMetadataDao().upsert(
             CareerMetadataEntity(CAREER, 1, "Coach resolver", null, null, 1L, 1L)
@@ -76,7 +105,7 @@ class CareerCoachPostMatchPersistedResolverTest {
                 careerId = CAREER,
                 competitionId = COMPETITION,
                 legacyCompetitionType = 1,
-                legacyFormatCode = 0,
+                legacyFormatCode = legacyFormatCode,
                 currentRoundNumber = 1,
                 totalRounds = 1,
             )
