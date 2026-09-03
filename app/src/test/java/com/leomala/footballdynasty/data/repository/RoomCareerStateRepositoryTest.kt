@@ -84,9 +84,9 @@ class RoomCareerStateRepositoryTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase15-finance-reset-reopen"
         context.deleteDatabase(name)
-        var fileDatabase = fileDatabase(context, name)
+        var fileDb = fileDatabase(context, name)
         try {
-            RoomCareerRepository(fileDatabase) { 100L }.save(
+            RoomCareerRepository(fileDb) { 100L }.save(
                 Career(
                     id = PHASE15_CAREER,
                     displayName = "Phase 15 finance reset",
@@ -94,7 +94,7 @@ class RoomCareerStateRepositoryTest {
                     legacyCareerFingerprint = null,
                 )
             )
-            fileDatabase.clubDao().upsertAll(
+            fileDb.clubDao().upsertAll(
                 listOf(
                     club("phase15-a", 101),
                     club("phase15-b", 202),
@@ -103,12 +103,12 @@ class RoomCareerStateRepositoryTest {
             )
 
             val initial = CareerStateFactory.create(PHASE15_CAREER, seed = 4_242L)
-            val stateRepository = RoomCareerStateRepository(fileDatabase) { 200L }
+            val stateRepository = RoomCareerStateRepository(fileDb) { 200L }
             stateRepository.save(initial)
 
             val firstBefore = managerRuntime("phase15-a", 10)
             val secondBefore = managerRuntime("phase15-b", 30)
-            val managerDao = fileDatabase.careerManagerRuntimeDao()
+            val managerDao = fileDb.careerManagerRuntimeDao()
             managerDao.upsertClubRuntime(firstBefore)
             managerDao.upsertClubRuntime(secondBefore)
 
@@ -124,17 +124,17 @@ class RoomCareerStateRepositoryTest {
             assertEquals(resetExpected(secondBefore), requireNotNull(managerDao.findClubRuntime(PHASE15_CAREER, "phase15-b")))
             assertNull(managerDao.findClubRuntime(PHASE15_CAREER, "phase15-no-ledger"))
 
-            fileDatabase.close()
-            fileDatabase = fileDatabase(context, name)
+            fileDb.close()
+            fileDb = fileDatabase(context, name)
 
-            val reopenedRepository = RoomCareerStateRepository(fileDatabase) { 300L }
-            val reopenedDao = fileDatabase.careerManagerRuntimeDao()
+            val reopenedRepository = RoomCareerStateRepository(fileDb) { 300L }
+            val reopenedDao = fileDb.careerManagerRuntimeDao()
             assertEquals(expectedCore, requireNotNull(reopenedRepository.findById(PHASE15_CAREER)))
             assertEquals(resetExpected(firstBefore), requireNotNull(reopenedDao.findClubRuntime(PHASE15_CAREER, "phase15-a")))
             assertEquals(resetExpected(secondBefore), requireNotNull(reopenedDao.findClubRuntime(PHASE15_CAREER, "phase15-b")))
             assertNull(reopenedDao.findClubRuntime(PHASE15_CAREER, "phase15-no-ledger"))
         } finally {
-            fileDatabase.close()
+            fileDb.close()
             context.deleteDatabase(name)
         }
     }
