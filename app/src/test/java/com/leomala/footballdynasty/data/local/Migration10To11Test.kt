@@ -46,6 +46,7 @@ class Migration10To11Test {
         val path = context.getDatabasePath(name).absolutePath
         val raw = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("ALTER TABLE `career_competitions` DROP COLUMN `legacyRelegationCount`")
         raw.execSQL("DROP TABLE `career_coach_season_club_records`")
         raw.execSQL("DROP TABLE `career_coach_runtime`")
         raw.execSQL("PRAGMA user_version=10")
