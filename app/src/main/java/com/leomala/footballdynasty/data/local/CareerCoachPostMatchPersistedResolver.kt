@@ -28,35 +28,13 @@ class CareerCoachPostMatchPersistedResolver(
         seasonId: Int,
         homeGoals: Int,
         awayGoals: Int,
-    ): List<CareerMatchCoachUpdate> {
-        require(careerId.isNotBlank()) { "Career id must not be blank" }
-        val competitionDao = database.careerCompetitionDao()
-        val links = competitionDao.matchLinksForMatch(careerId, scheduled.matchId)
-        if (links.isEmpty()) return emptyList()
-        require(links.size == 1) {
-            "Scheduled match ${scheduled.matchId} belongs to multiple persisted competitions"
-        }
-        val competition = requireNotNull(
-            competitionDao.findCompetition(careerId, links.single().competitionId)
-        ) { "Missing persisted competition ${links.single().competitionId} for match ${scheduled.matchId}" }
-
-        if (competition.legacyCompetitionType == 7) {
-            return resolveTypeSeven(careerId, scheduled, seasonId, homeGoals, awayGoals)
-        }
-        if (competition.legacyCompetitionType !in LegacyCoachPostMatchAdjustmentRule.callerCompetitionTypes) {
-            return emptyList()
-        }
-
-        val homeManagerId = ticketStore.findClubState(careerId, scheduled.homeClubId)?.legacyManagerId
-        val awayManagerId = ticketStore.findClubState(careerId, scheduled.awayClubId)?.legacyManagerId
-        val hasAttachedManager = sequenceOf(homeManagerId, awayManagerId).any { it != null && it != -1 }
-        if (!hasAttachedManager) return emptyList()
-
-        throw IllegalStateException(
-            "Coach post-match type ${competition.legacyCompetitionType} requires raw legacy " +
-                "konrent.t.x0() and LoadLigaOptions.nRebaixados inputs before f0.j()/i() can execute"
-        )
-    }
+    ): List<CareerMatchCoachUpdate> = resolveTypeSeven(
+        careerId = careerId,
+        scheduled = scheduled,
+        seasonId = seasonId,
+        homeGoals = homeGoals,
+        awayGoals = awayGoals,
+    )
 
     suspend fun resolveTypeSeven(
         careerId: String,
@@ -78,7 +56,19 @@ class CareerCoachPostMatchPersistedResolver(
         val competition = requireNotNull(
             competitionDao.findCompetition(careerId, links.single().competitionId)
         ) { "Missing persisted competition ${links.single().competitionId} for match ${scheduled.matchId}" }
-        if (competition.legacyCompetitionType != 7) return emptyList()
+        if (competition.legacyCompetitionType != 7) {
+            if (competition.legacyCompetitionType !in LegacyCoachPostMatchAdjustmentRule.callerCompetitionTypes) {
+                return emptyList()
+            }
+            val homeManagerId = ticketStore.findClubState(careerId, scheduled.homeClubId)?.legacyManagerId
+            val awayManagerId = ticketStore.findClubState(careerId, scheduled.awayClubId)?.legacyManagerId
+            val hasAttachedManager = sequenceOf(homeManagerId, awayManagerId).any { it != null && it != -1 }
+            if (!hasAttachedManager) return emptyList()
+            throw IllegalStateException(
+                "Coach post-match type ${competition.legacyCompetitionType} requires raw legacy " +
+                    "konrent.t.x0() and LoadLigaOptions.nRebaixados inputs before f0.j()/i() can execute"
+            )
+        }
 
         val homeClub = exactLegacyClub(scheduled.homeClubId)
         val awayClub = exactLegacyClub(scheduled.awayClubId)
