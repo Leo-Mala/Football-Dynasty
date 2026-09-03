@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerCompetitionStoreTest {
     @Test
-    fun `last match atomically advances standings and exact relegation count survives reopen`() = runBlocking {
+    fun `last match atomically advances standings and exact phase14 inputs survive reopen`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase10-competition-reopen"
         context.deleteDatabase(name)
@@ -53,6 +53,7 @@ class CareerCompetitionStoreTest {
             clubIds = listOf("a", "b", "c", "d"),
             roundMatchIds = listOf(listOf("m1", "m2"), listOf("m3", "m4")),
             legacyRelegationCount = 2,
+            legacyLeagueSubtype = 3,
         )
 
         val first = CareerMatchRuntimeBridge.run(initial, schedule, "m1") { scheduled, _ ->
@@ -62,10 +63,7 @@ class CareerCompetitionStoreTest {
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { competitionStore.completeCurrentRound("career-league", "league-1") }
         }
-        assertEquals(
-            1,
-            requireNotNull(competitionStore.load("career-league", "league-1")).currentRoundNumber,
-        )
+        assertEquals(1, requireNotNull(competitionStore.load("career-league", "league-1")).currentRoundNumber)
 
         val second = CareerMatchRuntimeBridge.run(first.state, first.schedule, "m2") { scheduled, _ ->
             Match(scheduled.matchId, scheduled.homeClubId, scheduled.awayClubId, 1, 1)
@@ -75,6 +73,7 @@ class CareerCompetitionStoreTest {
 
         assertEquals(2, advanced.currentRoundNumber)
         assertEquals(2, advanced.legacyRelegationCount)
+        assertEquals(3, advanced.legacyLeagueSubtype)
         assertEquals(listOf("a", "c", "d", "b"), advanced.standings.map { it.clubId })
         assertEquals(listOf(3, 1, 1, 0), advanced.standings.map { it.points })
         assertEquals(listOf(1, 1, 1, 1), advanced.standings.map { it.played })
@@ -87,6 +86,7 @@ class CareerCompetitionStoreTest {
         val reopened = requireNotNull(CareerCompetitionStore(database).load("career-league", "league-1"))
         assertEquals(advanced, reopened)
         assertEquals(2, reopened.legacyRelegationCount)
+        assertEquals(3, reopened.legacyLeagueSubtype)
 
         database.close()
         context.deleteDatabase(name)
@@ -94,27 +94,9 @@ class CareerCompetitionStoreTest {
     }
 
     private fun club(id: String) = ClubEntity(
-        id = id,
-        dataVersion = 1,
-        importScope = null,
-        sourceFileRef = id,
-        name = id,
-        country = 0,
-        state = 0,
-        level = 1,
-        stadium = "",
-        capacity = 0,
-        reputation = 0,
-        primaryColor = "",
-        secondaryColor = "",
-        coach = "",
-        coachCountry = 0,
-        baseColor = 0,
-        legacyAid = 0,
-        legacySid = 0,
-        legacyTid = 0,
-        legacyVid = 0,
-        legacyId = 0,
-        legacyValid = true,
+        id = id, dataVersion = 1, importScope = null, sourceFileRef = id, name = id,
+        country = 0, state = 0, level = 1, stadium = "", capacity = 0, reputation = 0,
+        primaryColor = "", secondaryColor = "", coach = "", coachCountry = 0, baseColor = 0,
+        legacyAid = 0, legacySid = 0, legacyTid = 0, legacyVid = 0, legacyId = 0, legacyValid = true,
     )
 }
