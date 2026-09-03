@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.data.local
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.leomala.footballdynasty.data.local.entity.CareerCompetitionStandingEntity
 import com.leomala.footballdynasty.data.local.entity.CareerMetadataEntity
 import com.leomala.footballdynasty.data.local.entity.CareerScheduledMatchEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
@@ -20,16 +21,13 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerCoachPostMatchPersistedResolverTest {
     @Test
-    fun `reachable non type seven with attached manager fails closed until raw inputs are persisted`() = runBlocking {
+    fun `type one with x0 but missing relegation input still fails closed`() = runBlocking {
         val database = database()
-        seed(database)
-        val ticketStore = CareerTicketRuntimeStore(database)
-        ticketStore.materializeClubState(CAREER, HOME, CareerClubTicketRuntimeState(0, 100))
-        ticketStore.materializeClubState(CAREER, AWAY, CareerClubTicketRuntimeState(0, -1))
-        ticketStore.materializeManagers(CAREER, listOf(CareerManagerTicketRuntimeState(0, 100, 80)))
+        seed(database, legacyLeagueSubtype = 1)
+        materializeManager(database)
 
         val failure = runCatching {
-            CareerCoachPostMatchPersistedResolver(database).resolveTypeSeven(
+            CareerCoachPostMatchPersistedResolver(database).resolveReachable(
                 careerId = CAREER,
                 scheduled = scheduled(),
                 seasonId = 1,
@@ -46,11 +44,8 @@ class CareerCoachPostMatchPersistedResolverTest {
     @Test
     fun `legacy format code is not accepted as unproven x0 substitute`() = runBlocking {
         val database = database()
-        seed(database, legacyFormatCode = 73)
-        val ticketStore = CareerTicketRuntimeStore(database)
-        ticketStore.materializeClubState(CAREER, HOME, CareerClubTicketRuntimeState(0, 100))
-        ticketStore.materializeClubState(CAREER, AWAY, CareerClubTicketRuntimeState(0, -1))
-        ticketStore.materializeManagers(CAREER, listOf(CareerManagerTicketRuntimeState(0, 100, 80)))
+        seed(database, legacyFormatCode = 73, legacyRelegationCount = 1)
+        materializeManager(database)
 
         assertEquals(
             73,
@@ -72,7 +67,36 @@ class CareerCoachPostMatchPersistedResolverTest {
     }
 
     @Test
-    fun `reachable non type seven without attached manager remains no op`() = runBlocking {
+    fun `type one exact persisted inputs resolve j then i from pre match table`() = runBlocking {
+        val database = database()
+        seed(database, legacyLeagueSubtype = 1, legacyRelegationCount = 1)
+        val before = materializeManager(database)
+
+        val updates = CareerCoachPostMatchPersistedResolver(database).resolveReachable(
+            careerId = CAREER,
+            scheduled = scheduled(),
+            seasonId = 1,
+            homeGoals = 1,
+            awayGoals = 0,
+        )
+
+        assertEquals(1, updates.size)
+        val update = updates.single()
+        assertEquals(HOME, update.resolvedClubId)
+        assertEquals(before, update.expectedBefore)
+        assertEquals(1, update.after.rawD)
+        assertEquals(1, update.after.rawE)
+        assertEquals(0, update.after.rawF)
+        assertEquals(4, update.after.rawO)
+        assertEquals(55, update.after.rawG)
+        assertEquals(1, update.after.records.single().rawMatches)
+        assertEquals(1, update.after.records.single().rawWins)
+        assertEquals(4, update.after.records.single().rawPoints)
+        database.close()
+    }
+
+    @Test
+    fun `reachable competition without attached manager remains no op without exact inputs`() = runBlocking {
         val database = database()
         seed(database)
         val ticketStore = CareerTicketRuntimeStore(database)
@@ -80,7 +104,7 @@ class CareerCoachPostMatchPersistedResolverTest {
         ticketStore.materializeClubState(CAREER, AWAY, CareerClubTicketRuntimeState(0, -1))
         ticketStore.materializeManagers(CAREER, emptyList())
 
-        val updates = CareerCoachPostMatchPersistedResolver(database).resolveTypeSeven(
+        val updates = CareerCoachPostMatchPersistedResolver(database).resolveReachable(
             careerId = CAREER,
             scheduled = scheduled(),
             seasonId = 1,
@@ -92,8 +116,40 @@ class CareerCoachPostMatchPersistedResolverTest {
         database.close()
     }
 
-    private suspend fun seed(database: FootballDynastyDatabase, legacyFormatCode: Int = 0) {
-        database.clubDao().upsertAll(listOf(club(HOME, 101), club(AWAY, 202)))
+    private suspend fun materializeManager(database: FootballDynastyDatabase): CareerCoachRuntimeState {
+        val ticketStore = CareerTicketRuntimeStore(database)
+        ticketStore.materializeClubState(CAREER, HOME, CareerClubTicketRuntimeState(0, 100))
+        ticketStore.materializeClubState(CAREER, AWAY, CareerClubTicketRuntimeState(0, -1))
+        ticketStore.materializeManagers(CAREER, listOf(CareerManagerTicketRuntimeState(0, 100, 80)))
+        val state = CareerCoachRuntimeState(
+            sourceOrdinal = 0,
+            legacyManagerId = 100,
+            isUserControlled = false,
+            currentClubId = HOME,
+            alternativeClubId = null,
+            previousClubId = null,
+            previousClubCountry = null,
+            previousClubDivisionIndex = null,
+            rawG = 50,
+            rawH = 80,
+            rawD = 0,
+            rawE = 0,
+            rawF = 0,
+            rawO = 0,
+            rawM = 0,
+            records = emptyList(),
+        )
+        CareerCoachRuntimeStore(database).materialize(CAREER, state)
+        return state
+    }
+
+    private suspend fun seed(
+        database: FootballDynastyDatabase,
+        legacyFormatCode: Int = 0,
+        legacyLeagueSubtype: Int? = null,
+        legacyRelegationCount: Int? = null,
+    ) {
+        database.clubDao().upsertAll(listOf(club(HOME, 101, 5), club(AWAY, 202, 10)))
         database.careerMetadataDao().upsert(
             CareerMetadataEntity(CAREER, 1, "Coach resolver", null, null, 1L, 1L)
         )
@@ -108,7 +164,12 @@ class CareerCoachPostMatchPersistedResolverTest {
                 legacyFormatCode = legacyFormatCode,
                 currentRoundNumber = 1,
                 totalRounds = 1,
+                legacyRelegationCount = legacyRelegationCount,
+                legacyLeagueSubtype = legacyLeagueSubtype,
             )
+        )
+        database.careerCompetitionDao().upsertStandings(
+            listOf(standing(HOME, 0), standing(AWAY, 1))
         )
         database.careerCompetitionDao().upsertMatches(
             listOf(
@@ -123,6 +184,19 @@ class CareerCoachPostMatchPersistedResolverTest {
         )
     }
 
+    private fun standing(clubId: String, ordinal: Int) = CareerCompetitionStandingEntity(
+        careerId = CAREER,
+        competitionId = COMPETITION,
+        clubId = clubId,
+        stableOrdinal = ordinal,
+        points = 0,
+        played = 0,
+        wins = 0,
+        losses = 0,
+        goalsFor = 0,
+        goalsAgainst = 0,
+    )
+
     private fun scheduled() = ScheduledCareerMatch(MATCH, 0, 1, HOME, AWAY)
 
     private fun database(): FootballDynastyDatabase {
@@ -132,7 +206,7 @@ class CareerCoachPostMatchPersistedResolverTest {
             .build()
     }
 
-    private fun club(id: String, legacyId: Int) = ClubEntity(
+    private fun club(id: String, legacyId: Int, level: Int) = ClubEntity(
         id = id,
         dataVersion = 1,
         importScope = null,
@@ -140,7 +214,7 @@ class CareerCoachPostMatchPersistedResolverTest {
         name = id,
         country = 0,
         state = 0,
-        level = 1,
+        level = level,
         stadium = "",
         capacity = 0,
         reputation = 0,
