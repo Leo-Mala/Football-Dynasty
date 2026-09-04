@@ -17,7 +17,6 @@ import com.leomala.footballdynasty.foundation.random.StatefulRandomSnapshot
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -55,7 +54,7 @@ class CareerJuniorManualPromotionStoreTest {
         )
 
         assertEquals(false, result.blockedBySeniorLimit)
-        val promoted = assertNotNull(result.promoted)
+        val promoted = requireNotNull(result.promoted)
         assertEquals(expectedPlayerId, promoted.runtime.playerId)
         assertEquals(expectedMaterialized.name, promoted.procedural?.name)
         assertEquals(SENIOR, promoted.membership?.rosterKind)
