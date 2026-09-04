@@ -1,6 +1,6 @@
 # Fase 15 — alcance e semântica executável de Juniores
 
-Status: **CHARACTERIZED / IMPLEMENTATION IN PROGRESS**
+Status: **CHARACTERIZED / RUNTIME IMPLEMENTED / EXACT-HEAD REVALIDATION PENDING**
 
 Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
@@ -8,11 +8,16 @@ Regra de evidência: quando Java decompilado e SMALI divergem, o SMALI executáv
 
 ## 1. Superfície alcançável
 
-`ActivityMainTeam` alcança `ActivityJuniores`. Na activity, os caminhos substantivos confirmados são:
+`ActivityMainTeam` alcança `ActivityJuniores`. A auditoria completa da activity está em `PHASE15_JUNIOR_ACTIVITY_SURFACE.md`.
 
-- peneira: `ActivityJuniores.j()` → confirmação → `ActivityJuniores.h()` → `best.b.h2(best.c0)`;
+Os seams substantivos confirmados são:
+
+- peneira: `ActivityJuniores.j()` → confirmação → `ActivityJuniores.h()` → `best.b.h2(best.c0)` + `c0.D(custo, 9)`;
 - dispensa: confirmação → `ActivityJuniores.g()` → remoção do `best.p` selecionado de `c0.a0()`;
-- promoção manual: `ActivityJuniores.k()` → confirmação → `ActivityJuniores.i()` → `best.t.e(FALSE, best.p, best.c0)`.
+- promoção manual: `ActivityJuniores.k()` → confirmação → `ActivityJuniores.i()` → `best.t.e(FALSE, best.p, best.c0)`;
+- lifecycle anual fora da activity: `best.b.q()` → `best.p.c(c0)` → opcional `best.t.e(TRUE, p, c0)`.
+
+`onCreate`, `e`, `l`, listeners e as partes restantes de `f/j/k` são apresentação, seleção, validação ou roteamento para esses seams e não introduzem mutação esportiva adicional.
 
 A lista `c0.a0()` é o estado juvenil legado. O objeto nela armazenado é `best.p implements Serializable`; ele ainda **não** é o jogador final `best.o`.
 
@@ -40,7 +45,7 @@ O lançamento financeiro é `c0.D(custo, 9)`. O SMALI de `c0.D` reduz o caixa e 
 
 `ActivityJuniores.k()` bloqueia promoção quando `c0.Z().size() >= 30`. A promoção manual chama exatamente `best.t.e(FALSE, p, c0)`.
 
-A dispensa remove apenas o `best.p` selecionado da lista juvenil e reorganiza a lista. Não há RNG nem lançamento financeiro nesse caminho.
+A dispensa remove apenas o `best.p` selecionado da lista juvenil e reorganiza a apresentação. Não há RNG nem lançamento financeiro nesse caminho.
 
 A persistência moderna V14 mantém o `best.p` separado do jogador procedural final. `CareerJuniorManualPromotionStore.promote(...)` só chama o materializador no ponto comprovado `best.t.e(FALSE, p, c0)`, persiste jogador/membership e RNG na mesma transação e remove o draft apenas na rota manual.
 
@@ -76,37 +81,40 @@ O SMALI também prevalece sobre uma decompilação Java divergente. O método:
 6. após essa promoção, se `c0.B0() < 10`, gera/stageia um substituto com `best.p.d(target, -1, null, 0, null, TRUE)`;
 7. se não qualificado e `c0.Q0()` for falso, regenera o próprio draft via `best.p.d(target, -1, this, 0, null, TRUE)`.
 
-A caracterização promovida no commit `17c18a566bd064d026d1ce29604f484af4841ea0` fechou a antiga dúvida sobre o corpo comum de `best.t.e(...)`: as rotas `FALSE` e `TRUE` compartilham a materialização do jogador e os draws de RNG anteriores aos efeitos finais de listas. A divergência comprovada está no efeito final:
+As rotas `FALSE` e `TRUE` compartilham a materialização do jogador e os draws de RNG anteriores aos efeitos finais de listas. A divergência comprovada está no efeito final:
 
 - `FALSE`: remove o draft do clube imediatamente e stageia o materializado em `D0`;
 - `TRUE`: não remove o draft imediatamente, stageia o draft em `L1` e o materializado em `J1`.
 
-Portanto o problema restante **não é** caracterizar novamente campos/RNG do materializador `TRUE`. O gap real é mapear e persistir os efeitos anuais `L1/J1`, a posterior remoção/substituição e a geração do substituto sem inventar equivalência de roster moderna.
+A auditoria direta de `best.b.q()` fechou `L1/J1`: `F1/E1/D1` são buffers transitórios do lifecycle anual, não novo estado persistente. A geração do substituto ocorre imediatamente no ponto legado, mas sua inserção é diferida até o fim da iteração do snapshot original do clube. O append global dos materializados ocorre depois de todos os clubes. Ver `PHASE15_JUNIOR_ANNUAL_STAGING.md`.
 
-## 7. Implementação moderna já existente neste marco
+`CareerJuniorAnnualLifecycleStore.run(...)` representa o estado durável final equivalente em uma transação Room/RNG, processa somente o snapshot original, atualiza contagem sênior imediatamente após promoção, preserva refresh/substituição na ordem caracterizada e não revisita substituto recém-gerado no mesmo ano.
+
+## 7. Implementação moderna desta fatia
 
 O Marco C já promoveu para código/persistência:
 
 - `LegacyJuniorRuntimeRules` para disponibilidade, teto 18, seis gates, limite sênior 30, progressão e decisão anual;
 - `LegacyJuniorDraftFieldRules` para campos completos do draft e efeitos finais `FALSE`/`TRUE`;
+- `LegacyJuniorAnnualLifecycleRules` para ordem de staging anual;
 - Room V14 com `CareerJuniorDraftEntity`, `CareerJuniorDraftDao`, `MIGRATION_13_14`, schema exportado e migration tests;
 - `CareerJuniorRuntimeStore.runTrial(...)` com RNG + finanças raw 9 + drafts atômicos;
 - dispensa persistida sem RNG/finanças;
 - `CareerJuniorRuntimeStore.progressDevelopment(...)` preservando o acumulador fracionário;
-- `CareerJuniorManualPromotionStore.promote(...)` com materialização tardia, RNG/jogador/membership/draft na mesma transação e rollback caracterizado.
+- `CareerJuniorManualPromotionStore.promote(...)` com materialização tardia, RNG/jogador/membership/draft na mesma transação e rollback;
+- `CareerJuniorAnnualLifecycleStore.run(...)` com idade, decisão, materialização TRUE, refresh/substituto, drafts/jogadores/memberships/RNG atômicos;
+- regressões anuais de ordering, rollback e close/reopen do estado durável final.
 
-O checkpoint `0b3ca8ce6f7e5fea2c9fe0f11b1be71ab2297880` foi certificado pelos três workflows obrigatórios. Isso não fecha `ActivityJuniores`, porque o lifecycle anual `TRUE` continua materialmente aberto.
+O checkpoint `e2566a9e255275e591c06596519c54c1b0001848` foi certificado pelos três workflows obrigatórios antes da regressão adicional de close/reopen. O HEAD atual precisa ser novamente certificado por inteiro.
 
-## 8. Próximo gate desta fatia
+## 8. Critério restante para fechar Fase 15.1
 
-Antes de classificar Juniores como implementado, ainda são obrigatórios:
+A auditoria completa de `ActivityJuniores.smali` não encontrou seam esportivo adicional além dos já mapeados; o restante da classe é apresentação, seleção, validação e roteamento. Portanto não permanece função de gameplay desconhecida nessa superfície.
 
-- mapear o staging legado `L1/J1` para estado moderno sem confundir `rosterKind` com estado transitório anual;
-- integrar idade + decisão + `best.t.e(TRUE,...)` como operação atômica de carreira/RNG;
-- preservar a ordem do substituto `best.p.d(..., TRUE)` quando `B0 < 10`;
-- preservar a rota de refresh do próprio draft quando `Q0 == FALSE` sem promoção;
-- adicionar regressões determinísticas de reopen, rollback e ordem RNG para a rota anual completa;
-- atualizar a matriz agregada somente após esse boundary estar comprovado;
-- gates completos no exato FINAL_HEAD da Fase 15.
+Para fechar **Fase 15.1 — Juniores**, resta:
 
-`ActivityJuniores` permanece `UNKNOWN_NEEDS_INVESTIGATION` até o fluxo alcançável inteiro estar classificado e testado.
+- obter PASS dos três workflows obrigatórios no mesmo exact HEAD contendo a regressão de close/reopen e a documentação final;
+- revalidar PR/head/reviews após esses gates;
+- promover os status juvenis da matriz de `IMPLEMENTED_NEEDS_REVALIDATION` para `IMPLEMENTED_AND_CERTIFIED` somente nesse SHA certificado.
+
+A implementação visual de adapter, Toasts, diálogos, seleção e refresh de tela pertence à fase de UI e não é tratada como regra esportiva/persistência na Fase 15.
