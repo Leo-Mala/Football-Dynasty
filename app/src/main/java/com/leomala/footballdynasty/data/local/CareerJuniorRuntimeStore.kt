@@ -51,6 +51,34 @@ class CareerJuniorRuntimeStore(
     suspend fun listForClub(careerId: String, clubId: String): List<CareerJuniorDraftState> =
         draftDao.listForClub(careerId, clubId).map { it.toState() }
 
+    /**
+     * Persists the exact non-RNG `best.p.b()` development step for every draft in current list
+     * order. Only legacy `O` and fractional accumulator `D` can change; age and all other draft
+     * fields remain untouched by this method, matching the characterized bytecode.
+     */
+    suspend fun progressDevelopment(
+        careerId: String,
+        clubId: String,
+    ): List<CareerJuniorDraftState> = database.withTransaction {
+        val current = draftDao.listForClub(careerId, clubId)
+        val updated = current.map { entity ->
+            val progressed = LegacyJuniorRuntimeRules.progressDevelopment(
+                LegacyJuniorRuntimeRules.DevelopmentState(
+                    age = entity.legacyC,
+                    legacyN = entity.legacyN,
+                    legacyO = entity.legacyO,
+                    remainder = entity.developmentRemainder,
+                )
+            )
+            entity.copy(
+                legacyO = progressed.legacyO,
+                developmentRemainder = progressed.remainder,
+            )
+        }
+        draftDao.upsertAll(updated)
+        updated.map { it.toState() }
+    }
+
     suspend fun runTrial(
         expectedBefore: CareerState,
         clubId: String,
