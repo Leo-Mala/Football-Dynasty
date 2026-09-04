@@ -22,16 +22,16 @@ Não se classifica a Activity inteira como `PRESENTATION_ONLY` nesta etapa: outr
 
 ## 2. `best.n.n()` — roteador fino comprovado
 
-O SMALI oficial de `best.n.n()` comprova:
+O SMALI oficial de `best.n.n()` comprova exatamente:
 
-- se `best.b.E1()` for `true`, chama `best.b.d()` e retorna;
-- se for `false`, segue a rota alternativa da activity/main conforme o estado disponível.
+- se `best.b.E1()` for `false`, chama `best.n.i()` e retorna;
+- se `best.b.E1()` for `true`, chama `best.b.d()` e retorna.
 
 No caminho vindo de `ActivityFimAno.e()`, `L` acabou de ser gravado como `true`; logo a cadeia alcançável substantiva é:
 
 `ActivityFimAno.e()` → `best.b.z3(true)` → `best.n.n()` → `best.b.d()`.
 
-`best.n.n()` não cria RNG nem aplica diretamente a mutação anual; ele escolhe a rota.
+`best.n.n()` não cria RNG nem aplica diretamente a mutação anual; ele escolhe uma das duas rotas. O ramo `best.n.i()` permanece fora do escopo desta entrada anual específica e deve ser tratado pelo seu próprio reachability/caller audit, sem substituir o comportamento comprovado por um equivalente de UI inferido.
 
 ## 3. `best.b.d()` — ordem executável do `NovoAno`
 
