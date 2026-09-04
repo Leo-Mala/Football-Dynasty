@@ -48,15 +48,42 @@ The current branch already contains earlier, tested compatibility primitives for
 
 Therefore the remaining `g4 → n3 → best.f` gap is not "raw RNG policy unknown". The compatibility policy and pure selection primitives already exist. What remains is the runtime composition that gathers the exact legacy candidate collections in the exact order, invokes those characterized primitives, and then passes the selected target/value into the already implemented annual `T1(target,value,true,false,false)` mutation adapter.
 
+## `d4()` payload — `components.o2`
+
+The official SMALI resolves the queue payload without relying on names inferred from UI:
+
+- `components.o2` is `Serializable` and contains exactly `best.o player`, `Calendar expiry`, `best.c0 club`;
+- its `(best.o,best.c0)` constructor immediately appends itself to `best.b.o0()`;
+- the constructor derives a calendar from the active competition calendar and adds exactly `0x13f` (`319`) days;
+- `best.b.d4()` scans the queue; for an entry whose expiry is before the current global calendar, it calls `player.U1(club)` only when both references are non-null, then stages the expired entry for removal;
+- `best.o.U1(club)` is itself only a swallowed-exception wrapper around `T1(club, 0, false, false, true)`.
+
+This means the final movement mutation is not unknown: its exact T1 flag tuple is now proven. What is still missing is the durable representation and creation lifecycle of the delayed `components.o2` queue. It must not be collapsed into `LegacyPendingPlayerMovement`, whose proven fields describe a different three-scalar pending-movement structure. A V15 schema is therefore not justified until all `components.o2` writers/callers are mapped and a durable modern queue is shown to be necessary.
+
+## `e4()` payload — `components.y1`
+
+`components.y1` is also `Serializable` and contains exactly:
+
+- `best.k a`;
+- `Calendar b`;
+- an `int[4] c` accumulator array.
+
+Its `a()` payload method loops the four slots in ascending index order. For every slot whose value is strictly positive it calls `best.k.h(index, value)` and then zeros that same slot. `best.k.h(index,value)` adds `value` to the matching slot of its own four-element `b` array when the index is in bounds.
+
+`best.b.e4()` applies `components.y1.a()` only to expired entries, stages those entries, and removes them after the scan. No RNG is consumed in this payload path.
+
+As with `d4()`, the mutation body is now characterized but the queue creation/writer lifecycle and exact modern owner for the four `best.k` counters still need to be proven before persistence is introduced.
+
 ## Remaining substantive callees
 
-This audit also confirms the following bodies still need independent runtime classification before `best.n.m()` can be promoted as a complete annual implementation:
+After this payload audit, the remaining blockers before `best.n.m()` can be promoted as a complete annual implementation are narrower:
 
-- `best.b.d4()` — expired `components.o2` queue processing and `best.o.U1(club)` mutation;
-- `best.b.e4()` — expired `components.y1` queue processing and its payload application;
+- `d4()` — exact T1 mutation is proven, but delayed-queue creation/writers and durable representation remain open;
+- `e4()` — exact four-slot application is proven, but delayed-queue creation/writers and modern `best.k` counter owner remain open;
 - `best.b.j2(1)` — competition-list routing through `best.a.x()`/`best.a.J(1)`;
 - `best.b.F2(true)` — writes legacy field `M0=true`; semantic/persistence equivalence must be proven before adding durable state;
 - `best.b.F()` — multi-pass reset over competition/tournament/player collections, including the SMALI-observed first-`z0()` access quirk;
-- `best.n.i()` — false final branch when `V0=true` and `E1=false`.
+- `best.n.i()` — false final branch when `V0=true` and `E1=false`;
+- object-level `g4 → n3 → best.f` composition using the already existing deterministic compatibility primitives.
 
-No schema change is justified by this router characterization alone.
+No schema change is justified by this router/payload characterization alone.
