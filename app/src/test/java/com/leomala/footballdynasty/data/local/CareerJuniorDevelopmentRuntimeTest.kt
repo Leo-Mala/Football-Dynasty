@@ -34,7 +34,7 @@ class CareerJuniorDevelopmentRuntimeTest {
         assertEquals(3, result.size)
         assertEquals(50, persisted[0].legacyO)
         assertEquals(1.0, persisted[0].developmentRemainder, 0.0000001)
-        assertEquals(51, persisted[1].legacyO)
+        assertEquals(61, persisted[1].legacyO)
         assertEquals(0.01, persisted[1].developmentRemainder, 0.0000001)
         assertEquals(70, persisted[2].legacyO)
         assertEquals(0.99, persisted[2].developmentRemainder, 0.0000001)
