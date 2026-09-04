@@ -49,7 +49,7 @@ class CareerJuniorRuntimeStore(
     private val managerStore = CareerManagerRuntimeStore(database)
 
     suspend fun listForClub(careerId: String, clubId: String): List<CareerJuniorDraftState> =
-        draftDao.listForClub(careerId, clubId).map(CareerJuniorDraftEntity::toState)
+        draftDao.listForClub(careerId, clubId).map { it.toState() }
 
     suspend fun runTrial(
         expectedBefore: CareerState,
