@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import com.leomala.footballdynasty.data.local.dao.CareerCoachRuntimeDao
 import com.leomala.footballdynasty.data.local.dao.CareerCompetitionDao
 import com.leomala.footballdynasty.data.local.dao.CareerCoreStateDao
+import com.leomala.footballdynasty.data.local.dao.CareerJuniorDraftDao
 import com.leomala.footballdynasty.data.local.dao.CareerManagerRuntimeDao
 import com.leomala.footballdynasty.data.local.dao.CareerMetadataDao
 import com.leomala.footballdynasty.data.local.dao.CareerPlayerRuntimeDao
@@ -30,7 +31,7 @@ import com.leomala.footballdynasty.data.local.entity.*
         CareerStadiumConstructionEntity::class, CareerStadiumRuntimeEntity::class,
         CareerClubTicketRuntimeEntity::class, CareerManagerTicketRuntimeEntity::class,
         CareerMatchConstructionSourceEntity::class, CareerCoachRuntimeEntity::class,
-        CareerCoachSeasonClubRecordEntity::class,
+        CareerCoachSeasonClubRecordEntity::class, CareerJuniorDraftEntity::class,
     ],
     version = FootballDynastyDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -48,9 +49,10 @@ abstract class FootballDynastyDatabase : RoomDatabase() {
     abstract fun careerManagerRuntimeDao(): CareerManagerRuntimeDao
     abstract fun careerTicketRuntimeDao(): CareerTicketRuntimeDao
     abstract fun careerCoachRuntimeDao(): CareerCoachRuntimeDao
+    abstract fun careerJuniorDraftDao(): CareerJuniorDraftDao
 
     companion object {
-        const val SCHEMA_VERSION: Int = 13
+        const val SCHEMA_VERSION: Int = 14
         const val DATABASE_NAME: String = "football_dynasty.db"
     }
 }
