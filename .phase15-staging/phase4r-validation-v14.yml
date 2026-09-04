@@ -1,0 +1,320 @@
+name: Phase 7 Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase7/procedural-player-runtime]
+  pull_request:
+    branches: [phase4/core-game-domain]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase7-validation-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Phase 7 head
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact Phase 7 head
+        id: exact_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED='${{ github.event.pull_request.head.sha || github.sha }}'
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "$EXPECTED"
+          echo "sha=$ACTUAL" >> "$GITHUB_OUTPUT"
+          echo "PHASE7_CHECKOUT_HEAD=$ACTUAL"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 37 packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --list --channel=3 > /tmp/sdk-packages.txt
+          PLATFORM="$(awk '/^[[:space:]]*platforms;android-37([^0-9]|$)/ {print $1; exit}' /tmp/sdk-packages.txt)"
+          BUILD_TOOLS="$(awk '/^[[:space:]]*build-tools;37\.[0-9]+\.[0-9]+/ {print $1}' /tmp/sdk-packages.txt | sort -V | tail -1)"
+          test -n "$PLATFORM" && test -n "$BUILD_TOOLS"
+          sdkmanager --channel=3 "$PLATFORM" "$BUILD_TOOLS"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Reject raw RNG APIs and destructive migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          CAREER=app/src/main/java/com/leomala/footballdynasty/domain/career
+          ! grep -R -n -E '^[[:space:]]*import[[:space:]]+(java\.util\.Random|java\.util\.concurrent\.ThreadLocalRandom|kotlin\.random\.Random)' "$CAREER"
+          ! grep -R -n -E 'Math\.random[[:space:]]*\(' "$CAREER"
+          ! grep -R --line-number 'fallbackToDestructiveMigration' app/src/main
+
+      - name: Gradle help
+        run: ./gradlew help --no-daemon
+
+      - name: Snapshot versioned Room schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR=app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase
+          rm -rf /tmp/versioned-room-schemas
+          mkdir -p /tmp/versioned-room-schemas
+          cp "$DIR"/*.json /tmp/versioned-room-schemas/
+
+      - name: Generate Room schemas through V14
+        run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
+
+      - name: Materialize generated Room V14 baseline
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          SCHEMA=app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/14.json
+          test -f "$SCHEMA"
+          if git ls-files --error-unmatch "$SCHEMA" >/dev/null 2>&1; then
+            echo 'Room V14 baseline already versioned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$SCHEMA"
+          git commit -m 'chore: version generated Room V14 schema'
+          git push origin "HEAD:${HEAD_REF}"
+
+      - name: Retain generated Room schemas
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase7-room-schemas-${{ steps.exact_head.outputs.sha }}
+          path: app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: JUnit and performance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          required = {
+            'LegacyCareerCalendarCharacterizationTest','LegacySeasonLifecycleOrderTest',
+            'LegacyAnnualRandomRulesTest','LegacyAnnualSelectionRulesTest','LegacyAnnualSquadFloorRulesTest',
+            'LegacyAnnualA0IRulesTest','LegacyAnnualA0OrchestrationRulesTest','LegacyAnnualJAndBestFDeepTest',
+            'LegacyAnnualPlayerMovementRulesTest','LegacyProceduralPlayerRulesTest','LegacyProceduralNameRulesTest',
+            'LegacyProceduralToPlayerRulesTest','LegacyCareerPlayerInitializationRulesTest','LegacyCountryAssetCodesTest',
+            'LegacyPlayerValueRulesTest','LegacyProceduralMaterializationRulesTest','CareerPlayerRuntimeMapperTest',
+            'CareerPlayerRuntimeStoreTest','CareerMatchStoreTest','CareerMatchPersistedRuntimeResolverTest',
+            'CareerMatchEnergyPersistenceTest','CareerMatchPersistedEffectsMapperTest','CareerMatchExecutionCoordinatorTest',
+            'LegacyMatchEnergyRulesTest','LegacyLeagueFixtureRulesTest','LegacyFixedLeagueFixtureRulesTest',
+            'LegacyLargeFixedLeagueFixtureRulesTest','LegacyNonGroupFixtureRouterTest','LegacyLeagueStandingsRulesTest',
+            'LegacyLeagueCompetitionRuntimeTest','LegacyGroupFixtureRulesTest','LegacyGroupFixtureRouterTest',
+            'CareerCompetitionStoreTest','CareerCompetitionCycleIntegrationTest','LegacyProceduralNameAssetLoaderTest',
+            'LegacyProceduralNameCorpusIntegrationTest','Migration1To2Test','Migration2To3Test','Migration3To4Test',
+            'Migration4To5Test','Migration5To6Test','Migration6To7Test','Migration7To8Test','Migration8To9Test',
+            'Migration9To10Test','Migration10To11Test','Migration12To13Test','Migration13To14Test','CareerManagerRuntimeStoreTest','CareerTicketRuntimeStoreTest',
+            'CareerStadiumConstructionRuntimeStoreTest','CareerStadiumConstructionCompletionStoreTest',
+            'CareerCoachRuntimeStoreTest','CareerCoachEmploymentPersistenceTest','CareerManagerProgressionRandomStoreTest',
+            'CareerCoachPostMatchUpdateResolverTest','CareerCoachPostMatchPersistedResolverTest','LegacyCareerContinuationRuleTest',
+            'LegacyCoachMatchManagerResolutionRuleTest','LegacyCoachPostMatchRuntimeRuleTest',
+            'LegacyDismissalContinuationRuleTest','LegacyEndOfYearProgressionRuleTest',
+            'LegacyManagerEmploymentTransitionRuleTest','LegacyReplacementClubDiscoveryRuleTest',
+            'LegacyReplacementManagerCandidateRuleTest','LegacyReplacementManagerResolutionRuleTest',
+          }
+          seen=set(); tests=failures=errors=skipped=0; benchmark=[]
+          files=glob.glob('app/build/test-results/testDebugUnitTest/TEST-*.xml')
+          if not files: raise SystemExit('No JUnit XML files were generated')
+          for path in files:
+              root=ET.parse(path).getroot()
+              t=int(root.attrib.get('tests',0)); f=int(root.attrib.get('failures',0)); e=int(root.attrib.get('errors',0)); s=int(root.attrib.get('skipped',0))
+              tests+=t; failures+=f; errors+=e; skipped+=s
+              suite=root.attrib.get('name','')
+              for name in required:
+                  if suite.endswith(name):
+                      if t <= 0 or f or e or s: raise SystemExit(f'{name} is not fully green: {(t,f,e,s)}')
+                      seen.add(name)
+              for node in root.findall('system-out'):
+                  if node.text: benchmark += [line for line in node.text.splitlines() if 'PHASE4_CORE_BENCHMARK' in line]
+          print(f'PHASE7_TEST_SUMMARY tests={tests} failures={failures} errors={errors} skipped={skipped}')
+          if failures or errors: raise SystemExit('JUnit XML reports failures/errors')
+          missing=sorted(required-seen)
+          if missing: raise SystemExit(f'Required characterization evidence missing: {missing}')
+          if not benchmark: raise SystemExit('Core performance evidence was not emitted')
+          for line in benchmark: print(line)
+          PY
+
+      - name: Verify official Brasfoot 2026 procedural name corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, re
+          from pathlib import Path
+          root=Path('app/src/main/assets')
+          src=Path('app/src/main/java/com/leomala/footballdynasty/domain/career/LegacyCountryAssetCodes.kt').read_text()
+          block=src.split('private val codes = arrayOf(',1)[1].split('\n    )',1)[0]
+          codes=re.findall(r'"([A-Z0-9]{3})"',block)
+          if len(codes)!=221 or len(set(codes))!=221: raise SystemExit(f'Legacy country code table changed: {len(codes)}')
+          expected={f'names/{c}.txt' for c in codes}|{f'surnames/{c}.txt' for c in codes}
+          actual={str(p.relative_to(root)).replace('\\','/') for d in (root/'names',root/'surnames') for p in d.glob('*.txt')}
+          if actual!=expected or len(actual)!=442: raise SystemExit('Official name corpus paths changed')
+          physical=[]; semantic=[]; total=0
+          for rel in sorted(expected):
+              raw=(root/rel).read_bytes(); total+=len(raw); legacy=f'resources/assets/{rel}'
+              physical.append(f'{legacy}\t{hashlib.sha256(raw).hexdigest()}\t{len(raw)}\n')
+              accepted=[x for x in raw.decode('utf-8',errors='replace').splitlines() if x and '.' not in x and not re.search(r'\d+',x)]
+              if not accepted: raise SystemExit(f'Legacy best.u.b filter produced empty asset: {rel}')
+              inner=''.join(f'{x}\n' for x in accepted).encode()
+              semantic.append(f'{legacy}\t{hashlib.sha256(inner).hexdigest()}\t{len(accepted)}\n')
+          ph=hashlib.sha256(''.join(physical).encode()).hexdigest(); sh=hashlib.sha256(''.join(semantic).encode()).hexdigest()
+          if total!=495785: raise SystemExit(f'Official name corpus byte count changed: {total}')
+          if ph!='4b8c6db9b6343221cb6e945aef7ba0d7dc081c4744e30bb1f9a0eba3c57e444b': raise SystemExit(f'Physical manifest mismatch: {ph}')
+          if sh!='d4cb2a6fd770a7bcdb850ee63b31d6442b66a3da70611f7a100e264b1f2c625f': raise SystemExit(f'Semantic manifest mismatch: {sh}')
+          if [p for p in root.iterdir() if p.name.startswith('bootstrap') or p.name.startswith('legacy_name_corpus')]: raise SystemExit('Temporary corpus transport remains')
+          print(f'PHASE7_NAME_CORPUS_COUNT=442 bytes={total} physical={ph} semantic={sh}')
+          PY
+
+      - name: Verify active Brasfoot 2026 fixture integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d app/src/test/resources/legacy/trepenne_smr.ban.b64 > /tmp/trepenne_smr.ban
+          printf '%s  %s\n' 'c664cc841b44e39423835795b00bb1c248862eb0a0e1c579831857d748fa9281' '/tmp/trepenne_smr.ban' | sha256sum --check --strict
+
+      - name: Debug build
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify Room schemas and migration policy through V14
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re, subprocess
+          from pathlib import Path
+          d=Path('app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase')
+          b=Path('/tmp/versioned-room-schemas')
+          versioned={'1.json','2.json','3.json','13.json','14.json'}
+          generated={'1.json','2.json','3.json','13.json','14.json'}
+          if {p.name for p in d.glob('*.json')}!=generated: raise SystemExit('Unexpected generated Room schema set')
+          if {p.name for p in b.glob('*.json')}!=versioned: raise SystemExit('Unexpected versioned Room schema baseline')
+          ids={1:'37c2e4df984290903730a25553bdbed5',2:'fc4ed30d6548037a1226144e0c576c59',3:'a6d299fb67fcdcc51340cc62982e2d5a',9:'e246b6749364b3d2f7891177c2179fb4',10:'086ae14fb0b6a625e6f22446d47df0b7',11:'4d06657c2d3a4c3300b1fa598e4c9b4d',12:'6b87dfc792ccf982f9e1a83cfcc8e8b6',13:'6575d77e3eef9ea84d059c2aa2bdf14b',14:'49734dba8b165fbf8999ac19f3832f1e'}
+          db={}
+          for v in (1,2,3):
+              name=f'{v}.json'; before=json.loads((b/name).read_text()); after=json.loads((d/name).read_text())
+              if before!=after: raise SystemExit(f'Generated Room schema {name} differs from versioned schema')
+              x=after['database']; db[v]=x
+              if x.get('version')!=v or x.get('identityHash')!=ids[v]: raise SystemExit(f'Room schema {v} identity/version changed')
+          v13_before=json.loads((b/'13.json').read_text())
+          v13_after=json.loads((d/'13.json').read_text())
+          if v13_before!=v13_after: raise SystemExit('Generated Room schema 13.json differs from versioned schema')
+          v13=v13_after['database']; db[13]=v13
+          if v13.get('version')!=13 or v13.get('identityHash')!=ids[13]: raise SystemExit('Room V13 identity/version changed')
+          v14_before=json.loads((b/'14.json').read_text()); v14_after=json.loads((d/'14.json').read_text())
+          if v14_before!=v14_after: raise SystemExit('Generated Room schema 14.json differs from versioned schema')
+          v14=v14_after['database']; db[14]=v14
+          if v14.get('version')!=14 or v14.get('identityHash')!=ids[14]: raise SystemExit('Room V14 identity/version changed')
+          v1=json.loads(subprocess.check_output(['git','show','origin/phase3/versioned-persistence:app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/1.json'],text=True))
+          if json.loads((d/'1.json').read_text())!=v1: raise SystemExit('Room V1 changed from phase3/versioned-persistence')
+          e3={e['tableName']:e for e in db[3]['entities']}; e13={e['tableName']:e for e in db[13]['entities']}; e14={e['tableName']:e for e in db[14]['entities']}
+          required3={'career_core_state','career_player_runtime','career_procedural_players','career_squad_memberships'}
+          if not required3.issubset(e3): raise SystemExit('Room V3 required tables missing')
+          if not set(e3).issubset(e13): raise SystemExit('Room V13 does not preserve V3')
+          if not set(e13).issubset(e14): raise SystemExit('Room V14 does not preserve V13')
+          junior=e14.get('career_junior_drafts'); expected_junior={'careerId','clubId','sourceOrdinal','legacyN','legacyB','legacyC','legacyE','legacyJ','legacyL','legacyD','name','legacyG','legacyF','legacyO','legacyM','legacyH','legacyI','developmentRemainder'}
+          if junior is None or {f['columnName'] for f in junior['fields']}!=expected_junior: raise SystemExit('V14 junior draft contract changed')
+          required_v6={'career_scheduled_matches','career_player_club_season_stats','career_competitions','career_competition_standings','career_competition_matches'}
+          if not required_v6.issubset(e13): raise SystemExit(f'Room V13 lost V4/V5/V6 tables: {sorted(required_v6-set(e13))}')
+          fields=lambda table:{f['columnName'] for f in e13[table]['fields']}
+          if fields('career_scheduled_matches')!={'careerId','matchId','dayIndex','eventTypeCode','homeClubId','awayClubId','processed','homeGoals','awayGoals'}: raise SystemExit('V4 scheduled-match contract changed')
+          if not {'energy','injuryUntilEpochDay'}.issubset(fields('career_player_runtime')): raise SystemExit('V5 player runtime fields changed')
+          if fields('career_player_club_season_stats')!={'careerId','playerId','legacySeasonId','legacyClubId','legacyC','legacyD','legacyE','legacyF','legacyG','legacyH'}: raise SystemExit('V5 season-stats contract changed')
+          expected_competition={'careerId','competitionId','legacyCompetitionType','legacyFormatCode','currentRoundNumber','totalRounds','legacyRelegationCount','legacyLeagueSubtype'}
+          if fields('career_competitions')!=expected_competition: raise SystemExit('V13 competition input contract changed')
+          relegation=next(f for f in e13['career_competitions']['fields'] if f['columnName']=='legacyRelegationCount')
+          subtype=next(f for f in e13['career_competitions']['fields'] if f['columnName']=='legacyLeagueSubtype')
+          if relegation.get('affinity')!='INTEGER' or relegation.get('notNull',False): raise SystemExit('V12 legacyRelegationCount must remain nullable INTEGER')
+          if subtype.get('affinity')!='INTEGER' or subtype.get('notNull',False): raise SystemExit('V13 legacyLeagueSubtype must be nullable INTEGER')
+          if fields('career_competition_standings')!={'careerId','competitionId','clubId','stableOrdinal','points','played','wins','losses','goalsFor','goalsAgainst'}: raise SystemExit('V6 standings contract changed')
+          if fields('career_competition_matches')!={'careerId','competitionId','matchId','roundNumber','fixtureOrdinal'}: raise SystemExit('V6 competition-match contract changed')
+          required7={'career_player_commercial','career_player_transfer_state','career_club_manager_runtime','career_active_loans','career_stadium_constructions'}
+          if not required7.issubset(e13): raise SystemExit(f'Room V13 lost V7 manager tables: {sorted(required7-set(e13))}')
+          if 'career_stadium_runtime' not in e13: raise SystemExit('Room V13 lost V8 stadium runtime table')
+          if fields('career_stadium_runtime')!={'careerId','clubId','sector0Capacity','sector1Capacity','sector2Capacity','sector3Capacity'}: raise SystemExit('V8 stadium-sector contract changed')
+          required9={'career_club_ticket_runtime','career_manager_ticket_runtime','career_match_construction_source'}
+          if not required9.issubset(e13): raise SystemExit(f'Room V13 lost V9 ticket runtime tables: {sorted(required9-set(e13))}')
+          if fields('career_club_ticket_runtime')!={'careerId','clubId','rawDivisionCode','legacyManagerId'}: raise SystemExit('V9 club ticket-state contract changed')
+          if fields('career_manager_ticket_runtime')!={'careerId','sourceOrdinal','legacyManagerId','rawH'}: raise SystemExit('V9 manager ticket-state contract changed')
+          if fields('career_match_construction_source')!={'careerId','matchId','sourceCode'}: raise SystemExit('V9 match construction-source contract changed')
+          construction=e13['career_stadium_constructions']; expected_construction={'careerId','sourceOrdinal','stadiumCode','endTimestampMillis','addition0','addition1','addition2','addition3','ownerClubId'}
+          if fields('career_stadium_constructions')!=expected_construction: raise SystemExit('V10 construction ownership contract changed')
+          owner=next(f for f in construction['fields'] if f['columnName']=='ownerClubId')
+          if owner.get('affinity')!='TEXT' or owner.get('notNull',False): raise SystemExit('V10 construction owner must be nullable TEXT')
+          manager=e13['career_manager_ticket_runtime']
+          if not any(i.get('columnNames')==['careerId','legacyManagerId'] and not i.get('unique') for i in manager.get('indices',[])): raise SystemExit('V9 manager identity index must remain non-unique')
+          required11={'career_coach_runtime','career_coach_season_club_records'}
+          if not required11.issubset(e13): raise SystemExit(f'Room V11 coach tables missing from V13: {sorted(required11-set(e13))}')
+          if fields('career_coach_runtime')!={'careerId','managerSourceOrdinal','isUserControlled','currentClubId','alternativeClubId','previousClubId','previousClubCountry','previousClubDivisionIndex','rawG','rawD','rawE','rawF','rawO','rawM'}: raise SystemExit('V11 coach runtime contract changed')
+          if fields('career_coach_season_club_records')!={'careerId','managerSourceOrdinal','sourceOrdinal','legacySeasonId','legacyClubId','rawMatches','rawWins','rawLosses','rawPoints','rawOtherCount'}: raise SystemExit('V11 coach record contract changed')
+          coach=e13['career_coach_runtime']; records=e13['career_coach_season_club_records']
+          coach_fk={'table':'career_manager_ticket_runtime','onDelete':'CASCADE','onUpdate':'NO ACTION','columns':['careerId','managerSourceOrdinal'],'referencedColumns':['careerId','sourceOrdinal']}
+          record_fk={'table':'career_coach_runtime','onDelete':'CASCADE','onUpdate':'NO ACTION','columns':['careerId','managerSourceOrdinal'],'referencedColumns':['careerId','managerSourceOrdinal']}
+          if coach_fk not in coach.get('foreignKeys',[]): raise SystemExit('V11 coach runtime must remain child of ordered V9 manager row')
+          if record_fk not in records.get('foreignKeys',[]): raise SystemExit('V11 coach records must cascade from coach runtime')
+          if not any(i.get('columnNames')==['careerId','managerSourceOrdinal'] and not i.get('unique') for i in records.get('indices',[])): raise SystemExit('V11 coach record order index contract changed')
+          src=Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabase.kt').read_text(); factory=Path('app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabaseFactory.kt').read_text()
+          p10=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase10CompetitionMigration.kt').read_text(); p12=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase12ManagerPersistenceMigration.kt').read_text(); p13=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase13StadiumRuntimeMigration.kt').read_text(); p13ticket=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase13TicketRuntimeMigration.kt').read_text(); p13owner=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase13StadiumConstructionOwnershipMigration.kt').read_text(); p14=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase14CoachRuntimeMigration.kt').read_text(); p14inputs=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase14CompetitionInputsMigration.kt').read_text(); p15=Path('app/src/main/java/com/leomala/footballdynasty/data/local/Phase15JuniorDraftMigration.kt').read_text()
+          migration9=Path('app/src/test/java/com/leomala/footballdynasty/data/local/Migration9To10Test.kt').read_text(); migration10=Path('app/src/test/java/com/leomala/footballdynasty/data/local/Migration10To11Test.kt').read_text(); migration12=Path('app/src/test/java/com/leomala/footballdynasty/data/local/Migration12To13Test.kt').read_text(); migration13=Path('app/src/test/java/com/leomala/footballdynasty/data/local/Migration13To14Test.kt').read_text()
+          if 'const val SCHEMA_VERSION: Int = 14' not in src: raise SystemExit('SCHEMA_VERSION must be 14')
+          if ids[9] not in migration9: raise SystemExit('Migration9To10Test must pin certified V9 identity')
+          if ids[10] not in migration10: raise SystemExit('Migration10To11Test must pin certified V10 identity')
+          if ids[12] not in migration12: raise SystemExit('Migration12To13Test must pin certified V12 identity')
+          if ids[13] not in migration13: raise SystemExit('Migration13To14Test must pin certified V13 identity')
+          if re.search(r'\bINSERT\s+INTO\b',p14,re.I) or re.search(r'\bUPDATE\s+career_',p14,re.I): raise SystemExit('V10->V11 migration must not backfill coach state')
+          if re.search(r'\bINSERT\s+INTO\b',p14inputs,re.I) or re.search(r'\bUPDATE\s+career_',p14inputs,re.I): raise SystemExit('V11->V13 competition migrations must not backfill exact inputs')
+          if re.search(r'\bINSERT\s+INTO\b',p15,re.I) or re.search(r'\bUPDATE\s+career_',p15,re.I): raise SystemExit('V13->V14 junior migration must not backfill draft state')
+          if 'ADD COLUMN `legacyRelegationCount` INTEGER' not in p14inputs: raise SystemExit('V11->V12 must add nullable exact relegation count')
+          if 'ADD COLUMN `legacyLeagueSubtype` INTEGER' not in p14inputs: raise SystemExit('V12->V13 must add nullable exact x0 subtype')
+          for x in ('Migration(1, 2)','Migration(2, 3)','Migration(3, 4)','Migration(4, 5)'):
+              if x not in factory: raise SystemExit(f'Explicit Room migration missing: {x}')
+          if 'Migration(5, 6)' not in p10 or 'Migration(6, 7)' not in p12 or 'Migration(7, 8)' not in p13 or 'Migration(8, 9)' not in p13ticket or 'Migration(9, 10)' not in p13owner or 'Migration(10, 11)' not in p14 or 'Migration(11, 12)' not in p14inputs or 'Migration(12, 13)' not in p14inputs or 'Migration(13, 14)' not in p15: raise SystemExit('V5->V6 through V13->V14 migration chain incomplete')
+          m=re.search(r'val ALL: Array<Migration> = arrayOf\((.*?)\)',factory,re.S); order=re.findall(r'MIGRATION_\d+_\d+',m.group(1) if m else '')
+          expected=['MIGRATION_1_2','MIGRATION_2_3','MIGRATION_3_4','MIGRATION_4_5','MIGRATION_5_6','MIGRATION_6_7','MIGRATION_7_8','MIGRATION_8_9','MIGRATION_9_10','MIGRATION_10_11','MIGRATION_11_12','MIGRATION_12_13','MIGRATION_13_14']
+          if order!=expected: raise SystemExit(f'Migration registry order changed: {order}')
+          print(f'ROOM_V3_IDENTITY_HASH={ids[3]}'); print(f'ROOM_V9_CERTIFIED_IDENTITY_HASH={ids[9]}'); print(f'ROOM_V10_CERTIFIED_IDENTITY_HASH={ids[10]}'); print(f'ROOM_V12_CERTIFIED_IDENTITY_HASH={ids[12]}'); print(f'ROOM_V13_IDENTITY_HASH={v13.get("identityHash")}'); print(f'ROOM_V14_IDENTITY_HASH={v14.get("identityHash")}')
+          print('ROOM_V10_STADIUM_OWNERSHIP_CONTRACT=PASS'); print('ROOM_V11_COACH_RUNTIME_FAIL_CLOSED_CONTRACT=PASS'); print('ROOM_V12_RELEGATION_COUNT_FAIL_CLOSED_CONTRACT=PASS'); print('ROOM_V13_LEAGUE_SUBTYPE_FAIL_CLOSED_CONTRACT=PASS'); print('ROOM_V14_JUNIOR_DRAFT_CONTRACT=PASS')
+          PY
+
+      - name: Phase 7 gate summary
+        run: |
+          echo "Exact Phase 7 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
+          echo "Raw RNG/destructive migration guards: PASS"
+          echo "Gradle help: PASS"
+          echo "Room V1/V2/V3/V13 immutable regression + V14 junior-draft extension preserving V13: PASS"
+          echo "Unit tests + migrations through 13->14 + manager/stadium/ticket/coach/competition-input/junior persistence: PASS"
+          echo "Brasfoot 2026 corpus/fixture integrity: PASS"
+          echo "Phase 9/10 persisted runtime regressions: PASS"
+          echo "Room migrations V1->V2->V3->V4->V5->V6->V7->V8->V9->V10->V11->V12->V13->V14: PASS"
+          echo "assembleDebug: PASS"
