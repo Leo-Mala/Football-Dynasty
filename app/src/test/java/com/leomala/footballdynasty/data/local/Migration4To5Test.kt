@@ -27,7 +27,8 @@ class Migration4To5Test {
             Phase10CompetitionMigration.MIGRATION_5_6, Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8, Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10, Phase14CoachRuntimeMigration.MIGRATION_10_11,
-            Phase14CompetitionInputsMigration.MIGRATION_11_12, Phase14CompetitionInputsMigration.MIGRATION_12_13)
+            Phase14CompetitionInputsMigration.MIGRATION_11_12, Phase14CompetitionInputsMigration.MIGRATION_12_13,
+            Phase15JuniorDraftMigration.MIGRATION_13_14)
         db.execSQL("PRAGMA foreign_keys=ON")
         db.query("SELECT age,overall,energy,injuryUntilEpochDay FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c -> assertTrue(c.moveToFirst()); assertEquals(35,c.getInt(0)); assertEquals(81,c.getInt(1)); assertEquals(100,c.getInt(2)); assertEquals(0L,c.getLong(3)) }
         db.query("SELECT COUNT(*) FROM career_player_club_season_stats").use { c -> assertTrue(c.moveToFirst()); assertEquals(0,c.getInt(0)) }

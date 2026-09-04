@@ -24,7 +24,8 @@ class Migration8To9Test {
             Phase10CompetitionMigration.MIGRATION_5_6,Phase12ManagerPersistenceMigration.MIGRATION_6_7,
             Phase13StadiumRuntimeMigration.MIGRATION_7_8,Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,Phase14CoachRuntimeMigration.MIGRATION_10_11,
-            Phase14CompetitionInputsMigration.MIGRATION_11_12,Phase14CompetitionInputsMigration.MIGRATION_12_13)
+            Phase14CompetitionInputsMigration.MIGRATION_11_12,Phase14CompetitionInputsMigration.MIGRATION_12_13,
+            Phase15JuniorDraftMigration.MIGRATION_13_14)
         db.execSQL("PRAGMA foreign_keys=ON")
         for(table in listOf("career_club_ticket_runtime","career_manager_ticket_runtime","career_match_construction_source")) db.query("SELECT COUNT(*) FROM $table").use { c -> assertTrue(c.moveToFirst()); assertEquals("V9 migration must not synthesize $table rows",0,c.getInt(0)) }
         for(table in listOf("career_coach_runtime","career_coach_season_club_records")) db.query("SELECT COUNT(*) FROM $table").use { c -> assertTrue(c.moveToFirst()); assertEquals("V11 migration must not synthesize $table rows",0,c.getInt(0)) }
