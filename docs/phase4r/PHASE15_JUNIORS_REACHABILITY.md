@@ -34,7 +34,7 @@ Logo, os draws internos de `best.p.d(...)` são intercalados entre os seis draws
 
 `ActivityJuniores.j()` verifica primeiro caixa e depois o teto de 18. Após uma confirmação válida, `ActivityJuniores.h()` cobra o custo mesmo se `h2()` retornar zero jogadores.
 
-O lançamento financeiro é `c0.D(custo, 9)`. O SMALI de `c0.D` reduz o caixa e chama `best.m.d(valor, 9)`; `best.m.d` encaminha códigos não reconhecidos para o acumulador de outras despesas. O equivalente moderno já caracterizado é `LegacyFinanceLedgerRule.addExpense(..., rawCode = 9)`, que incrementa `miscellaneousExpense`.
+O lançamento financeiro é `c0.D(custo, 9)`. O SMALI de `c0.D` reduz o caixa e chama `best.m.d(valor, 9)`; `best.m.d` encaminha códigos não reconhecidos para o acumulador de outras despesas. O equivalente moderno caracterizado é `LegacyFinanceLedgerRule.addExpense(..., rawCode = 9)`, que incrementa `miscellaneousExpense`.
 
 ## 3. Promoção manual e dispensa
 
@@ -42,15 +42,15 @@ O lançamento financeiro é `c0.D(custo, 9)`. O SMALI de `c0.D` reduz o caixa e 
 
 A dispensa remove apenas o `best.p` selecionado da lista juvenil e reorganiza a lista. Não há RNG nem lançamento financeiro nesse caminho.
 
-O projeto já contém caracterização do materializador `best.t.e(FALSE, p, target)` em `LegacyProceduralMaterializationRules`, mas ainda não havia um estado durável pré-promoção para o `best.p`; portanto isso não constitui uma implementação completa da funcionalidade de Juniores.
+A persistência moderna V14 mantém o `best.p` separado do jogador procedural final. `CareerJuniorManualPromotionStore.promote(...)` só chama o materializador no ponto comprovado `best.t.e(FALSE, p, c0)`, persiste jogador/membership e RNG na mesma transação e remove o draft apenas na rota manual.
 
 ## 4. Estado de `best.p` que precisa sobreviver a reopen
 
 O `best.p` serializável mantém nome, booleano e campos inteiros, além do acumulador `double D`. O gerador `best.p.d(...)` chama rotinas que preenchem inclusive os campos expostos por `w()` e `u()` antes de retornar.
 
-O `double D` não é descartável: o corpo executável de `best.p.b()` o atualiza ao longo do tempo e pode incrementar o campo `o`. Portanto materializar imediatamente um `CareerProceduralPlayerEntity` na peneira seria semanticamente incorreto: isso moveria para a peneira os draws que no legado só ocorrem em `best.t.e(...)` na promoção.
+O `double D` não é descartável: o corpo executável de `best.p.b()` o atualiza ao longo do tempo e pode incrementar o campo `o`. Materializar imediatamente um `CareerProceduralPlayerEntity` na peneira seria semanticamente incorreto porque moveria para a peneira draws que no legado só ocorrem em `best.t.e(...)` na promoção.
 
-A persistência moderna precisa, em etapa própria, guardar o draft juvenil pré-promoção e somente criar o jogador procedural final durante a promoção.
+A migration V14 resolve esse boundary com `career_junior_drafts`, mantendo o draft pré-promoção separado de `career_player_runtime` / `career_procedural_players` / `career_squad_memberships`.
 
 ## 5. Progressão — `best.p.b()`
 
@@ -62,7 +62,7 @@ O Java decompilado disponível para este método diverge do bytecode e não é u
 - soma ao acumulador `D`;
 - somente se `D > 1.0` e `o < 100`, incrementa `o` e subtrai `1.0` de `D`.
 
-A comparação é estritamente `>`, não `>=`.
+A comparação é estritamente `>`, não `>=`. `CareerJuniorRuntimeStore.progressDevelopment(...)` persiste `o` e `D` sem alterar os demais campos do draft.
 
 ## 6. Envelhecimento anual — `best.p.c(c0)`
 
@@ -76,30 +76,37 @@ O SMALI também prevalece sobre uma decompilação Java divergente. O método:
 6. após essa promoção, se `c0.B0() < 10`, gera/stageia um substituto com `best.p.d(target, -1, null, 0, null, TRUE)`;
 7. se não qualificado e `c0.Q0()` for falso, regenera o próprio draft via `best.p.d(target, -1, this, 0, null, TRUE)`.
 
-A flag `TRUE` do fluxo anual é diferente da flag `FALSE` da promoção manual. A caracterização moderna existente de `LegacyProceduralMaterializationRules` documenta a rota `FALSE`; portanto a materialização anual `TRUE` continua aberta e não deve ser substituída pela versão manual por conveniência.
+A caracterização promovida no commit `17c18a566bd064d026d1ce29604f484af4841ea0` fechou a antiga dúvida sobre o corpo comum de `best.t.e(...)`: as rotas `FALSE` e `TRUE` compartilham a materialização do jogador e os draws de RNG anteriores aos efeitos finais de listas. A divergência comprovada está no efeito final:
 
-## 7. Implementação moderna adicionada neste corte
+- `FALSE`: remove o draft do clube imediatamente e stageia o materializado em `D0`;
+- `TRUE`: não remove o draft imediatamente, stageia o draft em `L1` e o materializado em `J1`.
 
-`LegacyJuniorRuntimeRules` promove para código executável puro somente o que já está provado pelo bytecode:
+Portanto o problema restante **não é** caracterizar novamente campos/RNG do materializador `TRUE`. O gap real é mapear e persistir os efeitos anuais `L1/J1`, a posterior remoção/substituição e a geração do substituto sem inventar equivalência de roster moderna.
 
-- ordem da pré-condição de peneira;
-- teto juvenil 18;
-- categoria financeira crua 9;
-- seis gates `[0,1,2,3,3,4]` com RNG intercalado ao callback de `p.d`;
-- teto 30 da promoção manual;
-- progressão exata de `best.p.b()`;
-- decisão anual de `best.p.c(c0)`, distinguindo a rota `TRUE` da promoção anual.
+## 7. Implementação moderna já existente neste marco
 
-O objeto não persiste nem materializa jogadores. Essa separação é intencional: primeiro certificamos regras/RNG; depois a migration aditiva persistirá o estado `best.p` sem antecipar RNG de promoção.
+O Marco C já promoveu para código/persistência:
+
+- `LegacyJuniorRuntimeRules` para disponibilidade, teto 18, seis gates, limite sênior 30, progressão e decisão anual;
+- `LegacyJuniorDraftFieldRules` para campos completos do draft e efeitos finais `FALSE`/`TRUE`;
+- Room V14 com `CareerJuniorDraftEntity`, `CareerJuniorDraftDao`, `MIGRATION_13_14`, schema exportado e migration tests;
+- `CareerJuniorRuntimeStore.runTrial(...)` com RNG + finanças raw 9 + drafts atômicos;
+- dispensa persistida sem RNG/finanças;
+- `CareerJuniorRuntimeStore.progressDevelopment(...)` preservando o acumulador fracionário;
+- `CareerJuniorManualPromotionStore.promote(...)` com materialização tardia, RNG/jogador/membership/draft na mesma transação e rollback caracterizado.
+
+O checkpoint `0b3ca8ce6f7e5fea2c9fe0f11b1be71ab2297880` foi certificado pelos três workflows obrigatórios. Isso não fecha `ActivityJuniores`, porque o lifecycle anual `TRUE` continua materialmente aberto.
 
 ## 8. Próximo gate desta fatia
 
 Antes de classificar Juniores como implementado, ainda são obrigatórios:
 
-- caracterizar os campos completos pré-promoção (`best.p.D/f/e/h/g`), inclusive os valores que precisam sobreviver a reopen;
-- caracterizar `best.t.e(TRUE, p, c0)` separadamente da rota manual `FALSE`;
-- adicionar persistência Room aditiva e não destrutiva para o draft juvenil;
-- implementar peneira/dispensa/promoção como transações atômicas com estado RNG persistido;
-- integrar progressão/envelhecimento ao lifecycle anual no ponto comprovado;
-- regressões de reopen, rollback e ordem RNG;
+- mapear o staging legado `L1/J1` para estado moderno sem confundir `rosterKind` com estado transitório anual;
+- integrar idade + decisão + `best.t.e(TRUE,...)` como operação atômica de carreira/RNG;
+- preservar a ordem do substituto `best.p.d(..., TRUE)` quando `B0 < 10`;
+- preservar a rota de refresh do próprio draft quando `Q0 == FALSE` sem promoção;
+- adicionar regressões determinísticas de reopen, rollback e ordem RNG para a rota anual completa;
+- atualizar a matriz agregada somente após esse boundary estar comprovado;
 - gates completos no exato FINAL_HEAD da Fase 15.
+
+`ActivityJuniores` permanece `UNKNOWN_NEEDS_INVESTIGATION` até o fluxo alcançável inteiro estar classificado e testado.
