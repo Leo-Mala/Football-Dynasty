@@ -47,7 +47,7 @@ class LegacyAnnualDeferredTransferExecutionRuleTest {
         assertEquals(0L, actual.sellerFundsDelta)
         assertEquals(0L, actual.buyerFundsDelta)
         assertEquals(180L, actual.contractDurationDays)
-        assertEquals(LegacyBooleanMutation.SET_TRUE, actual.rawYMutation)
+        assertEquals(LegacyBooleanMutation.SET_FALSE, actual.rawYMutation)
     }
 
     @Test
@@ -69,7 +69,7 @@ class LegacyAnnualDeferredTransferExecutionRuleTest {
         assertEquals(0, actual.secondarySellerCharge)
         assertEquals(0L, actual.sellerFundsDelta)
         assertEquals(0L, actual.buyerFundsDelta)
-        assertEquals(LegacyBooleanMutation.SET_TRUE, actual.rawYMutation)
+        assertEquals(LegacyBooleanMutation.SET_FALSE, actual.rawYMutation)
         assertEquals(180L, actual.contractDurationDays)
         assertEquals(192L * day, actual.contractEndMillisAfter)
     }
