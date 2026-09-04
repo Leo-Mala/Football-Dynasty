@@ -1,6 +1,6 @@
 # Fase 15 — cadeia anual `g4` / transferência automática
 
-Status: **CHARACTERIZED / IMPLEMENTATION BLOCKED ON RAW RNG OWNERSHIP**
+Status: **T1 MUTATION IMPLEMENTED / SELECTION STILL BLOCKED ON RAW RNG OWNERSHIP**
 
 Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
@@ -59,17 +59,38 @@ O SMALI comprova, para os argumentos usados por `n3`:
 
 Isto confirma que `g4()` pode mutar roster, clube do jogador, contrato e finanças.
 
-## 5. Implicação moderna
+## 5. Equivalência moderna da mutação T1
 
-Ainda não existe equivalência segura para promover `best.n.m()/g4()` ao runtime moderno. O problema não é apenas uma escolha de RNG: é necessário mapear conjuntamente seleção de clubes, múltiplas fontes raw de aleatoriedade, transfer mutation, contrato, roster ownership e efeitos financeiros.
+O runtime moderno já possuía a reconstrução caracterizada de `best.o.T1(...)` em `LegacyTransferExecutionRule` e a aplicação imutável em `LegacyTransferRuntimeMutation`. O boundary Room `CareerManagerRuntimeStore.commitTransfer(...)` já persiste atomicamente os efeitos representáveis dessa mutação:
 
-Room permanece **V14** nesta caracterização. Nenhum novo estado durável foi provado como necessário apenas por esta cadeia; não criar V15, backfill ou default esportivo.
+- `career_player_runtime`: contrato e flags `X/Y/Z`;
+- `career_player_transfer_state`: clube legado, cross-active e `Q1()` (`rawOCode` → `rawDCode`);
+- `career_squad_memberships`: remoção lógica da origem e membership no destino;
+- `career_club_manager_runtime`: caixa, slots especiais, raw state e ledger de compra/venda/encargo;
+- salário comercial quando a rota fornece atualização;
+- loan state somente quando uma rota caracterizada explicitamente o solicita.
 
-## 6. Próximo passo
+A Fase 15 agora adiciona `LegacyAnnualG4TransferExecutionRule`, um adapter mínimo para a chamada anual exata `T1(targetClub, selectedValue, true, false, false)`. Ele fixa somente os três booleanos já comprovados:
 
-1. localizar no runtime moderno estruturas equivalentes de transferência/roster/contrato/finanças e verificar se já representam integralmente os efeitos de `T1`;
-2. auditar `j2`, `F2`, `F()` e o restante do roteamento de `best.n.m()`;
-3. caracterizar as filas `I/J` contra estruturas modernas existentes;
-4. somente depois decidir a política de compatibilidade das fontes raw de RNG e implementar com regressões determinísticas/rollback/reopen.
+- `legacySecondaryChargeFlag = true`;
+- `loanMove = false`;
+- `legacyNonFinancialMoveFlag = false`.
+
+O adapter **não escolhe** `targetClub`, **não calcula** `selectedValue` e **não consome RNG**. Esses valores continuam sendo responsabilidade do caminho `best.f` ainda aberto.
+
+Regressões comparam o plano anual ao `LegacyTransferExecutionRule.plan(...)` direto com os três flags exatos, inclusive encargo contratual, débito/crédito, contrato de 180 dias e ausência dos ramos loan/non-financial.
+
+## 6. Implicação moderna atual
+
+O subproblema de **execução/persistência de `T1`** deixa de ser blocker independente. A cadeia completa `best.n.m()/g4()` ainda não pode ser promovida porque a seleção anterior ao T1 depende das múltiplas fontes raw/non-stateful de aleatoriedade e do roteamento de `best.f`.
+
+Room permanece **V14**. Nenhum novo estado durável foi provado necessário por esta integração; não criar V15, backfill ou default esportivo.
+
+## 7. Próximo passo
+
+1. auditar `j2`, `F2`, `F()` e o restante do roteamento de `best.n.m()`;
+2. caracterizar as filas `I/J` contra estruturas modernas existentes;
+3. fechar seleção de clubes/valor em `best.f`, mantendo cada fonte raw de RNG separada da stream persistida moderna até existir política de compatibilidade comprovada;
+4. só então compor o selector com `LegacyAnnualG4TransferExecutionRule` + `CareerManagerRuntimeStore.commitTransfer(...)` e criar regressões end-to-end de rollback/reopen.
 
 Nenhuma regra esportiva externa foi usada.
