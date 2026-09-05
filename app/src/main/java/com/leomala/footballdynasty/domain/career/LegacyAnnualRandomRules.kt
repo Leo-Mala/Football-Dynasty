@@ -40,6 +40,14 @@ object LegacyAnnualRandomRules {
     fun bestFNGate(random: RandomSource): Boolean = random.nextInt(100) <= 60
 
     /**
+     * Structural parity for the explicit `new Random().nextInt(5)` draw reached inside
+     * `best.o.s()` (annual senior growth). The surrounding branch semantics remain intentionally
+     * outside this boundary until the complete SMALI control flow is frozen; exposing the draw
+     * separately prevents hidden RNG consumption and keeps the persisted career RNG auditable.
+     */
+    fun bestOSGrowthDraw(random: RandomSource): Int = random.nextInt(5)
+
+    /**
      * Deterministic replacement for legacy `Collections.shuffle(...)` sites reached by annual
      * subsystems. Reverse Fisher-Yates gives the same unbiased distribution while making the RNG
      * state explicit and persistible; it does not claim parity with the APK's implicit seed.
