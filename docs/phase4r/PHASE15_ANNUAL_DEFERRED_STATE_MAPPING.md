@@ -1,61 +1,95 @@
 # Fase 15 — auditoria de estado diferido anual contra Room V14
 
-Status: **SCHEMA AUDITED / WRITERS STILL OPEN / NO V15 JUSTIFIED**
+Status: **LEGACY QUEUES MAPPED TO EXISTING V14 STATE / NO V15 REQUIRED FOR `o2` OR `y1`**
 
 Corpus oficial de referência: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
-Autoridade: SMALI executável prevalece sobre Java decompilado. Esta nota não adiciona regra esportiva nova; ela compara exclusivamente os payloads já caracterizados e congelados em `PHASE15_ANNUAL_NM_ROUTER_EVIDENCE.md` / `PHASE15_ANNUAL_D4_DEFERRED_TRANSFER.md` com o schema Room V14 atualmente exportado.
+Autoridade: SMALI executável prevalece sobre Java decompilado. Esta nota corrige a conclusão provisória anterior da própria Fase 15 depois de ampliar a auditoria para os writers/callers reais dos payloads `components.o2` e `components.y1`.
 
-## Estado legado já comprovado
+## `components.o2` é o registro serializado de empréstimo ativo
 
-### `components.o2` / `best.b.d4()`
+A leitura isolada de `best.b.d4()` mostrava apenas a metade final do lifecycle: entrada vencida → `player.U1(club)` → remoção da fila. Isso havia levado provisoriamente à conclusão conservadora de que a fila não era equivalente a `career_active_loans` porque `U1()` termina no ramo não-loan de `T1`.
 
-O payload já caracterizado contém jogador, clube e `Calendar` de vencimento. O construtor agenda +319 dias e a entrada vencida executa `player.U1(club)`, que no SMALI oficial é `T1(club, 0, false, false, true)`, antes da remoção da fila.
+A auditoria do writer oficial resolve a ambiguidade.
 
-A mutação final já possui seam moderno isolado em `LegacyAnnualDeferredTransferExecutionRule`. O gap não é mais o `T1`: é a criação, ordenação, persistência e retomada da fila.
+### Writer / início do empréstimo
 
-### `components.y1` / `best.b.e4()`
+`best.o.q(targetClub)` executa, nesta ordem:
 
-O payload já caracterizado contém `best.k`, `Calendar` e `int[4]`. No vencimento aplica cada slot positivo em ordem ascendente via `best.k.h(index,value)`, zera o slot aplicado e depois a entrada é removida. Não há RNG nesse payload.
+1. cria `components.o2(thisPlayer, thisPlayer.u0(), best.b.h)`; portanto captura o **clube de origem antes da mudança**;
+2. o construtor de `o2` clona a data base, adiciona **319 dias** e registra a própria entrada na fila global;
+3. imediatamente executa `T1(targetClub, 0, false, true, false)`.
 
-O gap é provar todos os writers, identificar de forma inequívoca o owner moderno de `best.k` e decidir a representação durável sem inventar equivalência.
+O quarto argumento `true` é a rota de empréstimo caracterizada de `T1`: o jogador é movido imediatamente ao clube de empréstimo, sem fluxo financeiro de transferência definitiva, e o registro `o2` preserva origem + vencimento para retorno futuro.
 
-## Auditoria do schema Room V14
+Callers alcançáveis de `q(targetClub)` observados no corpus incluem `ActivityTimes`, `ActivityMainTeam`, `ActivityPaises`, `ActivityProcura` e `best.f`.
 
-O `FootballDynastyDatabase` atual declara schema 14 e as entidades existentes. A exportação `14.json` foi auditada procurando uma estrutura capaz de preservar os campos e a semântica temporal dos dois payloads.
+### Vencimento / retorno
 
-### Estruturas relacionadas que NÃO são equivalentes a `components.o2`
+`best.b.d4()` percorre a fila `I`. Quando a data de `o2` vence, chama `player.U1(originClub)` e remove a entrada. No SMALI oficial:
 
-- `career_player_transfer_state` guarda códigos/flags de estado de transferência por jogador, mas não contém target club + vencimento de fila.
-- `career_player_commercial` guarda estado comercial/pending sale, mas não contém a tupla comprovada jogador + clube + Calendar usada por `d4()`.
-- `career_active_loans` contém jogador, clube de origem, clube de destino e `expiresAtEpochMillis`; porém sua semântica comprovada é empréstimo ativo. `d4()` executa explicitamente o ramo não-loan `T1(club,0,false,false,true)`. Reusar essa tabela apenas porque também possui vencimento misturaria estados legados distintos.
-- `career_squad_memberships` representa propriedade/roster atual e não uma mudança futura agendada.
+`U1(originClub)` = `T1(originClub, 0, false, false, true)`.
 
-Conclusão: **V14 não contém uma entidade explícita equivalente à fila `components.o2`**.
+Portanto o ramo não-loan observado em `d4()` **não representa uma segunda categoria de fila**; ele é a operação de retorno que encerra o empréstimo iniciado por `q()`.
 
-### Estruturas relacionadas que NÃO são equivalentes a `components.y1`
+### Equivalência moderna V14
 
-- `career_competitions` / standings / matches representam competição e classificação, mas não armazenam uma fila temporal com quatro acumuladores pendentes.
-- `career_stadium_constructions` também possui timestamp e quatro inteiros, mas esses campos são comprovadamente de construção de estádio (`addition0..3`) e não podem ser reutilizados por semelhança estrutural.
-- nenhuma outra entidade V14 expõe simultaneamente owner compatível, vencimento e quatro slots mutáveis do payload `y1`.
+A entidade V14 `career_active_loans` guarda exatamente o estado durável normalizado necessário para o mesmo lifecycle:
 
-Conclusão: **V14 não contém uma entidade explícita equivalente à fila `components.y1`**.
+- `careerId`;
+- `playerId`;
+- `originClubId`;
+- `loanClubId`;
+- `expiresAtEpochMillis`.
+
+O runtime moderno já separa corretamente a decisão/validação do empréstimo, a movimentação de início e o retorno no vencimento. O adapter `LegacyAnnualDeferredTransferExecutionRule` continua válido como congelamento dos argumentos exatos da mutação final `U1/T1`; ele não exige uma segunda fila.
+
+Conclusão corrigida: **`components.o2` ↔ `career_active_loans` é uma equivalência de lifecycle comprovada, não mera similaridade estrutural. Não criar V15 para `o2`.**
+
+## `components.y1` é construção de estádio pendente
+
+A auditoria dos writers também resolve o owner e o significado dos quatro acumuladores de `y1`.
+
+### Payload e writer
+
+`components.y1` é serializável e contém:
+
+- `best.k` — estádio;
+- `Calendar` — data de conclusão;
+- `int[4]` — quatro incrementos pendentes.
+
+O writer alcançável observado está em `ActivityEstadio`: ele cria `y1`, associa o estádio corrente, grava a data calculada, grava o vetor de quatro incrementos e adiciona a entrada à fila `best.b.g0()`. No mesmo fluxo, o custo é debitado com código financeiro bruto **7**.
+
+O cálculo oficial preserva:
+
+- custo por categorias + custo fixo `100000`;
+- duração por crescimento total: `<1000 → 15 dias`, `<10000 → 20`, `<30000 → 30`, caso contrário `40` dias.
+
+### Vencimento
+
+`best.b.e4()` processa as entradas vencidas. `components.y1.a()` percorre índices 0..3; para cada valor positivo chama `best.k.h(index,value)` e zera o slot. A entrada é então removida. Não há RNG nesse payload.
+
+### Equivalência moderna V14
+
+O runtime moderno já normaliza esse mesmo estado em `career_stadium_constructions`, com:
+
+- carreira/clube;
+- quatro capacidades planejadas/incrementos;
+- timestamp de conclusão.
+
+`LegacyStadiumConstructionRule` preserva custos, limiares de duração e aplicação dos quatro incrementos. `CareerStadiumConstructionRuntimeStore` persiste a construção e o débito, e `CareerStadiumConstructionCompletionStore` aplica construções vencidas e remove a entrada em transação.
+
+Conclusão corrigida: **`components.y1` ↔ `career_stadium_constructions` é equivalência de lifecycle comprovada. Não criar V15 para `y1`.**
 
 ## Decisão de schema
 
-A ausência de equivalentes explícitos NÃO autoriza criar V15 ainda. Para congelar um novo schema sem inventar estado faltam, no mínimo:
+Room permanece **V14**. A investigação dos writers remove, em vez de criar, a justificativa para uma migration V15 nesses dois gaps:
 
-1. mapear todos os construtores/callers que escrevem `components.o2` e `components.y1` no corpus oficial;
-2. provar identidade/ordem necessárias para persistência e retomada;
-3. provar se entradas podem coexistir, ser duplicadas ou ser substituídas;
-4. provar a âncora temporal usada pelos writers e o comportamento save/reopen;
-5. para `y1`, provar a identidade moderna de `best.k` e o lifecycle dos quatro acumuladores.
+- `o2` usa `career_active_loans`;
+- `y1` usa `career_stadium_constructions`.
 
-Até isso estar demonstrado, Room permanece **V14**, sem backfill, defaults esportivos ou destructive migration.
+Não adicionar tabela paralela, backfill esportivo, defaults inventados nem `fallbackToDestructiveMigration`.
 
-## Próximo gate de implementação
+## Impacto na Fase 15
 
-- manter `LegacyAnnualDeferredTransferExecutionRule` como seam de mutação já isolado;
-- manter `d4()` e `e4()` como `REACHABLE_NOT_IMPLEMENTED` no nível de fila/orquestração;
-- não conectar `career_active_loans`, `career_stadium_constructions` ou outra tabela apenas por similaridade de campos;
-- retomar implementação somente após evidência dos writers/callers oficiais permitir definir chave, payload e lifecycle durável sem inferência.
+Os gaps anuais `d4()` e `e4()` deixam de ser blockers de schema. O trabalho restante do lifecycle anual deve avançar para `j2(1)`, papel de `M0/F2(true)`, `F()` e composição da seleção `best.f`, mantendo regressões/reopen/rollback nos boundaries modernos já existentes.
