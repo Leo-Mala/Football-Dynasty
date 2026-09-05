@@ -91,6 +91,65 @@ class LegacyFinanceRuntimeRuleTest {
     }
 
     @Test
+    fun `salary debit subtracts long cash and records same long value when Q0 is active`() {
+        val initial = LegacyFinanceRuntimeState(
+            cash = 5_000_000_000L,
+            ledger = LegacyFinanceLedgerState(
+                salaryExpense = 100L,
+                sponsorIncome = 77,
+            ),
+        )
+        val amount = Int.MAX_VALUE.toLong() + 42L
+
+        val result = LegacyFinanceRuntimeRule.applySalaryDebit(
+            state = initial,
+            amount = amount,
+            recordSalaryLedger = true,
+        )
+
+        assertEquals(5_000_000_000L - amount, result.cash)
+        assertEquals(100L + amount, result.ledger.salaryExpense)
+        assertEquals(77, result.ledger.sponsorIncome)
+    }
+
+    @Test
+    fun `salary debit still mutates cash when Q0 is false but leaves ledger untouched`() {
+        val initial = LegacyFinanceRuntimeState(
+            cash = 1_000L,
+            ledger = LegacyFinanceLedgerState(
+                salaryExpense = 250L,
+                miscellaneousExpense = 19,
+            ),
+        )
+
+        val result = LegacyFinanceRuntimeRule.applySalaryDebit(
+            state = initial,
+            amount = 400L,
+            recordSalaryLedger = false,
+        )
+
+        assertEquals(600L, result.cash)
+        assertEquals(initial.ledger, result.ledger)
+    }
+
+    @Test
+    fun `salary debit preserves JVM long overflow semantics for cash and ledger`() {
+        val initial = LegacyFinanceRuntimeState(
+            cash = Long.MIN_VALUE,
+            ledger = LegacyFinanceLedgerState(salaryExpense = Long.MAX_VALUE),
+        )
+
+        val result = LegacyFinanceRuntimeRule.applySalaryDebit(
+            state = initial,
+            amount = 1L,
+            recordSalaryLedger = true,
+        )
+
+        assertEquals(Long.MAX_VALUE, result.cash)
+        assertEquals(Long.MIN_VALUE, result.ledger.salaryExpense)
+    }
+
+    @Test
     fun `monthly borrowing charge can make cash negative and records category four expense`() {
         val initial = LegacyFinanceRuntimeState(
             cash = 10_000L,

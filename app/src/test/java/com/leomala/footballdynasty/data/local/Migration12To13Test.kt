@@ -45,6 +45,7 @@ class Migration12To13Test {
         val path = context.getDatabasePath(name).absolutePath
         val raw = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("DROP TABLE `career_junior_drafts`")
         raw.execSQL("ALTER TABLE `career_competitions` DROP COLUMN `legacyLeagueSubtype`")
         raw.execSQL("PRAGMA user_version=12")
         raw.execSQL(
@@ -55,7 +56,10 @@ class Migration12To13Test {
 
         val migrated = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
-            .addMigrations(Phase14CompetitionInputsMigration.MIGRATION_12_13)
+            .addMigrations(
+                Phase14CompetitionInputsMigration.MIGRATION_12_13,
+                Phase15JuniorDraftMigration.MIGRATION_13_14,
+            )
             .build()
         val row = requireNotNull(migrated.careerCompetitionDao().findCompetition(CAREER, "league-1"))
         assertEquals(1, row.legacyCompetitionType)
@@ -65,6 +69,7 @@ class Migration12To13Test {
         assertEquals(3, row.legacyRelegationCount)
         assertNull(row.legacyLeagueSubtype)
         assertEquals("Migration V13 probe", migrated.careerMetadataDao().findById(CAREER)?.displayName)
+        assertEquals(0, migrated.careerJuniorDraftDao().countForClub(CAREER, "any-club"))
 
         migrated.close()
         context.deleteDatabase(name)

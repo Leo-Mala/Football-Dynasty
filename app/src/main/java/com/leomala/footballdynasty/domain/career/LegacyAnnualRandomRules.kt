@@ -39,6 +39,41 @@ object LegacyAnnualRandomRules {
     /** Structural parity for the direct random predicate in reachable best.f.n(): `<= 60`. */
     fun bestFNGate(random: RandomSource): Boolean = random.nextInt(100) <= 60
 
+    /** Structural parity for the explicit `new Random().nextInt(5)` draw inside best.o.s(). */
+    fun bestOSGrowthDraw(random: RandomSource): Int = random.nextInt(5)
+
+    /**
+     * Freezes the complete high-d0 cap-adjustment branch from legacy `best.o.s()` after the
+     * preceding club-specific cap has already been applied.
+     *
+     * SMALI order is significant:
+     * - `d0 < 60` returns without consuming RNG;
+     * - `d0 >= 60` always consumes exactly one `nextInt(5)` draw, even when `m` is outside 7..10;
+     * - m=7/8/9/10 adds 5/15/25/30 plus that draw;
+     * - any resulting value above 100 is clamped to 100.
+     *
+     * The deliberately neutral parameter names retain the legacy field identities until their
+     * sporting semantics are proven corpus-wide.
+     */
+    fun bestOSApplyHighD0CapAdjustment(
+        random: RandomSource,
+        cappedTarget: Int,
+        d0: Int,
+        m: Int,
+    ): Int {
+        if (d0 < 60) return cappedTarget
+
+        val draw = bestOSGrowthDraw(random)
+        val adjusted = when (m) {
+            7 -> cappedTarget + 5 + draw
+            8 -> cappedTarget + 15 + draw
+            9 -> cappedTarget + 25 + draw
+            10 -> cappedTarget + 30 + draw
+            else -> cappedTarget
+        }
+        return adjusted.coerceAtMost(100)
+    }
+
     /**
      * Deterministic replacement for legacy `Collections.shuffle(...)` sites reached by annual
      * subsystems. Reverse Fisher-Yates gives the same unbiased distribution while making the RNG

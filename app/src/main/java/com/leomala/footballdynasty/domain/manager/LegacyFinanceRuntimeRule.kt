@@ -97,6 +97,31 @@ object LegacyFinanceRuntimeRule {
     }
 
     /**
+     * Exact pure effect of legacy `best.c0.E(long)` once the payroll amount has already been
+     * calculated by `best.c0.q()`.
+     *
+     * SMALI proves that `E(value)` always subtracts `value` from the club's long cash field `n`.
+     * When the finance ledger object exists and `Q0()` is true, the same long value is forwarded
+     * to `best.m.e(long)`, whose reconstructed equivalent is `LegacyFinanceLedgerRule.addSalaryExpense`.
+     *
+     * A materialized modern runtime already supplies the ledger object; `recordSalaryLedger`
+     * represents the characterized `Q0()` predicate. JVM `Long` overflow is intentionally preserved.
+     */
+    fun applySalaryDebit(
+        state: LegacyFinanceRuntimeState,
+        amount: Long,
+        recordSalaryLedger: Boolean,
+    ): LegacyFinanceRuntimeState =
+        LegacyFinanceRuntimeState(
+            cash = state.cash - amount,
+            ledger = if (recordSalaryLedger) {
+                LegacyFinanceLedgerRule.addSalaryExpense(state.ledger, amount)
+            } else {
+                state.ledger
+            },
+        )
+
+    /**
      * Applies the single-club effect of the legacy calendar event `"dJ"`.
      * A strictly positive precomputed charge is debited with category `4`, even
      * when doing so takes cash below zero, and is accumulated in the matching

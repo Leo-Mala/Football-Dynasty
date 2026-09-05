@@ -313,3 +313,37 @@ Before creating the final production Release, release tag, or publishing the def
 The manual test build is a pre-Release validation artifact, not the official Release. Supplying it must not create a production tag, production Release, or bypass any remaining roadmap gate.
 
 This manual-validation requirement is mandatory even when all automated CI, unit, instrumentation, migration, integrity, performance, or other certification gates are already green.
+
+## 16. Shared Codex budget and model escalation
+
+The repository owner actively develops three projects with the same Codex allowance:
+
+- `Leo-Mala/Football-Dynasty`: target up to 35% of the shared weekly Codex budget;
+- `Leo-Mala/Chat-Pro-Football`: target up to 30%;
+- `Leo-Mala/Chat-Basket-Manager-`: target up to 20%;
+- keep at least 15% unassigned as a shared reserve for blockers, regressions, CI failures and manual-test fixes.
+
+These percentages are planning targets, not permission to spend quota merely because it is available. This repository must stay within its target whenever practical so the other two projects can continue through the same week. ChatGPT Work is not part of this plan and must not be assumed as an available budget or execution path.
+
+### Codex usage rules
+
+- Use Codex only when it materially reduces engineering time or improves coverage. Do not spend Codex quota on routine HEAD/status checks, PR metadata, simple GitHub operations, trivial one-file edits or work that direct GitHub tools can complete safely.
+- Prefer `Luna` for high-volume and repetitive work such as repository search, Java↔SMALI call-site mapping, inventory, log triage, documentation, straightforward test generation and mechanical comparisons.
+- Escalate to `Terra` for normal implementation, debugging, persistence/Room work, non-trivial tests, CI root-cause analysis and integrated code changes when Luna is not sufficient.
+- Use `Sol` only for genuinely difficult blockers, architecture-sensitive problems, subtle parity/RNG/concurrency/persistence failures, or cases where the lower tier has proved inadequate. Do not make Sol the default.
+- Use the lowest reasoning/effort level that can safely complete the task. Reserve maximum/high-cost modes for blocked or demonstrably complex work.
+- Batch related investigation and implementation work so the same repository context and legacy evidence are reused. Do not launch duplicate agents to repeat an investigation that is already certified or still valid for the exact current HEAD/corpus.
+- Reuse valid test, audit and CI evidence when repository policy permits it. Do not rerun expensive Codex work merely to restate status.
+
+### Shared-quota guardrails
+
+When reliable Codex usage information is available, manage the shared weekly allowance conservatively:
+
+- below 50% consumed: normal economical use;
+- 50-70% consumed: favor Luna and batch work more aggressively;
+- 70-85% consumed: use Codex only for tasks that materially advance a project or remove a real blocker;
+- above 85% consumed: preserve the remainder for critical regressions, CI blockers and APK/manual-test fixes until the allowance resets.
+
+If reliable usage information is unavailable, never invent a percentage. Default to the conservative policy: Luna first, no duplicate agents, batch related work, and escalate only when justified.
+
+Do not assume extra paid credits, automatic top-ups or an additional per-project quota. Repository correctness, legacy fidelity, required tests, explicit user instructions, exact-head discipline and existing project safeguards always take priority over quota savings; never weaken a gate or implementation merely to reduce Codex consumption.

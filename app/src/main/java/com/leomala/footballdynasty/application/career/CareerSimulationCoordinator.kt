@@ -24,7 +24,7 @@ class CareerSimulationCoordinator(
             val current = repository.findById(careerId)
                 ?: throw InvalidCareerStateException("Career $careerId does not exist")
             val transition = engine.apply(current, command)
-            val saved = repository.save(transition.state)
+            val saved = repository.saveTransition(transition.state, command)
             val savedFingerprint = CareerFingerprint.of(saved)
             if (savedFingerprint != CareerFingerprint.of(transition.state)) {
                 throw SimulationConflictException("Persisted career state diverged from transition result")
