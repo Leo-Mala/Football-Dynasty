@@ -1,10 +1,10 @@
 # Fase 15 — gap de progressão anual de jogadores seniores
 
-Status: **REACHABLE_NOT_IMPLEMENTED / N persistence gap proven**
+Status: **PARTIALLY_IMPLEMENTED / M+N persistence gaps proven**
 
 Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
-SMALI é a autoridade executável.
+SMALI é a autoridade executável. Este documento consolida somente evidência já congelada no próprio branch; ele não inventa o trecho ainda não caracterizado de `best.o.s()`.
 
 ## 1. Call path alcançável
 
@@ -15,22 +15,24 @@ O comando anual `aj` em `best.a.J(1)` chama `best.b.p()`.
 1. percorre a lista global `best.b.f` de jogadores e chama `best.o.e()` em cada um;
 2. somente depois percorre os clubes/juniores e chama `best.p.b()` em cada draft.
 
-O segundo sweep está certificado pela Fase 15.1. A ordem senior → juniores já está congelada em `LegacyAnnualPlayerProgressionSweepRules`.
+O sweep senior → juniores está congelado em `LegacyAnnualPlayerProgressionSweepRules`. O segundo sweep permanece certificado pela Fase 15.1.
 
-## 2. `best.o.e()`
+## 2. Routing de `best.o.e()`
 
-O SMALI mostra:
+O SMALI já congelado prova:
 
 - se `u0()` (clube atual) é nulo, retorna sem executar progressão e sem limpar `M`;
 - se campo `e < 32`, chama privado `s()`;
 - caso contrário chama privado `t()`;
 - após um desses caminhos grava diretamente `M = Boolean.FALSE`.
 
-Logo `best.o.e()` é mutação anual de jogador, não presentation-only.
+Esse routing foi promovido para `LegacyAnnualSeniorProgressionRoutingRules` e testado nos boundaries de clube ausente, idade 31 e idade 32.
 
-## 3. Identidade dos campos `M` e `N`
+Classificação do caller: **IMPLEMENTED_AND_TESTED**.
 
-A auditoria corpus-wide fecha agora a identidade operacional desses dois campos:
+## 3. Identidade e durabilidade de `M` e `N`
+
+A auditoria corpus-wide separa definitivamente os dois campos:
 
 - `S()` é getter direto de `M`;
 - `s1(Boolean)` é setter direto de `M`;
@@ -41,88 +43,117 @@ A auditoria corpus-wide fecha agora a identidade operacional desses dois campos:
 - `s()` e `t()` leem/escrevem `N`;
 - `s()` lê `M` e `e()` o limpa depois da progressão quando existe clube.
 
-Também foi provado que `M1(Boolean)` **não** escreve `M`: `M1` escreve o campo `d`, cujo getter é `W0()`. Esse estado pertence ao lifecycle separado de `D0()`.
+`M1(Boolean)` **não** escreve `M`: ele escreve o campo separado `d`, lido por `W0()` e usado no lifecycle de `D0()`.
 
-## 4. Lifecycle alcançável de `M`
+### `M`
 
-O campo `M` não nasce exclusivamente na progressão. Writers externos alcançáveis incluem:
+Writers alcançáveis em escalação/substituição gravam `s1(TRUE)`. O moderno possui `selectedOrUsed` durante a partida, mas esse latch não atravessa o boundary final para persistência por jogador. Um save/reopen entre uso e progressão anual perderia a informação.
 
-- `ActivityEscalacao` em caminho de seleção/escalação;
-- `components.y3` em caminho de seleção relacionado;
-- `best.s` em fluxo de substituição, marcando o jogador que entra.
+Classificação: **PERSISTENT_RUNTIME_GAP_PROVEN**.
 
-Esses callers gravam `s1(TRUE)`. O campo também é lido em lógica de jogador, incluindo `best.o.r()`, e é consumido por `s()` antes de ser limpo por `e()`.
+### `N`
 
-Consequência: `M` é estado de gameplay real relacionado ao uso/seleção do jogador. Porém **ainda não está provado que ele exige coluna Room própria**, porque sua equivalência pode ser derivável de estado moderno de escalação/partida já persistido. Essa equivalência deve ser investigada antes de criar schema novo.
+`N` é acumulador fracionário compartilhado por crescimento e declínio. O V14 não possui coluna equivalente e o valor não pode ser reconstruído do `overall` atual.
 
-## 5. Caminho `s()` para `e < 32`
+Classificação: **PERSISTENT_RUNTIME_GAP_PROVEN**.
 
-O método calcula uma taxa fracionária de progressão usando estado do clube, idade/faixa do jogador e vários campos do próprio `best.o`.
+## 4. Caminho de declínio `best.o.t()` (`e >= 32`)
 
-A evidência executável mostra explicitamente:
+O controle executável de `t()` já está congelado em `LegacyAnnualSeniorDeclineRules`.
 
-- taxas base como `0.16`, `0.12`, `0.10`, `0.08`, `0.06`, `0.04`, `0.02` conforme faixas;
-- modificadores adicionais/penalidades associados a estado do clube e campos do jogador;
-- leitura de `M` antes de ele ser limpo por `e()`;
-- acumulação no campo `N : double`;
-- quando `N > 1.0` e os guards permitem, incremento do campo `j` e decremento de `N` em `1.0`;
-- `j` é limitado superiormente a `100`;
-- existe ramo com `new Random().nextInt(5)` quando o campo `d0` atinge o threshold comprovado, alterando o teto intermediário segundo o campo `m`.
+A implementação/testes preservam:
 
-O Java decompilado não é suficiente para `s()`; esse caminho continua SMALI-required. O RNG implícito não pode ser tratado como bit-for-bit equivalente à seed moderna sem prova.
+- peso inicial derivado de idade;
+- ajuste quando o getter de clube caracterizado atinge o threshold legado;
+- multiplicadores por faixa de força;
+- acumulação em `N`;
+- pisos caracterizados;
+- condição estrita `N > 1.0`;
+- redução de no máximo um ponto por chamada;
+- preservação do acumulador quando o piso bloqueia;
+- clamp inferior de `j` em 1.
 
-## 6. Caminho `t()` para `e >= 32`
+Classificação: **IMPLEMENTED_AND_TESTED**.
 
-O caminho de envelhecimento/decréscimo usa o mesmo `N : double`:
+## 5. Caminho de crescimento `best.o.s()` (`e < 32`)
 
-- calcula uma fração a partir de idade, força `j`, clube/divisão e outros guards;
-- soma a fração em `N`;
-- quando `N > 1.0` e `j` está acima do piso calculado, decrementa `j` em um e subtrai `1.0` de `N`;
-- limita `j` inferiormente a `1`.
+O Java decompilado não oferece corpo executável confiável; o método continua SMALI-required.
 
-Assim, `N` é relevante tanto para crescimento quanto para declínio e precisa sobreviver entre execuções anuais para preservar o threshold estrito legado.
+### Bloco RNG high-`d0`
 
-## 7. Estado moderno V14
+Já está congelado que:
 
-`CareerPlayerRuntimeEntity` V14 contém atualmente:
+- `d0 < 60` → zero draws;
+- `d0 >= 60` → exatamente um `nextInt(5)`;
+- o draw acontece antes da decisão por `m` e é consumido mesmo para valores de `m` sem bônus;
+- `m=7/8/9/10` adiciona respectivamente `5/15/25/30 + draw` ao cap previamente calculado;
+- o cap resultante é limitado a 100.
 
-- `age`;
-- `overall`;
-- `marketValue`;
-- flags `star/worldTop`;
-- `legacyHash`, `legacyGeneratedO`, `legacyCreatedYear`;
-- contrato e previous market value;
-- flags `legacyQ/X/Y/Z`;
-- `energy` e `injuryUntilEpochDay`.
+Esse boundary está implementado em `LegacyAnnualRandomRules` com `RandomSource` explícito e regressões de draw count/order.
 
-`CareerPlayerRuntimeMapper` também não inicializa nenhum acumulador equivalente a `N`, e `CareerPlayerRuntimeStore` não possui operação anual equivalente a `best.o.e()`.
+Classificação: **IMPLEMENTED_AND_TESTED**.
 
-Não existe campo V14 explicitamente equivalente ao acumulador `N`. Esse é um **gap de estado durável comprovado**: `N` influencia a mutação futura de `j` e não pode ser reconstruído apenas do `overall` atual.
+### Bloco final de crescimento/cap
 
-Para `M`, a ausência de coluna explícita é real, mas a necessidade de uma nova coluna ainda depende do confronto com o estado moderno de escalação/substituição.
+`LegacyAnnualSeniorGrowthFinalizationRules` congela o final já provado do método:
 
-## 8. Decisão de persistência
+1. usa o cap previamente calculado;
+2. aplica o ajuste high-`d0` acima;
+3. avalia `N > 1.0` estrito;
+4. somente com `j < 100` entra no ramo de crescimento/cap;
+5. se `j < effectiveCap`, incrementa `j` exatamente uma vez e subtrai `1.0` de `N`;
+6. se o cap impedir crescimento, grava `N = 1.0` exatamente;
+7. `j >= 100` deixa `N` intacto;
+8. clamp final de `j` em 100.
 
-Esta evidência ainda **não congela Room V15**. Antes de alterar schema é obrigatório:
+Classificação: **IMPLEMENTED_AND_TESTED**.
 
-1. fechar o mapa executável dos campos `e`, `j`, `m`, `d0` usados por `s()/t()` e confrontar cada um com colunas modernas;
-2. confrontar o lifecycle de `M` com a persistência moderna de escalação/substituição para decidir se é derivável ou precisa ser armazenado;
-3. preservar `N` como requisito durável sem inventar backfill esportivo para saves V14;
-4. congelar a política moderna para o ramo legado `new Random().nextInt(5)` usando `RandomSource`, preservando bound/draw order sem alegar equivalência de seed não demonstrada;
-5. somente então implementar regra anual + migration aditiva, save/reopen e rollback se o delta persistente continuar comprovado.
+### Bloco precedente ainda aberto
 
-Não usar default esportivo inventado, backfill inferido ou destructive migration.
+Ainda não foi promovido o trecho de `s()` que deriva integralmente:
 
-## 9. Classificação
+- a contribuição fracionária adicionada a `N`;
+- todos os guards/modificadores que usam `M` e demais campos já mapeados;
+- o cap de clube antes do ajuste high-`d0`.
 
-- `best.b.p()` — **PARTIALLY_IMPLEMENTED**: sweep/order implementado; junior certificado; mutação senior pendente;
-- `best.o.e()` — **REACHABLE_NOT_IMPLEMENTED**;
-- `best.o.s()` — **SMALI_REQUIRED / CHARACTERIZED_PARTIAL**;
-- `best.o.t()` — **CHARACTERIZED**;
-- `best.o.M` — **CHARACTERIZED lifecycle / persistence equivalence open**;
-- `best.o.N` — **CHARACTERIZED / V14 durable-state gap proven**;
-- `best.o.M1/W0` — estado separado `d`, não confundir com `M`.
+Taxas observadas no SMALI já foram registradas (`0.16`, `0.12`, `0.10`, `0.08`, `0.06`, `0.04`, `0.02`), mas a associação completa dessas taxas a todos os branches ainda não está congelada em regra moderna. Não inferir esse mapa sem o corpus executável.
 
-## 10. Próximo passo
+Classificação do método completo: **PARTIALLY_IMPLEMENTED**.
 
-Fechar `e/j/m/d0` e o ramo RNG de `s()`, auditar a equivalência de `M` com o estado moderno de escalação, e só então congelar a extensão persistente mínima necessária para `N` e demais campos realmente ausentes.
+## 6. Estado moderno V14
+
+`CareerPlayerRuntimeEntity` V14 cobre idade, overall, market value, contrato, flags já mapeados, energia e lesão, mas não possui equivalentes persistentes explícitos para `M` e `N`.
+
+Room permanece em **V14**.
+
+Não existe autorização para criar V15 enquanto o bloco precedente de `best.o.s()` e os demais gaps persistentes do lifecycle anual ainda não estiverem fechados em um mapa agregado.
+
+## 7. Decisão de persistência
+
+A próxima migration deve permanecer bloqueada até que seja possível definir o delta mínimo sem inventar estado histórico para saves V14.
+
+Requisitos antes de qualquer V15:
+
+1. fechar o restante executável de `best.o.s()`;
+2. fechar o mapa agregado dos estados persistentes ainda abertos de `F()/D0()`;
+3. definir como representar `M` e `N` em saves migrados sem backfill esportivo inventado;
+4. preservar atomicidade entre mutação de jogador, RNG e carreira;
+5. adicionar migration explícita, schema exportado, 14→15, save/reopen e rollback somente quando esse delta estiver provado.
+
+`fallbackToDestructiveMigration`, reset de save e defaults esportivos inferidos continuam proibidos.
+
+## 8. Classificação atual
+
+- `best.b.p()` — **PARTIALLY_IMPLEMENTED**: sweep/order implementado; junior certificado; mutação senior ainda incompleta;
+- `best.o.e()` routing — **IMPLEMENTED_AND_TESTED**;
+- `best.o.s()` completo — **PARTIALLY_IMPLEMENTED / SMALI_REQUIRED**;
+- `best.o.s()` high-`d0` RNG — **IMPLEMENTED_AND_TESTED**;
+- `best.o.s()` final growth/cap — **IMPLEMENTED_AND_TESTED**;
+- `best.o.t()` — **IMPLEMENTED_AND_TESTED**;
+- `best.o.M` — **PERSISTENT_RUNTIME_GAP_PROVEN**;
+- `best.o.N` — **PERSISTENT_RUNTIME_GAP_PROVEN**;
+- `best.o.M1/W0` — estado separado `d`, pertencente ao lifecycle de `D0()`.
+
+## 9. Próximo passo
+
+Reabrir `smali/best/o.smali` do corpus oficial e congelar, sem inferência, o bloco precedente de `best.o.s()` que calcula incremento fracionário e cap. Só depois consolidar `M/N` com os demais estados anuais e decidir se/como Room V15 deve ser criada.
