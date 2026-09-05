@@ -19,6 +19,27 @@ class LegacyAnnualRandomRulesTest {
     }
 
     @Test
+    fun `best o s growth draw preserves bound five and one draw`() {
+        val random = FixedIntRandomSource(4)
+        assertEquals(4, LegacyAnnualRandomRules.bestOSGrowthDraw(random))
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `best o s growth draw resumes exactly from persisted rng snapshot`() {
+        val original = StatefulJavaRandomSource(202632L)
+        repeat(9) { LegacyAnnualRandomRules.bestA0AGate(original) }
+        val snapshot = original.snapshot()
+
+        val expected = LegacyAnnualRandomRules.bestOSGrowthDraw(original)
+        val restored = StatefulJavaRandomSource.restore(snapshot)
+        val actual = LegacyAnnualRandomRules.bestOSGrowthDraw(restored)
+
+        assertEquals(expected, actual)
+        assertEquals(original.snapshot(), restored.snapshot())
+    }
+
+    @Test
     fun `best a0 j sites retain the eight smali thresholds`() {
         assertEquals(
             listOf(10, 90, 30, 30, 35, 45, 75, 95),
