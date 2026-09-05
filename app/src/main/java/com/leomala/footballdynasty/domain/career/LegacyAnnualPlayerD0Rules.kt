@@ -1,11 +1,14 @@
 package com.leomala.footballdynasty.domain.career
 
 /**
- * Pure projection of reachable legacy `best.o.D0()`.
+ * Pure projection of reachable legacy `best.o.d1(0)` / `best.o.D0()` annual state changes.
  *
- * The executable SMALI first increments `j0`, then may latch the Boolean field `d` exposed by
- * `W0()`/`M1(Boolean)`. This is deliberately kept under legacy-oriented names because the sporting
- * meaning of that counter/latch is not required to preserve the proven control flow.
+ * The executable SMALI proves that `d1(int)` is a direct setter for `j0`. The annual `best.b.F()`
+ * pass calls `d1(0)` for every global player before the later first-entry `D0()` pass. `D0()` then
+ * increments `j0` and may latch the Boolean field `d` exposed by `W0()`/`M1(Boolean)`.
+ *
+ * This is deliberately kept under legacy-oriented names because the sporting meaning of the
+ * counter/latch is not required to preserve the proven control flow.
  */
 object LegacyAnnualPlayerD0Rules {
     data class Input(
@@ -21,6 +24,9 @@ object LegacyAnnualPlayerD0Rules {
         val legacyJ0: Int,
         val legacyW0: Boolean,
     )
+
+    /** Exact projection of the annual `best.o.d1(0)` call. */
+    fun resetGlobalCounter(input: Input): Input = input.copy(legacyJ0 = 0)
 
     fun apply(input: Input): Result {
         // `add-int/2addr` has normal JVM 32-bit wraparound semantics.
