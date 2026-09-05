@@ -1,6 +1,6 @@
 # Fase 15 — auditoria de equivalência runtime de `best.b.F()`
 
-Status: **D0 CONTROL FLOW IMPLEMENTED / persistence mapping still open**
+Status: **D0 CONTROL FLOW IMPLEMENTED / K0 SELECTOR TRAVERSAL IMPLEMENTED / persistence mapping still open**
 
 Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
@@ -40,11 +40,22 @@ Assim, documentos anteriores que tratavam `M1(TRUE)` como writer do campo `M` de
 
 ## 3. Estado de tournament exigido por `best.k0.c(index)`
 
-A evidência SMALI já congelada prova que `k0.c(index)` não é um simples reset de rodada. Ele chama `U()`, cria `best.h0`, percorre `components.n1` na sequência fixa `[0,1,2,2,5,6,6,3,3,4,4]`, seleciona jogadores por thresholds, adiciona estado a coleções internas e possui pelo menos um ramo com efeito adicional de flag de jogador.
+A evidência SMALI já congelada prova que `k0.c(index)` não é um simples reset de rodada. Ele chama `U()`, cria `best.h0` e percorre `components.n1` na sequência fixa:
+
+`[0, 1, 2, 2, 5, 6, 6, 3, 3, 4, 4]`.
+
+Esse traversal contém exatamente 11 chamadas e as duplicatas fazem parte do comportamento executável. O moderno agora congela essa ordem e multiplicidade em `LegacyAnnualTournamentEntryResetRules`, com regressões específicas para sequência, ordinal e duplicatas.
+
+Isso **não** fecha `best.k0.c(index)` inteiro. Permanecem sem promoção para gameplay:
+
+- thresholds e inputs completos de cada `components.n1`;
+- identidade e cardinalidade das coleções produzidas em `best.h0`;
+- ramo adicional com efeito de flag de jogador;
+- lifecycle/persistência dos estados internos produzidos pelo método.
 
 O runtime moderno V14 de competição (`CareerCompetitionEntity`, `CareerCompetitionStandingEntity`, `CareerCompetitionMatchEntity`) persiste somente a projeção já comprovada de tipo/formato, rodada, standings e partidas. `CareerCompetitionStore` não contém estrutura já provada equivalente às coleções produzidas por `k0.c(index)` / `components.n1`.
 
-Consequência: **não é seguro tratar `k0.c(index)` como equivalente ao avanço/reset de rodada existente**. A semântica interna precisa ser fechada primeiro no corpus.
+Consequência: **`best.k0.c(index)` é PARTIALLY_IMPLEMENTED / SELECTOR_TRAVERSAL_FROZEN**, mas ainda não é seguro tratá-lo como equivalente ao avanço/reset de rodada existente nem inventar a semântica interna restante.
 
 ## 4. Decisão de persistência
 
@@ -62,17 +73,21 @@ Não criar defaults/backfills esportivos, não mapear por semelhança de nome e 
 
 ## 5. Classificação atualizada
 
-- `best.b.F()` — **IMPLEMENTED_NEEDS_REVALIDATION** no control-flow dos três passes;
+- `best.b.F()` — **PARTIALLY_IMPLEMENTED / PERSISTENCE_AND_K0_GAPS_OPEN**;
 - `best.o.d1(0)` — **CHARACTERIZED**;
 - `best.o.D0()` — **CONTROL_FLOW_IMPLEMENTED / PERSISTENCE_MAPPING_OPEN**;
 - `best.o.M1(Boolean)` / `best.o.W0()` — **CHARACTERIZED** como setter/getter do campo `d`;
 - `best.o.M` — **SEPARATE_STATE**, pertencente à progressão/escalação e não ao latch `D0()`;
-- `best.k0.c(index)` — **REACHABLE_NOT_IMPLEMENTED**;
+- `best.k0.c(index)` — **PARTIALLY_IMPLEMENTED / SELECTOR_TRAVERSAL_FROZEN**;
 - Room V14 — **PRESERVAR** até a semântica completa justificar alteração.
 
 ## 6. Próxima investigação obrigatória
 
 1. fechar corpus-wide todos os readers/writers de `j0` e `d/W0` e confrontar com runtime moderno;
-2. fechar `best.k0.c(index)`, `components.n1` e `best.h0`;
+2. continuar `best.k0.c(index)` a partir dos thresholds/inputs de `components.n1`, identidade/cardinalidade de `best.h0` e ramo de flag, sem refazer o traversal já certificado;
 3. em paralelo, continuar a auditoria separada de `best.o.M/N` da progressão anual senior;
 4. somente então implementar + persistir o delta comprovado.
+
+## 7. Checkpoint de disponibilidade do corpus
+
+O traversal acima é evidência já congelada e certificada no branch. Novos detalhes internos de `components.n1`/`best.h0` exigem reabertura do SMALI oficial. Na ausência temporária do ZIP bruto no ambiente de execução, nenhum threshold, cardinalidade, significado esportivo ou efeito persistente adicional deve ser promovido por inferência.
