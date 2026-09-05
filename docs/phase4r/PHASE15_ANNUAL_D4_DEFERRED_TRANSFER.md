@@ -1,51 +1,78 @@
-# Fase 15 — `best.b.d4()` / mutação de transferência diferida
+# Fase 15 — `best.b.d4()` / retorno de empréstimo vencido
 
-Status: **T1 MUTATION IMPLEMENTED / QUEUE ORCHESTRATION STILL OPEN**
+Status: **LEGACY LOAN LIFECYCLE MAPPED TO V14 / END MUTATION IMPLEMENTED**
 
 Corpus oficial: `Brasfoot.apk_Decompiler.com.zip` — SHA-256 `3eb5622ba9b5953a1bcc2c83c16700db86fc41c027989e34b8c00c207f25c465` — package `com.brasfoot.v2020` — versionCode `202632`.
 
 Autoridade: SMALI executável prevalece sobre Java decompilado.
 
-## Evidência já comprovada
+## Correção da interpretação anterior
 
-`best.b.d4()` percorre a fila temporal `I` de `components.o2`. Cada entrada contém jogador, clube e `Calendar`; o construtor fixa vencimento em +319 dias. Quando a entrada vence, `d4()` chama `player.U1(club)` e remove a entrada processada.
+A leitura de `d4()` isoladamente mostrava uma fila `components.o2` cuja entrada vencida executava `player.U1(club)`, isto é:
 
-No SMALI oficial, `best.o.U1(best.c0)` é apenas o wrapper para a chamada exata:
+`best.o.T1(club, 0, false, false, true)`.
 
-`best.o.T1(club, 0, false, false, true)`
+Como essa chamada final usa a rota não-loan de `T1`, a nota anterior tratava `o2` conservadoramente como uma transferência diferida separada de `career_active_loans`.
 
-Logo a mutação final não precisa de regra esportiva nova. O runtime moderno já possui a reconstrução de `T1` em `LegacyTransferExecutionRule` e a persistência atômica correspondente em `CareerManagerRuntimeStore.commitTransfer(...)`.
+A auditoria do writer oficial prova que essa conclusão provisória estava incompleta.
 
-## Implementação desta etapa
+## Lifecycle completo comprovado
 
-`LegacyAnnualDeferredTransferExecutionRule` fixa exclusivamente os argumentos comprovados da chamada acima:
+### 1. início em `best.o.q(targetClub)`
+
+Antes de mover o jogador, `q()` cria:
+
+`components.o2(player, player.u0(), best.b.h)`.
+
+O segundo argumento é portanto o **clube de origem**. O construtor clona a data base, adiciona **319 dias** e registra a entrada na fila global.
+
+Depois da criação do registro, `q()` chama imediatamente:
+
+`T1(targetClub, 0, false, true, false)`.
+
+Esse é o movimento de **início do empréstimo**. O jogador passa ao destino, enquanto `o2` preserva origem e vencimento.
+
+Callers alcançáveis observados para `q(targetClub)` incluem `ActivityTimes`, `ActivityMainTeam`, `ActivityPaises`, `ActivityProcura` e `best.f`.
+
+### 2. vencimento em `best.b.d4()`
+
+`d4()` percorre os empréstimos serializados. Para cada entrada vencida com referências válidas, executa:
+
+`player.U1(originClub)`.
+
+No SMALI:
+
+`U1(originClub)` = `T1(originClub, 0, false, false, true)`.
+
+A entrada é removida após o retorno. Logo o ramo não-loan de `d4()` é a **operação de encerramento/retorno**, não evidência de uma categoria de fila diferente.
+
+## Equivalência moderna
+
+A V14 já possui `career_active_loans(careerId, playerId, originClubId, loanClubId, expiresAtEpochMillis)`, que normaliza exatamente o estado serializado de `components.o2`.
+
+A camada moderna de empréstimos já caracteriza os gates de listagem/aceitação e o runtime de movimentação; o retorno no vencimento desemboca na mesma reconstrução de `T1` usada pelas demais movimentações.
+
+`LegacyAnnualDeferredTransferExecutionRule` permanece útil como adapter estreito da chamada final comprovada:
 
 - `transferValue = 0`;
 - `legacySecondaryChargeFlag = false`;
 - `loanMove = false`;
 - `legacyNonFinancialMoveFlag = true`.
 
-O adapter deliberadamente começa **depois** de a fila ter selecionado um par jogador/clube vencido. Ele não cria a fila, não inventa writer, não decide vencimento e não cria persistência nova.
+Ele representa somente `U1/T1` no retorno. **Não** deve ganhar uma tabela paralela de “deferred transfer”.
 
-As regressões comparam o adapter diretamente com `LegacyTransferExecutionRule.plan(...)` nos argumentos exatos e congelam que o ramo é não-financeiro, não-loan, com valor zero e `rawY` definido como `false`.
+## Decisão de persistência
 
-## Auditoria do schema V14
+Não criar V15 para `d4()`/`o2`.
 
-A exportação Room V14 foi auditada contra o payload comprovado de `components.o2`. Não existe entidade explícita que preserve a semântica de uma transferência não-loan futura com jogador + clube alvo + vencimento.
+O mapping correto é:
 
-Em particular, `career_active_loans` não é equivalente: apesar de possuir origem/destino e expiração, ela representa empréstimo ativo, enquanto `d4()` termina no tuple comprovado `T1(club,0,false,false,true)`. `career_player_transfer_state`, `career_player_commercial` e memberships também não contêm a fila temporal comprovada.
+`components.o2` → `career_active_loans`.
 
-A auditoria completa de `o2` e `y1` contra V14 está em `PHASE15_ANNUAL_DEFERRED_STATE_MAPPING.md`.
+A conclusão anterior de “nenhuma entidade equivalente” é superada por esta evidência de writer + lifecycle completo. O schema permanece V14, sem backfill, default inventado ou destructive migration.
 
-Essa ausência de equivalente explícito **não é autorização para V15**. Os writers/callers oficiais ainda precisam ser mapeados para provar chave, cardinalidade, ordem, âncora temporal e comportamento save/reopen antes de congelar qualquer nova tabela.
+## Estado da paridade
 
-## Gap restante
+A incógnita estrutural de `d4()` foi eliminada. Qualquer trabalho adicional nessa área deve ser apenas regressão de composição/end-to-end contra os stores modernos existentes; não criação de uma segunda persistência.
 
-`best.b.d4()` como um todo permanece aberto até serem provados:
-
-1. todos os writers alcançáveis de `components.o2`;
-2. a ordem/semântica de manutenção da fila contra o calendário da carreira;
-3. chave/cardinalidade e lifecycle de retomada necessários para uma eventual representação durável;
-4. regressões de reopen/rollback da fila, caso persistência nova seja comprovada.
-
-Não criar V15 apenas para representar o adapter de mutação. Room permanece V14 até nova evidência de estado durável necessário.
+A Fase 15 deve continuar nos gaps anuais ainda materiais (`j2(1)`, `M0/F2(true)`, `F()` e composição `best.f`).
