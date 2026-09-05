@@ -5,6 +5,35 @@ import org.junit.Test
 
 class LegacyAnnualPlayerD0RulesTest {
     @Test
+    fun `global reset writes only j0 zero and preserves every other input`() {
+        val input = LegacyAnnualPlayerD0Rules.Input(
+            legacyJ0 = 17,
+            legacyW0 = true,
+            hasClub = true,
+            age = 34,
+            clubJ = 7,
+            clubJ0 = 29,
+        )
+
+        assertEquals(
+            input.copy(legacyJ0 = 0),
+            LegacyAnnualPlayerD0Rules.resetGlobalCounter(input),
+        )
+    }
+
+    @Test
+    fun `global reset is idempotent at zero`() {
+        val input = LegacyAnnualPlayerD0Rules.Input(
+            legacyJ0 = 0,
+            legacyW0 = false,
+            hasClub = false,
+            age = 40,
+        )
+
+        assertEquals(input, LegacyAnnualPlayerD0Rules.resetGlobalCounter(input))
+    }
+
+    @Test
     fun `counter increments even when latch is already true`() {
         assertEquals(
             LegacyAnnualPlayerD0Rules.Result(legacyJ0 = 8, legacyW0 = true),
