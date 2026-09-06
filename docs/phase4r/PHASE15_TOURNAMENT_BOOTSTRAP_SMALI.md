@@ -8,7 +8,9 @@ The raw Library archive was materialized again for this checkpoint and its bytes
 
 ## Proven executable fragments
 
-`konrent.b0.V()` first clears eight owned references (`o`, `D`, `E`, `F`, `H`, `G`, `J`, `I`). It then recovers some prior tournament participants through existing competition objects. Those recovery paths remain separate modern-ownership work and are not inferred here.
+`konrent.b0.V()` first clears eight owned references (`o`, `D`, `E`, `F`, `H`, `G`, `J`, `I`). `LegacyTournamentBootstrapRules.clearOwnedReferences()` now freezes that exact initial reset as a pure boundary: every one of the eight owned references is null before participant recovery begins. No Room state or RNG is involved in this reset.
+
+The executable then recovers some prior tournament participants through existing competition objects. Those recovery paths remain separate modern-ownership work and are not inferred here.
 
 For the fallback candidate pass, the executable:
 
@@ -34,12 +36,14 @@ After the chosen order is applied, `V()` builds `konrent.a0`, then `konrent.f0`,
 
 `LegacyTournamentBootstrapRulesTest` covers:
 
+- exact clearing of all eight bootstrap-owned references before participant recovery;
 - strict raw `J()>1` eligibility while preserving pre-shuffle source order;
 - first-match-only fallback for `J=2/3/4/5` without overwriting preexisting slots;
 - the exact three `nextInt(3)` permutation mappings.
 
 ## Status
 
+- initial eight-reference reset: **IMPLEMENTED_AND_TESTED**;
 - fallback candidate/filter/tier-slot semantics: **IMPLEMENTED_AND_TESTED**;
 - local draw-to-permutation mapping: **IMPLEMENTED_AND_TESTED**;
 - `Collections.shuffle` compatibility ownership: **OPEN**;
