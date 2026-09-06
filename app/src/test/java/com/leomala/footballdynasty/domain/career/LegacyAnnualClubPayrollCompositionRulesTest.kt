@@ -13,6 +13,30 @@ class LegacyAnnualClubPayrollCompositionRulesTest {
     }
 
     @Test
+    fun `SMALI scalar getters are direct signed int to long contributions`() {
+        assertEquals(-17L, LegacyAnnualClubPayrollCompositionRules.seniorContributionFromLegacyN(-17))
+        assertEquals(
+            Int.MAX_VALUE.toLong(),
+            LegacyAnnualClubPayrollCompositionRules.juniorContributionFromLegacyI(Int.MAX_VALUE),
+        )
+    }
+
+    @Test
+    fun `raw senior n fields are accumulated before raw junior i fields`() {
+        assertEquals(
+            LegacyAnnualClubPayrollCompositionRules.Result(
+                seniorTotal = 60L,
+                juniorTotal = 15L,
+                total = 75L,
+            ),
+            LegacyAnnualClubPayrollCompositionRules.composeFromRawFields(
+                seniorLegacyN = listOf(10, 20, 30),
+                juniorLegacyI = listOf(7, 8),
+            ),
+        )
+    }
+
+    @Test
     fun `senior contributions are accumulated before junior contributions`() {
         assertEquals(
             LegacyAnnualClubPayrollCompositionRules.Result(
