@@ -2,10 +2,25 @@ package com.leomala.footballdynasty.domain.career
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LegacyTournamentBootstrapRulesTest {
     private data class Club(val id: String, val rawJ: Int)
+
+    @Test
+    fun `bootstrap begins with all eight owned references cleared`() {
+        val result = LegacyTournamentBootstrapRules.clearOwnedReferences<Club>()
+
+        assertNull(result.o)
+        assertNull(result.dUpper)
+        assertNull(result.e)
+        assertNull(result.f)
+        assertNull(result.h)
+        assertNull(result.g)
+        assertNull(result.j)
+        assertNull(result.i)
+    }
 
     @Test
     fun `eligible candidates preserve source order and require raw J greater than one`() {
