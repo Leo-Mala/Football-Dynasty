@@ -34,6 +34,10 @@ object CareerMatchPersistedEffectsMapper {
             addAll(state.home.used.map { it.value.playerId })
             addAll(state.away.active.map { it.value.playerId })
             addAll(state.away.used.map { it.value.playerId })
+            state.events.forEach { event ->
+                event.primaryPlayer?.let { add(it.value.playerId) }
+                event.secondaryPlayer?.let { add(it.value.playerId) }
+            }
         }
         return observedPlayers(state)
             .groupBy { it.value.playerId }
@@ -51,6 +55,7 @@ object CareerMatchPersistedEffectsMapper {
                         overall = player.skill,
                         injuryUntilEpochDay = injuryUntil,
                         // best.o.s1(TRUE) is executed for the selected XI and for an entering sub.
+                        // Event-retained players already participated before leaving the live lists.
                         // Do not write false for an unused bench player: M may already be true earlier.
                         legacyAnnualM = true.takeIf { playerId in legacyMParticipants },
                     )

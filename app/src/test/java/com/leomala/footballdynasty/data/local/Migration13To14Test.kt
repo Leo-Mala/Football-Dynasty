@@ -55,7 +55,10 @@ class Migration13To14Test {
 
         val migrated = Room.databaseBuilder(context, FootballDynastyDatabase::class.java, name)
             .allowMainThreadQueries()
-            .addMigrations(Phase15JuniorDraftMigration.MIGRATION_13_14)
+            .addMigrations(
+                Phase15JuniorDraftMigration.MIGRATION_13_14,
+                Phase15SeniorRuntimeMigration.MIGRATION_14_15,
+            )
             .build()
 
         assertEquals("Migration V14 probe", migrated.careerMetadataDao().findById(CAREER)?.displayName)

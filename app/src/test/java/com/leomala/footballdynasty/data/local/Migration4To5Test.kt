@@ -28,9 +28,11 @@ class Migration4To5Test {
             Phase13StadiumRuntimeMigration.MIGRATION_7_8, Phase13TicketRuntimeMigration.MIGRATION_8_9,
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10, Phase14CoachRuntimeMigration.MIGRATION_10_11,
             Phase14CompetitionInputsMigration.MIGRATION_11_12, Phase14CompetitionInputsMigration.MIGRATION_12_13,
-            Phase15JuniorDraftMigration.MIGRATION_13_14)
+            Phase15JuniorDraftMigration.MIGRATION_13_14, Phase15SeniorRuntimeMigration.MIGRATION_14_15)
         db.execSQL("PRAGMA foreign_keys=ON")
-        db.query("SELECT age,overall,energy,injuryUntilEpochDay FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c -> assertTrue(c.moveToFirst()); assertEquals(35,c.getInt(0)); assertEquals(81,c.getInt(1)); assertEquals(100,c.getInt(2)); assertEquals(0L,c.getLong(3)) }
+        db.query("SELECT age,overall,energy,injuryUntilEpochDay,legacyAnnualM,legacyAnnualN,legacyRawPayrollN FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(35,c.getInt(0)); assertEquals(81,c.getInt(1)); assertEquals(100,c.getInt(2)); assertEquals(0L,c.getLong(3)); assertTrue(c.isNull(4)); assertTrue(c.isNull(5)); assertTrue(c.isNull(6))
+        }
         db.query("SELECT COUNT(*) FROM career_player_club_season_stats").use { c -> assertTrue(c.moveToFirst()); assertEquals(0,c.getInt(0)) }
         db.execSQL("INSERT INTO career_player_club_season_stats (careerId,playerId,legacySeasonId,legacyClubId,legacyC,legacyD,legacyE,legacyF,legacyG,legacyH) VALUES ('career-v5','p1',1,101,2,3,4,5,6,7)")
         db.query("SELECT legacyC,legacyD,legacyE,legacyF,legacyG,legacyH FROM career_player_club_season_stats WHERE careerId='career-v5' AND playerId='p1'").use { c -> assertTrue(c.moveToFirst()); (0..5).forEach { assertEquals(it+2,c.getInt(it)) } }

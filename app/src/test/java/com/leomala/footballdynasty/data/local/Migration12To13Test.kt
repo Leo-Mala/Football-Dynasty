@@ -59,6 +59,7 @@ class Migration12To13Test {
             .addMigrations(
                 Phase14CompetitionInputsMigration.MIGRATION_12_13,
                 Phase15JuniorDraftMigration.MIGRATION_13_14,
+                Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             )
             .build()
         val row = requireNotNull(migrated.careerCompetitionDao().findCompetition(CAREER, "league-1"))

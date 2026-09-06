@@ -35,6 +35,7 @@ class Migration10To11Test {
             Phase14CompetitionInputsMigration.MIGRATION_11_12,
             Phase14CompetitionInputsMigration.MIGRATION_12_13,
             Phase15JuniorDraftMigration.MIGRATION_13_14,
+            Phase15SeniorRuntimeMigration.MIGRATION_14_15,
         ).build()
         val ticket=CareerTicketRuntimeStore(migrated); val coach=CareerCoachRuntimeStore(migrated)
         assertEquals(61,ticket.resolveCoachRawH(CAREER,7)); assertNull(coach.find(CAREER,0)); assertNull(migrated.careerCoachRuntimeDao().findCoachRuntime(CAREER,0)); assertTrue(migrated.careerCoachRuntimeDao().seasonClubRecords(CAREER,0).isEmpty()); assertEquals("Migration V11 probe",migrated.careerMetadataDao().findById(CAREER)?.displayName)

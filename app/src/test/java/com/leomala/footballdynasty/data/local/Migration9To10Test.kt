@@ -39,6 +39,7 @@ class Migration9To10Test {
             Phase14CompetitionInputsMigration.MIGRATION_11_12,
             Phase14CompetitionInputsMigration.MIGRATION_12_13,
             Phase15JuniorDraftMigration.MIGRATION_13_14,
+            Phase15SeniorRuntimeMigration.MIGRATION_14_15,
         ).build()
         val row=migrated.careerManagerRuntimeDao().stadiumConstructions(CAREER).single()
         assertEquals(77,row.stadiumCode); assertEquals(listOf(100,20,30,40),listOf(row.addition0,row.addition1,row.addition2,row.addition3)); assertNull(row.ownerClubId)

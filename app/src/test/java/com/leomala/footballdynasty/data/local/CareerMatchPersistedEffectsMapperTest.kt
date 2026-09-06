@@ -8,6 +8,7 @@ import com.leomala.footballdynasty.domain.match.LegacyPlayerClubSeasonStatsRules
 import com.leomala.footballdynasty.foundation.random.RandomSource
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,13 +48,14 @@ class CareerMatchPersistedEffectsMapperTest {
 
         assertEquals(
             listOf(
-                CareerMatchPlayerRuntimeUpdate("active", 81, 80, 0L),
+                CareerMatchPlayerRuntimeUpdate("active", 81, 80, 0L, legacyAnnualM = true),
                 CareerMatchPlayerRuntimeUpdate("bench", 92, 80, 0L),
-                CareerMatchPlayerRuntimeUpdate("removed", 64, 80, 0L),
-                CareerMatchPlayerRuntimeUpdate("used", 73, 80, 0L),
+                CareerMatchPlayerRuntimeUpdate("removed", 64, 80, 0L, legacyAnnualM = true),
+                CareerMatchPlayerRuntimeUpdate("used", 73, 80, 0L, legacyAnnualM = true),
             ),
             updates,
         )
+        assertNull(updates.single { it.playerId == "bench" }.legacyAnnualM)
     }
 
     @Test
@@ -102,7 +104,7 @@ class CareerMatchPersistedEffectsMapperTest {
         val expectedDeadline = LocalDate.of(2026, 2, 10).toEpochDay() + 3L
 
         assertEquals(
-            listOf(CareerMatchPlayerRuntimeUpdate("injured", 60, 75, expectedDeadline)),
+            listOf(CareerMatchPlayerRuntimeUpdate("injured", 60, 75, expectedDeadline, legacyAnnualM = true)),
             runtimeUpdates,
         )
         assertEquals(
