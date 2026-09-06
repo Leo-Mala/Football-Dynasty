@@ -4,6 +4,38 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LegacyAnnualSeniorGrowthAccumulationRulesTest {
+    private fun club(
+        clubF0: Int = 19,
+        clubR0: Boolean = true,
+        clubP0: Int = 0,
+        clubJ: Int = 9,
+        clubJ0: Int = 0,
+    ) = LegacyAnnualSeniorGrowthAccumulationRules.ClubState(
+        legacyF0 = clubF0,
+        legacyR0 = clubR0,
+        legacyP0 = clubP0,
+        legacyJ = clubJ,
+        legacyJ0 = clubJ0,
+    )
+
+    private fun player(
+        playerE: Int = 19,
+        playerJ: Int = 0,
+        playerD0: Int = 0,
+        playerM: Int = 0,
+        playerMFlag: Boolean = false,
+        playerW0: Boolean = false,
+        playerO0: Boolean = false,
+    ) = LegacyAnnualSeniorGrowthAccumulationRules.PlayerState(
+        legacyE = playerE,
+        legacyJ = playerJ,
+        legacyD0 = playerD0,
+        legacyM = playerM,
+        legacyMFlag = playerMFlag,
+        legacyW0 = playerW0,
+        legacyO0 = playerO0,
+    )
+
     private fun calculate(
         clubF0: Int = 19,
         clubR0: Boolean = true,
@@ -18,22 +50,8 @@ class LegacyAnnualSeniorGrowthAccumulationRulesTest {
         playerW0: Boolean = false,
         playerO0: Boolean = false,
     ) = LegacyAnnualSeniorGrowthAccumulationRules.calculate(
-        club = LegacyAnnualSeniorGrowthAccumulationRules.ClubState(
-            legacyF0 = clubF0,
-            legacyR0 = clubR0,
-            legacyP0 = clubP0,
-            legacyJ = clubJ,
-            legacyJ0 = clubJ0,
-        ),
-        player = LegacyAnnualSeniorGrowthAccumulationRules.PlayerState(
-            legacyE = playerE,
-            legacyJ = playerJ,
-            legacyD0 = playerD0,
-            legacyM = playerM,
-            legacyMFlag = playerMFlag,
-            legacyW0 = playerW0,
-            legacyO0 = playerO0,
-        ),
+        club = club(clubF0, clubR0, clubP0, clubJ, clubJ0),
+        player = player(playerE, playerJ, playerD0, playerM, playerMFlag, playerW0, playerO0),
     )
 
     @Test
@@ -118,5 +136,30 @@ class LegacyAnnualSeniorGrowthAccumulationRulesTest {
             ).increment,
             1e-12,
         )
+    }
+
+    @Test
+    fun `accumulate adds increment to retained fractional N without rounding`() {
+        val result = LegacyAnnualSeniorGrowthAccumulationRules.accumulate(
+            currentN = 0.92,
+            club = club(),
+            player = player(),
+        )
+
+        assertEquals(0.92, result.previousN, 1e-12)
+        assertEquals(0.16, result.rate.increment, 1e-12)
+        assertEquals(1.08, result.updatedN, 1e-12)
+    }
+
+    @Test
+    fun `accumulate preserves retained N when calculated increment is exact zero`() {
+        val result = LegacyAnnualSeniorGrowthAccumulationRules.accumulate(
+            currentN = 0.75,
+            club = club(clubF0 = 1, clubJ = 9),
+            player = player(playerE = 29, playerJ = 30),
+        )
+
+        assertEquals(0.0, result.rate.increment, 1e-12)
+        assertEquals(0.75, result.updatedN, 1e-12)
     }
 }

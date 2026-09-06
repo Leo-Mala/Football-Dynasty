@@ -33,6 +33,12 @@ object LegacyAnnualSeniorGrowthAccumulationRules {
         val increment: Double,
     )
 
+    data class AccumulationResult(
+        val rate: Result,
+        val previousN: Double,
+        val updatedN: Double,
+    )
+
     fun calculate(club: ClubState, player: PlayerState): Result {
         var clubBand = club.legacyF0
         var clubBandBonus = 0.0
@@ -93,6 +99,24 @@ object LegacyAnnualSeniorGrowthAccumulationRules {
             clubBandBonus = clubBandBonus,
             rateBeforeNonNegativeGuard = rate,
             increment = increment,
+        )
+    }
+
+    /**
+     * Executable `best.o.s()` immediately adds the calculated increment to retained field `N`.
+     * Keep the arithmetic as an ordinary JVM Double addition: no clamp, rounding, or reset is
+     * introduced at this boundary because the later cap/finalization section owns those effects.
+     */
+    fun accumulate(
+        currentN: Double,
+        club: ClubState,
+        player: PlayerState,
+    ): AccumulationResult {
+        val rate = calculate(club = club, player = player)
+        return AccumulationResult(
+            rate = rate,
+            previousN = currentN,
+            updatedN = currentN + rate.increment,
         )
     }
 
