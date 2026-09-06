@@ -3,21 +3,45 @@ package com.leomala.footballdynasty.domain.career
 /**
  * Pure executable fragments recovered from legacy `konrent.b0.V()`.
  *
- * The legacy method first builds a candidate list from clubs whose raw `J()` is greater than 1,
- * shuffles that list with `Collections.shuffle`, then fills only still-null tier slots for raw
- * `J()==2/3/4/5` with the first matching candidate encountered. A later local
- * `java.util.Random().nextInt(3)` chooses one of three fixed four-club index orders.
+ * The legacy method begins by clearing all eight participant/competition references owned by the
+ * bootstrap (`o`, `D`, `E`, `F`, `H`, `G`, `J`, `I`). It then builds a candidate list from clubs
+ * whose raw `J()` is greater than 1, shuffles that list with `Collections.shuffle`, then fills only
+ * still-null tier slots for raw `J()==2/3/4/5` with the first matching candidate encountered. A
+ * later local `java.util.Random().nextInt(3)` chooses one of three fixed four-club index orders.
  *
  * This boundary deliberately accepts the already-shuffled candidate order. It does not claim
  * ownership of the legacy unseeded `Collections.shuffle` or local `Random` lifecycle.
  */
 object LegacyTournamentBootstrapRules {
+    data class OwnedReferences<T>(
+        val o: T?,
+        val dUpper: T?,
+        val e: T?,
+        val f: T?,
+        val h: T?,
+        val g: T?,
+        val j: T?,
+        val i: T?,
+    )
+
     data class TierSlots<T>(
         val tier2: T?,
         val tier3: T?,
         val tier4: T?,
         val tier5: T?,
     )
+
+    fun <T> clearOwnedReferences(): OwnedReferences<T> =
+        OwnedReferences(
+            o = null,
+            dUpper = null,
+            e = null,
+            f = null,
+            h = null,
+            g = null,
+            j = null,
+            i = null,
+        )
 
     fun <T> eligibleCandidates(
         source: List<T>,
