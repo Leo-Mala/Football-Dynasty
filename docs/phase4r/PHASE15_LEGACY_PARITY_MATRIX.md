@@ -26,15 +26,15 @@ A matriz é incremental e não converte inferência em gameplay. `SMALI/executá
 | `best.b.A(best.f0,false)` / `best.n.g` | callee of annual employment routing | none proven | `REACHABLE_NOT_IMPLEMENTED` | routing boundary frozen; substantive callee/lifecycle still open | inspect official executable corpus; do not infer semantics |
 | `best.a.q()` (`cw`) | `J(1)` command `cw` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | `best.b.O0().V()` tournament bootstrap characterized, including shuffle/raw RNG | map exact collections/state before implementation |
 | `best.a.p()` (`cD`) | guarded `J(1)` command `cD` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | tournament/list mutation characterized at routing level | prove modern competition/list ownership before implementation |
-| `best.b.p()` annual player sweep | `J(1)` command `aj` | `LegacyAnnualPlayerProgressionSweepRules` + junior/senior boundaries | `PARTIALLY_IMPLEMENTED` | senior-before-junior orchestration tested; junior side certified | close remaining `best.o.s()` cap section + durable senior state |
+| `best.b.p()` annual player sweep | `J(1)` command `aj` | `LegacyAnnualPlayerProgressionSweepRules` + junior/senior boundaries | `PARTIALLY_IMPLEMENTED` | senior-before-junior orchestration tested; junior side certified | compose frozen senior growth boundaries + durable senior state |
 | `best.o.e()` | senior pass inside `best.b.p()` | `LegacyAnnualSeniorProgressionRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | null-club early return; age 31/32 split; clear-M ordering tested | compose after full growth + persistence mapping |
 | `best.o.t()` | decline branch from `best.o.e()` | `LegacyAnnualSeniorDeclineRules` | `IMPLEMENTED_AND_CERTIFIED` | exact N accumulation, age/club tier weights, strict `N>1.0`, floors tested | persist N only after aggregate state map closes |
-| `best.o.s()` rate accumulation into `N` | growth branch before later cap section | `LegacyAnnualSeniorGrowthAccumulationRules` | `IMPLEMENTED_AND_TESTED` | official `best/o.smali`; complete `.16..02` base matrix, modifier order, raw club J/j0 branches, negative guard tests; `PHASE15_SENIOR_GROWTH_RATE_SMALI.md` | continue from post-accumulation cap/max section; do not re-investigate rates |
+| `best.o.s()` rate accumulation into `N` | growth branch prefix | `LegacyAnnualSeniorGrowthAccumulationRules` | `IMPLEMENTED_AND_TESTED` | official `best/o.smali`; complete `.16..02` base matrix, modifier order, raw club J/j0 branches, negative guard + retained-N tests; `PHASE15_SENIOR_GROWTH_RATE_SMALI.md` | retain; no rate re-investigation absent regression |
+| `best.o.s()` target/cap selection | after retained `N` accumulation, before high-`d0` RNG | `LegacyAnnualSeniorGrowthTargetRules` | `IMPLEMENTED_AND_TESTED` | official `best/o.smali`; complete `R0/O`, `p0`, `J/j0` matrices and final `min` tested; `PHASE15_SENIOR_GROWTH_TARGET_SMALI.md` | compose through real senior runtime after durable-state mapping |
 | `best.o.s()` high-`d0` RNG branch | growth branch | `LegacyAnnualRandomRules.bestOSApplyHighD0CapAdjustment` | `IMPLEMENTED_AND_CERTIFIED` | `d0>=60`, one `nextInt(5)`, 7/8/9/10 bonuses, pointless-draw quirk tested | retain; no seed-parity claim |
 | `best.o.s()` final cap/fraction block | growth branch | `LegacyAnnualSeniorGrowthFinalizationRules` | `IMPLEMENTED_AND_CERTIFIED` | strict `N>1.0`, one-point max, cap-block reset to `N=1.0`, overall-100 preservation tested | retain |
-| remaining middle cap/max block of `best.o.s()` | between N accumulation and already-frozen high-d0/finalization boundaries | none complete | `SMALI_IN_HAND / IMPLEMENTATION_REQUIRED` | raw official SMALI now available and SHA verified; no longer blocked on archive availability | characterize and implement in same senior persistence lot |
 | senior `M` (`S()/s1(Boolean)`) | lineup/match use → annual `best.o.e()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | lineup/substitution writers + annual reader/clear mapped | include in minimal persistence delta after reader/writer closure |
-| senior `N: double` | `best.o.s()` + `best.o.t()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | both annual branches use retained fractional accumulator; rate writer now fully characterized | include in minimal persistence delta with remaining senior fields |
+| senior `N: double` | `best.o.s()` + `best.o.t()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | both annual branches use retained fractional accumulator; complete growth computation now characterized in separate boundaries | include in minimal persistence delta with remaining senior fields |
 | senior payroll raw `n:I` | `best.o.m0()` → annual `best.c0.q()` | no durable V14 owner proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | direct SMALI getter proved; payroll contribution exact | audit writers/readers and group with minimal senior persistence delta |
 | `best.b.F()` | final `best.n.m()` route when `E1()==true` | `LegacyAnnualFResetRules` + lower-level rules | `PARTIALLY_IMPLEMENTED` | exact three-pass order + first-`z0()` quirk tested | close `k0.c()` internals and durable `j0/d` mapping |
 | `best.o.d1(0)` | pass 2 of `best.b.F()` | `LegacyAnnualPlayerD0Rules.resetGlobalCounter()` | `IMPLEMENTED_AND_CERTIFIED` | global `j0=0`, unrelated state preserved, idempotence tested | persist only with proven aggregate j0 lifecycle |
@@ -57,17 +57,16 @@ Fase 15.1 is **IMPLEMENTED_AND_CERTIFIED**. V14 persists the pre-promotion draft
 
 ## Current closure blockers
 
-The raw official archive is now available and SHA-verified. The remaining material areas are:
+The raw official archive is available and SHA-verified. The middle target/cap computation of `best.o.s()` is no longer a blocker. The remaining material areas are:
 
-1. middle cap/max section of `best.o.s()` plus minimal durable mapping of senior `M/N` and newly-proven payroll raw `n`;
+1. minimal durable mapping and runtime composition of senior `M/N` plus payroll raw `n`;
 2. durable mapping of `j0` and `d/W0`, only after full reader/writer audit;
 3. internals of `best.k0.c(index)` (`components.n1`, `best.h0`, player flag/lifecycle);
 4. `best.a.q()` / tournament rebuild and `best.a.p()` mutation;
 5. `best.b.A(best.f0,false)` + lifecycle of `best.n.g`;
-6. senior raw `best.o.n` durable ownership needed to feed the now-closed payroll scalar/composition/debit chain;
-7. object-level `best.f` candidate collection/source-order composition using the already-frozen deterministic compatibility RNG policy.
+6. object-level `best.f` candidate collection/source-order composition using the already-frozen deterministic compatibility RNG policy.
 
-`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas and the already-frozen senior rate/high-d0/finalization blocks are **not** blockers and must not be re-investigated absent regression.
+`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas and the now-frozen senior rate/target/high-d0/finalization computations are **not** blockers and must not be re-investigated absent regression.
 
 ## Status rules
 
@@ -78,7 +77,6 @@ The raw official archive is now available and SHA-verified. The remaining materi
 - `PERSISTENT_RUNTIME_GAP_PROVEN`: durable legacy state is reachable and no equivalent V14 state has yet been proven.
 - `REACHABLE_NOT_IMPLEMENTED`: executable behavior is proven reachable and no modern equivalent exists yet.
 - `PRESENTATION_ONLY`: no substantive gameplay mutation remains in this surface.
-- `SMALI_IN_HAND / IMPLEMENTATION_REQUIRED`: executable evidence is available and the remaining task is implementation/testing, not corpus recovery.
 - `UNKNOWN_NEEDS_INVESTIGATION`: evidence is incomplete; no gameplay is inferred.
 
 The Fase 13 historical conclusion about `best.m.z()` having no caller is explicitly superseded by the Fase 15 corpus-wide chain documented in `PHASE15_FINANCE_PERIOD_RESET_REACHABILITY.md`; historical files are not rewritten.
