@@ -24,7 +24,7 @@ A matriz é incremental e não converte inferência em gameplay. `SMALI/executá
 | `best.a.n(false)` (`cS`) | `J(1)` command `cS` | `LegacyAnnualNEmploymentRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | N1 guard, K/y filters, source order and overwrite behavior tested | close downstream `best.b.A(f0,false)` / `best.n.g` lifecycle |
 | `best.a.n(true)` (`cSempregado`) | `J(1)` command `cSempregado` | `LegacyAnnualNEmploymentRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | N1 guard, K filter, source order and overwrite behavior tested | close downstream `best.b.A(f0,false)` / `best.n.g` lifecycle |
 | `best.b.A(best.f0,false)` / `best.n.g` | callee of annual employment routing | none proven | `REACHABLE_NOT_IMPLEMENTED` | routing boundary frozen; substantive callee/lifecycle still open | inspect official executable corpus; do not infer semantics |
-| `best.a.q()` (`cw`) / `konrent.b0.V()` | `J(1)` command `cw` | `LegacyAnnualTournamentBootstrapRoutingRules` + `LegacyTournamentBootstrapRules` | `PARTIALLY_IMPLEMENTED` | q single-call router plus raw-SMALI fallback `J>1`, first missing `J=2/3/4/5` tier fills and exact local `nextInt(3)` permutation map are tested; `PHASE15_TOURNAMENT_BOOTSTRAP_SMALI.md` | remaining: prior competition participant recovery, `Collections.shuffle` compatibility ownership and `konrent.a0`/`konrent.f0` construction/state mapping |
+| `best.a.q()` (`cw`) / `konrent.b0.V()` | `J(1)` command `cw` | `LegacyAnnualTournamentBootstrapRoutingRules` + `LegacyTournamentBootstrapRules` | `PARTIALLY_IMPLEMENTED` | q single-call router; exact six-source prior-participant routing/callback order, fallback `J>1`, first missing `J=2/3/4/5` tier fills and exact local `nextInt(3)` permutation map are tested; `PHASE15_TOURNAMENT_BOOTSTRAP_SMALI.md` | remaining: `Collections.shuffle` compatibility ownership and `konrent.a0`/`konrent.f0` construction/state mapping |
 | `best.a.p()` (`cD`) | guarded `J(1)` command `cD` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | official raw SMALI confirms broader tournament/list mutation flow; routing guard already frozen | prove modern competition/list ownership before implementation |
 | `best.b.p()` annual player sweep | `J(1)` command `aj` | `LegacyAnnualPlayerProgressionSweepRules` + junior/senior boundaries | `PARTIALLY_IMPLEMENTED` | senior-before-junior orchestration tested; junior side certified | compose frozen senior growth boundaries + durable senior state |
 | `best.o.e()` | senior pass inside `best.b.p()` | `LegacyAnnualSeniorProgressionRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | null-club early return; age 31/32 split; clear-M ordering tested | compose after full growth + persistence mapping |
@@ -64,11 +64,11 @@ The raw official archive is available and SHA-verified. The middle target/cap co
 1. minimal durable mapping and runtime composition of senior `M/N` plus payroll raw `n`;
 2. durable mapping of `d/W0`; legacy `j0:I` is proven transient and must remain runtime-only;
 3. internals of `best.k0.c(index)` (`components.n1`, `best.h0`, player flag/lifecycle);
-4. remaining `konrent.b0.V()` ownership (`Collections.shuffle`, prior participant recovery, `konrent.a0`/`konrent.f0`) plus `best.a.p()` mutation; fallback tier selection and fixed permutation mapping are now frozen;
+4. remaining `konrent.b0.V()` ownership (`Collections.shuffle`, `konrent.a0`/`konrent.f0`) plus `best.a.p()` mutation; prior participant recovery, fallback tier selection and fixed permutation mapping are now frozen;
 5. `best.b.A(best.f0,false)` + lifecycle of `best.n.g`;
 6. object-level `best.f` candidate collection/source-order composition using the already-frozen deterministic compatibility RNG policy.
 
-`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas, the thin `best.a.q()` router, tournament fallback tier selection/permutation mapping and the now-frozen senior rate/target/high-d0/finalization computations are **not** blockers and must not be re-investigated absent regression.
+`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas, the thin `best.a.q()` router, tournament prior-participant recovery/fallback tier selection/permutation mapping and the now-frozen senior rate/target/high-d0/finalization computations are **not** blockers and must not be re-investigated absent regression.
 
 ## Status rules
 
