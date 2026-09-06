@@ -29,6 +29,12 @@ object CareerMatchPersistedEffectsMapper {
         matchDate: GameDate,
     ): List<CareerMatchPlayerRuntimeUpdate> {
         val matchEpochDay = LocalDate.of(matchDate.year, matchDate.month, matchDate.day).toEpochDay()
+        val legacyMParticipants = buildSet {
+            addAll(state.home.active.map { it.value.playerId })
+            addAll(state.home.used.map { it.value.playerId })
+            addAll(state.away.active.map { it.value.playerId })
+            addAll(state.away.used.map { it.value.playerId })
+        }
         return observedPlayers(state)
             .groupBy { it.value.playerId }
             .map { (playerId, wrappers) ->
@@ -44,6 +50,9 @@ object CareerMatchPersistedEffectsMapper {
                         energy = player.energy,
                         overall = player.skill,
                         injuryUntilEpochDay = injuryUntil,
+                        // best.o.s1(TRUE) is executed for the selected XI and for an entering sub.
+                        // Do not write false for an unused bench player: M may already be true earlier.
+                        legacyAnnualM = true.takeIf { playerId in legacyMParticipants },
                     )
                 }.distinct()
                 require(updates.size == 1) {

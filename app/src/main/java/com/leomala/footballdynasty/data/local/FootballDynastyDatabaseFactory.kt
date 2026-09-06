@@ -52,6 +52,7 @@ object FootballDynastyMigrations {
         Phase14CompetitionInputsMigration.MIGRATION_11_12,
         Phase14CompetitionInputsMigration.MIGRATION_12_13,
         Phase15JuniorDraftMigration.MIGRATION_13_14,
+        Phase15SeniorRuntimeMigration.MIGRATION_14_15,
     )
 }
 

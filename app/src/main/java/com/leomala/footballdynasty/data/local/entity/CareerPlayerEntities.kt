@@ -38,6 +38,7 @@ data class CareerPlayerRuntimeEntity(
     val overall: Int,
     val marketValue: Int,
     val star: Boolean,
+    /** Exact durable owner of legacy `best.o.d` / `W0()`; canonical source is `isTopMundial()`. */
     val worldTop: Boolean,
     val legacyHash: Int,
     val legacyGeneratedO: Int,
@@ -48,6 +49,12 @@ data class CareerPlayerRuntimeEntity(
     val legacyX: Boolean,
     val legacyY: Boolean,
     val legacyZ: Boolean,
+    /** Exact serialized legacy `best.o.M`; null only when a pre-V15 save has no provable value. */
+    val legacyAnnualM: Boolean? = null,
+    /** Exact serialized retained accumulator `best.o.N`; never reconstructed from overall. */
+    val legacyAnnualN: Double? = null,
+    /** Exact serialized raw senior payroll scalar `best.o.n` / `m0()`. */
+    val legacyRawPayrollN: Int? = null,
     @ColumnInfo(defaultValue = "100")
     val energy: Int = 100,
     @ColumnInfo(defaultValue = "0")
