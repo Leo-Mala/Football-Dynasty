@@ -72,6 +72,7 @@ class CareerSeniorRuntimeStoreTest {
         assertEquals(result.stateAfter.random, reopenedState.random)
         db.close()
         context.deleteDatabase(name)
+        Unit
     }
 
     @Test

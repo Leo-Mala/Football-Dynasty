@@ -45,6 +45,9 @@ class Migration12To13Test {
         val path = context.getDatabasePath(name).absolutePath
         val raw = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("ALTER TABLE `career_player_runtime` DROP COLUMN `legacyRawPayrollN`")
+        raw.execSQL("ALTER TABLE `career_player_runtime` DROP COLUMN `legacyAnnualN`")
+        raw.execSQL("ALTER TABLE `career_player_runtime` DROP COLUMN `legacyAnnualM`")
         raw.execSQL("DROP TABLE `career_junior_drafts`")
         raw.execSQL("ALTER TABLE `career_competitions` DROP COLUMN `legacyLeagueSubtype`")
         raw.execSQL("PRAGMA user_version=12")
