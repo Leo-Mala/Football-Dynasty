@@ -45,7 +45,7 @@ object LegacyTournamentBootstrapExecutionRules {
         val construction: Construction<T>?,
     )
 
-    fun <T> execute(
+    fun <T : Any> execute(
         random: RandomSource,
         y0: LegacyTournamentBootstrapRules.PriorCompetition<T>,
         v0: LegacyTournamentBootstrapRules.PriorCompetition<T>,
