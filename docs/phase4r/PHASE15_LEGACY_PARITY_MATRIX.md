@@ -15,7 +15,7 @@ A matriz é incremental e não converte inferência em gameplay. `SMALI/executá
 | `best.n.m()` | annual stage 4 | `LegacyAnnualNMRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | exact order, unconditional `nextInt(100)`, 50/51 boundary and route tests | compose substantive callees below; no duplicate RNG policy |
 | `best.b.d4()` / `components.o2` | optional first maintenance stage | V14 `career_active_loans` + `LegacyAnnualDeferredTransferExecutionRule` | `IMPLEMENTED_AND_CERTIFIED` | `PHASE15_ANNUAL_DEFERRED_STATE_MAPPING.md` | no V15; retain normalized loan lifecycle |
 | `best.b.e4()` / `components.y1` | optional stadium maintenance | V14 `career_stadium_constructions` + stadium runtime/completion stores | `IMPLEMENTED_AND_CERTIFIED` | `PHASE15_ANNUAL_DEFERRED_STATE_MAPPING.md` | no V15; retain normalized construction lifecycle |
-| `best.b.j2(1)` + `best.a.J(1)` | unconditional stage in `best.n.m()` | `LegacyAnnualJ2CommandRules` | `PARTIALLY_IMPLEMENTED` | source-order dispatch, cD guard, no-op/unknown and unconditional clear are tested | close only substantive callees still open: `q`, `p`, `A`; senior payroll raw-N persistence |
+| `best.b.j2(1)` + `best.a.J(1)` | unconditional stage in `best.n.m()` | `LegacyAnnualJ2CommandRules` | `PARTIALLY_IMPLEMENTED` | source-order dispatch, cD guard, no-op/unknown and unconditional clear are tested | close only substantive callees still open: downstream tournament bootstrap, `p`, `A`; senior payroll raw-N persistence |
 | `best.a.r()` (`dJ`) | `J(1)` command `dJ` | `CareerFinanceBorrowingStore.applyMonthlyBorrowingCharges()` | `IMPLEMENTED_AND_CERTIFIED` | monthly borrowing regression | retain |
 | `best.a.s()` (`ds` routing) | `J(1)` command `ds` | `LegacyAnnualClubPayrollRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | source-order clubs + `Y0(month)` filter tested | compose end-to-end after senior raw `n` durable mapping closes |
 | `best.c0.z()` / `q()` / `E(long)` | callee of annual `ds` | `LegacyAnnualClubPayrollCompositionRules` + `LegacyFinanceRuntimeRule` | `PARTIALLY_IMPLEMENTED` | `q()` and `E(long)` implemented; official SMALI proves `m0()==best.o.n` and `u()==best.p.i`; V14 junior `legacyI` mapped | only senior raw `best.o.n` durable owner remains open |
@@ -24,8 +24,8 @@ A matriz é incremental e não converte inferência em gameplay. `SMALI/executá
 | `best.a.n(false)` (`cS`) | `J(1)` command `cS` | `LegacyAnnualNEmploymentRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | N1 guard, K/y filters, source order and overwrite behavior tested | close downstream `best.b.A(f0,false)` / `best.n.g` lifecycle |
 | `best.a.n(true)` (`cSempregado`) | `J(1)` command `cSempregado` | `LegacyAnnualNEmploymentRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | N1 guard, K filter, source order and overwrite behavior tested | close downstream `best.b.A(f0,false)` / `best.n.g` lifecycle |
 | `best.b.A(best.f0,false)` / `best.n.g` | callee of annual employment routing | none proven | `REACHABLE_NOT_IMPLEMENTED` | routing boundary frozen; substantive callee/lifecycle still open | inspect official executable corpus; do not infer semantics |
-| `best.a.q()` (`cw`) | `J(1)` command `cw` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | `best.b.O0().V()` tournament bootstrap characterized, including shuffle/raw RNG | map exact collections/state before implementation |
-| `best.a.p()` (`cD`) | guarded `J(1)` command `cD` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | tournament/list mutation characterized at routing level | prove modern competition/list ownership before implementation |
+| `best.a.q()` (`cw`) | `J(1)` command `cw` | `LegacyAnnualTournamentBootstrapRoutingRules` → downstream `konrent.b0.V()` | `PARTIALLY_IMPLEMENTED` | official `smali/best/a.smali`: q performs exactly `core.a.b.O0().V()` once; routing regression + `PHASE15_ANNUAL_TOURNAMENT_BOOTSTRAP_ROUTING.md` | q router closed; map exact `konrent.b0.V()` collections/state before substantive implementation |
+| `best.a.p()` (`cD`) | guarded `J(1)` command `cD` | none end-to-end | `REACHABLE_NOT_IMPLEMENTED` | official raw SMALI confirms broader tournament/list mutation flow; routing guard already frozen | prove modern competition/list ownership before implementation |
 | `best.b.p()` annual player sweep | `J(1)` command `aj` | `LegacyAnnualPlayerProgressionSweepRules` + junior/senior boundaries | `PARTIALLY_IMPLEMENTED` | senior-before-junior orchestration tested; junior side certified | compose frozen senior growth boundaries + durable senior state |
 | `best.o.e()` | senior pass inside `best.b.p()` | `LegacyAnnualSeniorProgressionRoutingRules` | `IMPLEMENTED_AND_CERTIFIED` | null-club early return; age 31/32 split; clear-M ordering tested | compose after full growth + persistence mapping |
 | `best.o.t()` | decline branch from `best.o.e()` | `LegacyAnnualSeniorDeclineRules` | `IMPLEMENTED_AND_CERTIFIED` | exact N accumulation, age/club tier weights, strict `N>1.0`, floors tested | persist N only after aggregate state map closes |
@@ -36,9 +36,11 @@ A matriz é incremental e não converte inferência em gameplay. `SMALI/executá
 | senior `M` (`S()/s1(Boolean)`) | lineup/match use → annual `best.o.e()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | lineup/substitution writers + annual reader/clear mapped | include in minimal persistence delta after reader/writer closure |
 | senior `N: double` | `best.o.s()` + `best.o.t()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | both annual branches use retained fractional accumulator; complete growth computation now characterized in separate boundaries | include in minimal persistence delta with remaining senior fields |
 | senior payroll raw `n:I` | `best.o.m0()` → annual `best.c0.q()` | no durable V14 owner proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | direct SMALI getter proved; payroll contribution exact | audit writers/readers and group with minimal senior persistence delta |
-| `best.b.F()` | final `best.n.m()` route when `E1()==true` | `LegacyAnnualFResetRules` + lower-level rules | `PARTIALLY_IMPLEMENTED` | exact three-pass order + first-`z0()` quirk tested | close `k0.c()` internals and durable `j0/d` mapping |
-| `best.o.d1(0)` | pass 2 of `best.b.F()` | `LegacyAnnualPlayerD0Rules.resetGlobalCounter()` | `IMPLEMENTED_AND_CERTIFIED` | global `j0=0`, unrelated state preserved, idempotence tested | persist only with proven aggregate j0 lifecycle |
-| `best.o.D0()` | pass 3 of `best.b.F()` | `LegacyAnnualPlayerD0Rules` | `IMPLEMENTED_AND_CERTIFIED` | increment-before-guards and code/threshold matrix 2/3/4 frozen | durable `j0` + `d/W0` mapping still open |
+| senior `d/W0` | player runtime flags → `W0()` / `F()` | no durable V14 field proven | `PERSISTENT_RUNTIME_GAP_PROVEN` | official `best/o.smali`: serialized Boolean backing field `d`; `z1(Boolean)` writer and readers mapped | include only `d` in durable-state audit; legacy `j0:I` is transient and must not be persisted |
+| senior `j0:I` | annual/reset runtime counter | runtime-only owner required | `TRANSIENT_RUNTIME_STATE` | official `best/o.smali` declares `j0:I` as `transient`; `j0()`/`d1()` access mapped | never add Room column solely for this legacy field; compose runtime lifecycle only |
+| `best.b.F()` | final `best.n.m()` route when `E1()==true` | `LegacyAnnualFResetRules` + lower-level rules | `PARTIALLY_IMPLEMENTED` | exact three-pass order + first-`z0()` quirk tested | close `k0.c()` internals and durable `d/W0` mapping; keep j0 transient |
+| `best.o.d1(0)` | pass 2 of `best.b.F()` | `LegacyAnnualPlayerD0Rules.resetGlobalCounter()` | `IMPLEMENTED_AND_CERTIFIED` | global `j0=0`, unrelated state preserved, idempotence tested | keep `j0` transient; compose only the proven runtime lifecycle |
+| `best.o.D0()` | pass 3 of `best.b.F()` | `LegacyAnnualPlayerD0Rules` | `IMPLEMENTED_AND_CERTIFIED` | increment-before-guards and code/threshold matrix 2/3/4 frozen | transient `j0` runtime + durable `d/W0` mapping still open |
 | `best.k0.c(index)` traversal | pass 1 of `best.b.F()` | `LegacyAnnualTournamentEntryResetRules` | `PARTIALLY_IMPLEMENTED` | exact selector sequence `[0,1,2,2,5,6,6,3,3,4,4]` and multiplicity tested | prove `components.n1` thresholds, `best.h0` collections/player flag/persistence |
 | `F2(true)` / `M0` | original `P0()==0` in `best.n.m()` | router flag only; no independent persistence justified | `CHARACTERIZED` | readers/writers/lifecycle route already mapped | do not create schema field absent new contradictory evidence |
 | `g4()` → `components.n3` → `best.f` selection | gate `best.n.m() > 50` | `LegacyAnnualRandomRules` + `LegacyAnnualSelectionRules` | `PARTIALLY_IMPLEMENTED` | gates/ranges/filters/draw counts and explicit deterministic compatibility policy already characterized | compose exact runtime candidate collections/source order using existing RandomSource policy; no seed-parity claim |
@@ -60,13 +62,13 @@ Fase 15.1 is **IMPLEMENTED_AND_CERTIFIED**. V14 persists the pre-promotion draft
 The raw official archive is available and SHA-verified. The middle target/cap computation of `best.o.s()` is no longer a blocker. The remaining material areas are:
 
 1. minimal durable mapping and runtime composition of senior `M/N` plus payroll raw `n`;
-2. durable mapping of `j0` and `d/W0`, only after full reader/writer audit;
+2. durable mapping of `d/W0`; legacy `j0:I` is proven transient and must remain runtime-only;
 3. internals of `best.k0.c(index)` (`components.n1`, `best.h0`, player flag/lifecycle);
-4. `best.a.q()` / tournament rebuild and `best.a.p()` mutation;
+4. substantive `konrent.b0.V()` tournament bootstrap plus `best.a.p()` mutation; the thin `best.a.q()` router itself is closed;
 5. `best.b.A(best.f0,false)` + lifecycle of `best.n.g`;
 6. object-level `best.f` candidate collection/source-order composition using the already-frozen deterministic compatibility RNG policy.
 
-`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas and the now-frozen senior rate/target/high-d0/finalization computations are **not** blockers and must not be re-investigated absent regression.
+`d4/o2`, `e4/y1`, junior persistence/runtime, payroll getter formulas, the thin `best.a.q()` router and the now-frozen senior rate/target/high-d0/finalization computations are **not** blockers and must not be re-investigated absent regression.
 
 ## Status rules
 
@@ -75,6 +77,7 @@ The raw official archive is available and SHA-verified. The middle target/cap co
 - `PARTIALLY_IMPLEMENTED`: a reachable parent/subsystem has implemented sub-boundaries, but at least one substantive callee/state mapping remains open.
 - `CHARACTERIZED`: behavior/reachability is proven but no independent runtime implementation is required for the isolated seam.
 - `PERSISTENT_RUNTIME_GAP_PROVEN`: durable legacy state is reachable and no equivalent V14 state has yet been proven.
+- `TRANSIENT_RUNTIME_STATE`: executable state is proven transient in the legacy serialization and therefore requires runtime composition only, not a Room compatibility column by itself.
 - `REACHABLE_NOT_IMPLEMENTED`: executable behavior is proven reachable and no modern equivalent exists yet.
 - `PRESENTATION_ONLY`: no substantive gameplay mutation remains in this surface.
 - `UNKNOWN_NEEDS_INVESTIGATION`: evidence is incomplete; no gameplay is inferred.
