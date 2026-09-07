@@ -65,7 +65,7 @@ data class CareerCompetitionSnapshotMemberEntity(
 /** Serialized annual `best.o.V` / `components.s2` player rating history. */
 @Entity(
     tableName = "career_player_match_rating_history",
-    primaryKeys = ["careerId", "playerId", "legacySeasonIndex", "legacyMatchIndex"],
+    primaryKeys = ["careerId", "playerId", "legacyDayIndexB", "legacyDayMatchIndexC"],
     foreignKeys = [
         ForeignKey(
             entity = CareerPlayerRuntimeEntity::class,
@@ -77,16 +77,16 @@ data class CareerCompetitionSnapshotMemberEntity(
     ],
     indices = [
         Index(value = ["careerId", "playerId"]),
-        Index(value = ["careerId", "legacySeasonIndex", "legacyMatchIndex"]),
+        Index(value = ["careerId", "legacyDayIndexB", "legacyDayMatchIndexC"]),
     ],
 )
 data class CareerPlayerMatchRatingHistoryEntity(
     val careerId: String,
     val playerId: String,
-    /** Raw `components.s2.b`, sourced from legacy `best.b.j0()`. */
-    val legacySeasonIndex: Int,
-    /** Raw `components.s2.c`, zero-based index inside legacy `best.b.q0()`. */
-    val legacyMatchIndex: Int,
+    /** Raw `components.s2.b` = `best.b.j0()` = current one-best.a-per-calendar-day index. */
+    val legacyDayIndexB: Int,
+    /** Raw `components.s2.c` = zero-based index inside that day's `best.a.A()` match list. */
+    val legacyDayMatchIndexC: Int,
     /** Raw `components.s2.a`, the already-resolved `best.o.O/y0`. */
     val legacyRating: Double,
 )
