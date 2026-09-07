@@ -4,7 +4,7 @@ import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.entity.CareerCompetitionSnapshotEntity
 import com.leomala.footballdynasty.data.local.entity.CareerCompetitionSnapshotMemberEntity
 import com.leomala.footballdynasty.data.local.entity.CareerPlayerMatchRatingHistoryEntity
-import com.leomala.footballdynasty.domain.career.LegacyCompetitionSnapshotRules
+import com.leomala.footballdynasty.domain.competition.LegacyCompetitionSnapshotRules
 
 /** One already-resolved legacy `components.s2` write for a player in the current match. */
 data class CareerPlayerMatchRatingHistoryMutation(
@@ -25,14 +25,12 @@ class CareerLegacyDurabilityStore(
     suspend fun persistMatchEvidence(
         careerId: String,
         matchId: String,
-        legacySeasonIndex: Int,
         playerRatingsInLegacyOrder: List<CareerPlayerMatchRatingHistoryMutation>,
         tieBreakMutation: CareerMatchTieBreakMutation? = null,
     ) = database.withTransaction {
         persistMatchEvidenceInCurrentTransaction(
             careerId = careerId,
             matchId = matchId,
-            legacySeasonIndex = legacySeasonIndex,
             playerRatingsInLegacyOrder = playerRatingsInLegacyOrder,
             tieBreakMutation = tieBreakMutation,
         )
@@ -41,13 +39,11 @@ class CareerLegacyDurabilityStore(
     internal suspend fun persistMatchEvidenceInCurrentTransaction(
         careerId: String,
         matchId: String,
-        legacySeasonIndex: Int,
         playerRatingsInLegacyOrder: List<CareerPlayerMatchRatingHistoryMutation>,
         tieBreakMutation: CareerMatchTieBreakMutation? = null,
     ) {
         require(careerId.isNotBlank())
         require(matchId.isNotBlank())
-        require(legacySeasonIndex >= 0) { "Legacy season index must not be negative" }
         require(playerRatingsInLegacyOrder.map { it.playerId }.distinct().size == playerRatingsInLegacyOrder.size) {
             "Legacy components.s2 history may contain at most one row per player/match"
         }
@@ -56,8 +52,12 @@ class CareerLegacyDurabilityStore(
         val scheduled = requireNotNull(scheduledDao.findById(careerId, matchId)) {
             "Missing scheduled match $careerId/$matchId for V17 durability"
         }
-        val legacyMatchIndex = requireNotNull(scheduled.legacyScheduleOrdinal) {
-            "Scheduled match $careerId/$matchId has no proven legacy ArrayList ordinal"
+        val legacyDayMatchIndex = if (playerRatingsInLegacyOrder.isEmpty()) {
+            scheduled.legacyDayMatchOrdinal
+        } else {
+            requireNotNull(scheduled.legacyDayMatchOrdinal) {
+                "Scheduled match $careerId/$matchId has no proven best.a.A() ordinal"
+            }
         }
         val durabilityDao = database.careerLegacyDurabilityDao()
         playerRatingsInLegacyOrder.forEach { mutation ->
@@ -69,8 +69,8 @@ class CareerLegacyDurabilityStore(
                 CareerPlayerMatchRatingHistoryEntity(
                     careerId = careerId,
                     playerId = mutation.playerId,
-                    legacySeasonIndex = legacySeasonIndex,
-                    legacyMatchIndex = legacyMatchIndex,
+                    legacyDayIndexB = scheduled.dayIndex,
+                    legacyDayMatchIndexC = requireNotNull(legacyDayMatchIndex),
                     legacyRating = mutation.ratingY0,
                 )
             )
