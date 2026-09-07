@@ -45,7 +45,9 @@ class CareerMatchStore(
             database.careerCoreStateDao().upsert(
                 CareerCoreStateRoomAdapter.entity(state, clockMillis())
             )
-            dao.upsertAll(schedule.map { it.toEntity(state.id) })
+            // Legacy best.b.q0() is an ArrayList and components.s2.c stores its zero-based index.
+            // Preserve the caller's proven source order rather than reconstructing it from dates/ids.
+            dao.upsertAll(schedule.mapIndexed { ordinal, event -> event.toEntity(state.id, ordinal) })
         }
     }
 
@@ -254,17 +256,19 @@ class CareerMatchStore(
         require(entity.awayClubId == scheduled.awayClubId)
     }
 
-    private fun ScheduledCareerMatch.toEntity(careerId: String) = CareerScheduledMatchEntity(
-        careerId = careerId,
-        matchId = matchId,
-        dayIndex = dayIndex,
-        eventTypeCode = eventTypeCode,
-        homeClubId = homeClubId,
-        awayClubId = awayClubId,
-        processed = processed,
-        homeGoals = null,
-        awayGoals = null,
-    )
+    private fun ScheduledCareerMatch.toEntity(careerId: String, legacyScheduleOrdinal: Int) =
+        CareerScheduledMatchEntity(
+            careerId = careerId,
+            matchId = matchId,
+            dayIndex = dayIndex,
+            eventTypeCode = eventTypeCode,
+            homeClubId = homeClubId,
+            awayClubId = awayClubId,
+            processed = processed,
+            homeGoals = null,
+            awayGoals = null,
+            legacyScheduleOrdinal = legacyScheduleOrdinal,
+        )
 
     private fun CareerScheduledMatchEntity.toScheduledMatch() = ScheduledCareerMatch(
         matchId = matchId,
