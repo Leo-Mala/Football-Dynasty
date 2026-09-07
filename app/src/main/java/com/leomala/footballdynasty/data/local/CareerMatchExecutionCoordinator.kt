@@ -37,8 +37,10 @@ data class CareerMatchRatedSimulationResult(
 
 /** End-to-end persisted match execution seam around the certified Phase 8 runtime. */
 class CareerMatchExecutionCoordinator(
-    database: FootballDynastyDatabase,
+    private val database: FootballDynastyDatabase,
     clockMillis: () -> Long = System::currentTimeMillis,
+    private val roundTransientRatingRuntime: CareerLeagueRoundTransientRatingRuntime =
+        CareerLeagueRoundTransientRatingRuntime(),
 ) {
     private val stateRepository = RoomCareerStateRepository(database)
     private val store = CareerMatchStore(database, clockMillis)
@@ -53,6 +55,11 @@ class CareerMatchExecutionCoordinator(
         val match: Match,
         val ratingMetricState: LegacyMatchRatingMetricRuntimeRules.State? = null,
         val tieBreakMutation: CareerMatchTieBreakMutation? = null,
+    )
+
+    private data class TransientLeagueOwner(
+        val competitionId: String,
+        val roundNumber: Int,
     )
 
     suspend fun executeManagerMatch(
@@ -243,6 +250,11 @@ class CareerMatchExecutionCoordinator(
         val ratingParticipantSnapshot = implicitRatingRandomFactory?.let {
             LegacyMatchRatingParticipantRuntime.capture(transientState)
         }
+        val transientLeagueOwner = if (implicitRatingRandomFactory != null) {
+            resolveTransientLeagueOwner(careerId, matchId)
+        } else {
+            null
+        }
         val matchDate = LegacyCalendarRules.dateAt(
             state.calendar.copy(currentDayIndex = scheduled.dayIndex)
         )
@@ -308,6 +320,7 @@ class CareerMatchExecutionCoordinator(
                     "Rated match simulation must return exact legacy rating metric state"
                 },
                 implicitRandomFactory = factory,
+                captureTransientLeague = transientLeagueOwner != null,
             )
         }.orEmpty()
         val competitionPlayerRatingMutations = ratedPlayers.map { it.toCompetitionMutation() }
@@ -315,6 +328,31 @@ class CareerMatchExecutionCoordinator(
             CareerPlayerMatchRatingHistoryMutation(
                 playerId = rated.playerId,
                 ratingY0 = rated.ratingY0,
+            )
+        }
+
+        val stagedRound = transientLeagueOwner?.let { owner ->
+            roundTransientRatingRuntime.stage(
+                key = CareerLeagueRoundTransientRatingRuntime.Key(
+                    careerId = careerId,
+                    competitionId = owner.competitionId,
+                    roundNumber = owner.roundNumber,
+                ),
+                capturesInLegacyOrder = ratedPlayers.mapNotNull { rated ->
+                    rated.transientLeagueCapture?.let { capture ->
+                        CareerLeagueRoundTransientRatingRuntime.CaptureInput(
+                            playerId = rated.playerId,
+                            clubIdAtSnapshot = when (rated.side) {
+                                0 -> scheduled.homeClubId
+                                1 -> scheduled.awayClubId
+                                else -> error("Legacy rating side must be 0 or 1")
+                            },
+                            ratingY0 = capture.ratingY0,
+                            legacyG0 = capture.legacyG0,
+                            randomOrder = capture.randomOrder,
+                        )
+                    }
+                },
             )
         }
 
@@ -326,7 +364,7 @@ class CareerMatchExecutionCoordinator(
             awayGoals = requireNotNull(result.match.awayGoals),
         )
 
-        atomicCommitter.commit(
+        val commitOutcome = atomicCommitter.commit(
             result = result,
             playerRuntimeUpdates = CareerMatchPersistedEffectsMapper.playerRuntimeUpdates(
                 transientState,
@@ -345,7 +383,52 @@ class CareerMatchExecutionCoordinator(
             competitionPlayerRatingMutationsInLegacyOrder = competitionPlayerRatingMutations,
             playerMatchRatingHistoryMutationsInLegacyOrder = playerMatchRatingHistoryMutations,
             tieBreakMutation = tieBreakMutation,
+            roundSnapshotStaging = stagedRound?.let { staged ->
+                CareerRoundSnapshotStaging(
+                    competitionId = staged.key.competitionId,
+                    roundNumber = staged.key.roundNumber,
+                    legacySeasonIndex = state.season.number,
+                    candidatesInLegacyOrder = staged.candidatesInLegacyOrder,
+                )
+            },
         )
+
+        // Only now may the process-local z2 buffer advance/clear: any exception above rolled the Room
+        // transaction back, so mutating transient state earlier would diverge from durable career state.
+        stagedRound?.let { staged ->
+            val roundClosed =
+                commitOutcome.advancedCompetitionId == staged.key.competitionId &&
+                    commitOutcome.advancedRoundNumber == staged.key.roundNumber
+            roundTransientRatingRuntime.commit(staged, roundClosed)
+        }
         return result
+    }
+
+    /**
+     * `career_competitions` is the modern owner for the proven `konrent.t` league subset. The
+     * legacy z2 path additionally requires `k0.E()==1`, represented by legacyCompetitionType == 1.
+     */
+    private suspend fun resolveTransientLeagueOwner(
+        careerId: String,
+        matchId: String,
+    ): TransientLeagueOwner? {
+        val dao = database.careerCompetitionDao()
+        val links = dao.matchLinksForMatch(careerId, matchId)
+        if (links.isEmpty()) return null
+        require(links.size == 1) {
+            "Legacy match $careerId/$matchId must resolve zero or one competition, found ${links.size}"
+        }
+        val link = links.single()
+        val competition = requireNotNull(dao.findCompetition(careerId, link.competitionId)) {
+            "Missing competition ${link.competitionId} linked to match $careerId/$matchId"
+        }
+        require(link.roundNumber == competition.currentRoundNumber) {
+            "Rated match $matchId does not belong to current competition round"
+        }
+        if (competition.legacyCompetitionType != 1) return null
+        return TransientLeagueOwner(
+            competitionId = link.competitionId,
+            roundNumber = link.roundNumber,
+        )
     }
 }
