@@ -45,7 +45,7 @@ interface CareerLegacyDurabilityDao {
     @Query(
         "SELECT * FROM career_player_match_rating_history " +
             "WHERE careerId = :careerId AND playerId = :playerId " +
-            "ORDER BY legacySeasonIndex ASC, legacyMatchIndex ASC"
+            "ORDER BY legacyDayIndexB ASC, legacyDayMatchIndexC ASC"
     )
     suspend fun playerMatchRatingHistory(
         careerId: String,
