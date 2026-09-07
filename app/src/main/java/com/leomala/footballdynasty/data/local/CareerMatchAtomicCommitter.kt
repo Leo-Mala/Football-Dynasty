@@ -17,16 +17,7 @@ data class CareerMatchFinanceUpdate(
     val after: LegacyFinanceRuntimeState,
 )
 
-/**
- * One already-calculated legacy coach post-match mutation.
- *
- * [resolvedClubId] is the match side whose `c0.y0()` resolved this manager. The list supplied to
- * [CareerMatchAtomicCommitter.commit] must retain the proven `best.s.f()` order: home first, then
- * away, omitting a side only when the legacy manager lookup produced no manager. The same manager
- * source ordinal may therefore legitimately appear twice when corrupt/source state points both
- * clubs at the same first ArrayList entry; callers must chain the second expected-before state from
- * the first after-state instead of deduplicating it.
- */
+/** One already-calculated legacy coach post-match mutation. */
 data class CareerMatchCoachUpdate(
     val resolvedClubId: String,
     val expectedBefore: CareerCoachRuntimeState,
@@ -41,6 +32,7 @@ class CareerMatchAtomicCommitter(
     private val managerStore = CareerManagerRuntimeStore(database)
     private val coachStore = CareerCoachRuntimeStore(database)
     private val competitionPlayerRatingStore = CareerCompetitionPlayerRatingStore(database)
+    private val legacyDurabilityStore = CareerLegacyDurabilityStore(database)
 
     suspend fun commit(
         result: CareerMatchRuntimeResult,
@@ -49,6 +41,8 @@ class CareerMatchAtomicCommitter(
         financeUpdate: CareerMatchFinanceUpdate? = null,
         coachUpdatesInLegacyOrder: List<CareerMatchCoachUpdate> = emptyList(),
         competitionPlayerRatingMutationsInLegacyOrder: List<CareerCompetitionPlayerRatingMutation> = emptyList(),
+        playerMatchRatingHistoryMutationsInLegacyOrder: List<CareerPlayerMatchRatingHistoryMutation> = emptyList(),
+        tieBreakMutation: CareerMatchTieBreakMutation? = null,
     ) = database.withTransaction {
         val coachSideOrder = coachUpdatesInLegacyOrder.map { update ->
             when (update.resolvedClubId) {
@@ -63,8 +57,16 @@ class CareerMatchAtomicCommitter(
             "Coach updates must preserve legacy home-then-away order without duplicate match sides"
         }
 
-        // Legacy `best.o.n(...)` updates competition `k0.g` during rating, before the later match
-        // persistence/competition-round effects. Keep that ordering while sharing one Room transaction.
+        // In best.o.n(), components.s2 is appended before the gated k0.a(player) write. Keep that
+        // proven ordering, while all effects still share one Room transaction.
+        if (playerMatchRatingHistoryMutationsInLegacyOrder.isNotEmpty() || tieBreakMutation != null) {
+            legacyDurabilityStore.persistMatchEvidenceInCurrentTransaction(
+                careerId = result.state.id,
+                matchId = result.match.id,
+                playerRatingsInLegacyOrder = playerMatchRatingHistoryMutationsInLegacyOrder,
+                tieBreakMutation = tieBreakMutation,
+            )
+        }
         competitionPlayerRatingStore.applyForMatchInCurrentTransaction(
             careerId = result.state.id,
             matchId = result.match.id,
