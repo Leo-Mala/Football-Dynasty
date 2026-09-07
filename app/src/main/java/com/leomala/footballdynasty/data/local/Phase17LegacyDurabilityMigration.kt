@@ -15,7 +15,7 @@ object Phase17LegacyDurabilityMigration {
             db.execSQL("ALTER TABLE `career_competitions` ADD COLUMN `legacyCompetitionIndex` INTEGER")
             db.execSQL("ALTER TABLE `career_competitions` ADD COLUMN `legacyGroupCountA0` INTEGER")
             db.execSQL("ALTER TABLE `career_competition_player_ratings` ADD COLUMN `legacyStableOrdinal` INTEGER")
-            db.execSQL("ALTER TABLE `career_scheduled_matches` ADD COLUMN `legacyScheduleOrdinal` INTEGER")
+            db.execSQL("ALTER TABLE `career_scheduled_matches` ADD COLUMN `legacyDayMatchOrdinal` INTEGER")
             db.execSQL("ALTER TABLE `career_scheduled_matches` ADD COLUMN `legacyTieBreakActive` INTEGER")
             db.execSQL("ALTER TABLE `career_scheduled_matches` ADD COLUMN `legacyTieBreakWinnerClubId` TEXT")
 
@@ -35,13 +35,13 @@ object Phase17LegacyDurabilityMigration {
                 "CREATE INDEX IF NOT EXISTS `index_career_competition_snapshot_members_careerId_playerId` ON `career_competition_snapshot_members` (`careerId`, `playerId`)"
             )
             db.execSQL(
-                """CREATE TABLE IF NOT EXISTS `career_player_match_rating_history` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `legacySeasonIndex` INTEGER NOT NULL, `legacyMatchIndex` INTEGER NOT NULL, `legacyRating` REAL NOT NULL, PRIMARY KEY(`careerId`, `playerId`, `legacySeasonIndex`, `legacyMatchIndex`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE)"""
+                """CREATE TABLE IF NOT EXISTS `career_player_match_rating_history` (`careerId` TEXT NOT NULL, `playerId` TEXT NOT NULL, `legacyDayIndexB` INTEGER NOT NULL, `legacyDayMatchIndexC` INTEGER NOT NULL, `legacyRating` REAL NOT NULL, PRIMARY KEY(`careerId`, `playerId`, `legacyDayIndexB`, `legacyDayMatchIndexC`), FOREIGN KEY(`careerId`, `playerId`) REFERENCES `career_player_runtime`(`careerId`, `playerId`) ON UPDATE NO ACTION ON DELETE CASCADE)"""
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_career_player_match_rating_history_careerId_playerId` ON `career_player_match_rating_history` (`careerId`, `playerId`)"
             )
             db.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_career_player_match_rating_history_careerId_legacySeasonIndex_legacyMatchIndex` ON `career_player_match_rating_history` (`careerId`, `legacySeasonIndex`, `legacyMatchIndex`)"
+                "CREATE INDEX IF NOT EXISTS `index_career_player_match_rating_history_careerId_legacyDayIndexB_legacyDayMatchIndexC` ON `career_player_match_rating_history` (`careerId`, `legacyDayIndexB`, `legacyDayMatchIndexC`)"
             )
         }
     }
