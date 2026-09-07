@@ -1,5 +1,6 @@
 package com.leomala.footballdynasty.data.local
 
+import com.leomala.footballdynasty.domain.competition.LegacyLeagueTransientRatingCaptureRules
 import com.leomala.footballdynasty.domain.match.LegacyMatchPlayerRatingRules
 import com.leomala.footballdynasty.domain.match.LegacyMatchRatingMetricRuntimeRules
 import com.leomala.footballdynasty.domain.match.LegacyMatchRatingParticipantRuntime
@@ -26,6 +27,18 @@ object CareerMatchPlayerRatingRuntimeExecutor {
             legacyF0 = legacyF0,
             legacyR = legacyR,
         )
+
+        /** Exact transient `konrent.t.a0(best.o)` projection when the match owner is a type-1 league. */
+        fun toTransientLeagueCapture(
+            implicitRandom: RandomSource,
+        ): LegacyLeagueTransientRatingCaptureRules.Capture? =
+            LegacyLeagueTransientRatingCaptureRules.capture(
+                legacyCompetitionType = 1,
+                isLegacyKonrentT = true,
+                ratingY0 = ratingY0,
+                legacyG0 = resolvedLegacyS,
+                implicitRandom = implicitRandom,
+            )
     }
 
     fun execute(
