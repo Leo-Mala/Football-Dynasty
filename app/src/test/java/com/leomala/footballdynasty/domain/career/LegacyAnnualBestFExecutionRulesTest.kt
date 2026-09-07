@@ -88,7 +88,10 @@ class LegacyAnnualBestFExecutionRulesTest {
 
         assertEquals(LegacyAnnualSelectionRules.BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G, result.route)
         assertNull(result.selected)
-        assertEquals(listOf("too-low-division"), result.qAttempts.single().shuffledCandidates.map { it.id })
+        assertEquals(2, result.qAttempts.size)
+        assertEquals(listOf("too-low-division"), result.qAttempts[0].shuffledCandidates.map { it.id })
+        assertEquals(emptyList<String>(), result.qAttempts[1].shuffledCandidates.map { it.id })
+        assertEquals(emptyList<String>(), result.fallbackAttempt?.shuffledCandidates?.map { it.id })
         assertEquals(0L, random.draws)
     }
 
