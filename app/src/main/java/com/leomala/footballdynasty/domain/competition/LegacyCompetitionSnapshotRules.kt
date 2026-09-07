@@ -14,7 +14,8 @@ object LegacyCompetitionSnapshotRules {
 
     data class Member(
         val playerId: String,
-        val clubIdAtSnapshot: String,
+        /** Legacy `best.k0.c()` appends player.u0() without a null check. */
+        val clubIdAtSnapshot: String?,
     )
 
     data class Snapshot(
@@ -31,7 +32,7 @@ object LegacyCompetitionSnapshotRules {
 
     data class AnnualCandidate(
         val playerId: String,
-        val clubIdAtSnapshot: String,
+        val clubIdAtSnapshot: String?,
         val legacyAverage: Double,
         val legacyCount: Double,
         val legacySelector: Int,
@@ -121,7 +122,6 @@ object LegacyCompetitionSnapshotRules {
         }
         candidates.forEach { candidate ->
             require(candidate.playerId.isNotBlank()) { "Player id must not be blank" }
-            require(candidate.clubIdAtSnapshot.isNotBlank()) { "Snapshot club id must not be blank" }
             require(candidate.legacyCount >= 0.0) { "Legacy count must not be negative" }
         }
     }
