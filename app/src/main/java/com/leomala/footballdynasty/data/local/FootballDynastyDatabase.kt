@@ -26,6 +26,7 @@ import com.leomala.footballdynasty.data.local.entity.*
         CareerSquadMembershipEntity::class, CareerScheduledMatchEntity::class,
         CareerPlayerClubSeasonStatEntity::class, CareerCompetitionEntity::class,
         CareerCompetitionStandingEntity::class, CareerCompetitionMatchEntity::class,
+        CareerCompetitionPlayerRatingEntity::class,
         CareerPlayerCommercialEntity::class, CareerPlayerTransferStateEntity::class,
         CareerClubManagerRuntimeEntity::class, CareerActiveLoanEntity::class,
         CareerStadiumConstructionEntity::class, CareerStadiumRuntimeEntity::class,
@@ -52,7 +53,7 @@ abstract class FootballDynastyDatabase : RoomDatabase() {
     abstract fun careerJuniorDraftDao(): CareerJuniorDraftDao
 
     companion object {
-        const val SCHEMA_VERSION: Int = 15
+        const val SCHEMA_VERSION: Int = 16
         const val DATABASE_NAME: String = "football_dynasty.db"
     }
 }
