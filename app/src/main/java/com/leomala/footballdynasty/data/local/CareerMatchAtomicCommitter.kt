@@ -43,7 +43,8 @@ class CareerMatchAtomicCommitter(
         competitionPlayerRatingMutationsInLegacyOrder: List<CareerCompetitionPlayerRatingMutation> = emptyList(),
         playerMatchRatingHistoryMutationsInLegacyOrder: List<CareerPlayerMatchRatingHistoryMutation> = emptyList(),
         tieBreakMutation: CareerMatchTieBreakMutation? = null,
-    ) = database.withTransaction {
+        roundSnapshotStaging: CareerRoundSnapshotStaging? = null,
+    ): CareerMatchCommitOutcome = database.withTransaction {
         val coachSideOrder = coachUpdatesInLegacyOrder.map { update ->
             when (update.resolvedClubId) {
                 result.match.homeClubId -> 0
@@ -72,10 +73,11 @@ class CareerMatchAtomicCommitter(
             matchId = result.match.id,
             mutationsInLegacyOrder = competitionPlayerRatingMutationsInLegacyOrder,
         )
-        matchStore.commitMatch(
+        val matchOutcome = matchStore.commitMatch(
             result = result,
             playerRuntimeUpdates = playerRuntimeUpdates,
             playerClubSeasonStatUpdates = playerClubSeasonStatUpdates,
+            roundSnapshotStaging = roundSnapshotStaging,
         )
         financeUpdate?.let { update ->
             require(update.clubId == result.match.homeClubId || update.clubId == result.match.awayClubId) {
@@ -95,5 +97,6 @@ class CareerMatchAtomicCommitter(
                 after = update.after,
             )
         }
+        matchOutcome
     }
 }
