@@ -28,6 +28,9 @@ interface CareerCompetitionDao {
     )
     suspend fun findCompetition(careerId: String, competitionId: String): CareerCompetitionEntity?
 
+    @Query("SELECT * FROM career_competitions WHERE careerId = :careerId ORDER BY competitionId ASC")
+    suspend fun competitionsForCareer(careerId: String): List<CareerCompetitionEntity>
+
     @Query(
         "SELECT * FROM career_competition_standings " +
             "WHERE careerId = :careerId AND competitionId = :competitionId " +
@@ -78,4 +81,16 @@ interface CareerCompetitionDao {
         careerId: String,
         competitionId: String,
     ): List<CareerCompetitionPlayerRatingEntity>
+
+    @Query(
+        "SELECT MAX(legacyStableOrdinal) FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId"
+    )
+    suspend fun maxPlayerRatingStableOrdinal(careerId: String, competitionId: String): Int?
+
+    @Query(
+        "DELETE FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId"
+    )
+    suspend fun clearPlayerRatings(careerId: String, competitionId: String)
 }
