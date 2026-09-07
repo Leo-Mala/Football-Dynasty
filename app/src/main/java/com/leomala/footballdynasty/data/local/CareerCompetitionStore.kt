@@ -18,6 +18,10 @@ data class CareerCompetitionSnapshot(
     val legacyRelegationCount: Int? = null,
     /** Exact serialized `konrent.t.x0()`; null means the source is not proven. */
     val legacyLeagueSubtype: Int? = null,
+    /** Exact list index passed to `best.k0.c(index)`. */
+    val legacyCompetitionIndex: Int? = null,
+    /** Exact serialized `konrent.t.a0` / `LoadLigaOptions.nGrupos`. */
+    val legacyGroupCountA0: Int? = null,
 ) {
     val finished: Boolean
         get() = currentRoundNumber > totalRounds
@@ -36,6 +40,8 @@ class CareerCompetitionStore(
         roundMatchIds: List<List<String>>,
         legacyRelegationCount: Int? = null,
         legacyLeagueSubtype: Int? = null,
+        legacyCompetitionIndex: Int? = null,
+        legacyGroupCountA0: Int? = null,
     ) {
         validateInitialization(careerId, competitionId, clubIds, roundMatchIds)
         legacyRelegationCount?.let {
@@ -43,6 +49,12 @@ class CareerCompetitionStore(
         }
         legacyLeagueSubtype?.let {
             require(it >= 0) { "Legacy konrent.t.x0() must not be negative" }
+        }
+        legacyCompetitionIndex?.let {
+            require(it >= 0) { "Legacy competition index must not be negative" }
+        }
+        legacyGroupCountA0?.let {
+            require(it >= 0) { "Legacy LoadLigaOptions.nGrupos must not be negative" }
         }
         database.withTransaction {
             requireNotNull(database.careerMetadataDao().findById(careerId)) {
@@ -85,6 +97,8 @@ class CareerCompetitionStore(
                     totalRounds = roundMatchIds.size,
                     legacyRelegationCount = legacyRelegationCount,
                     legacyLeagueSubtype = legacyLeagueSubtype,
+                    legacyCompetitionIndex = legacyCompetitionIndex,
+                    legacyGroupCountA0 = legacyGroupCountA0,
                 )
             )
             dao.upsertStandings(
@@ -210,6 +224,8 @@ class CareerCompetitionStore(
         standings = rows,
         legacyRelegationCount = legacyRelegationCount,
         legacyLeagueSubtype = legacyLeagueSubtype,
+        legacyCompetitionIndex = legacyCompetitionIndex,
+        legacyGroupCountA0 = legacyGroupCountA0,
     )
 
     private fun CareerCompetitionStandingEntity.toRow() = LegacyLeagueStandingsRules.Row(
