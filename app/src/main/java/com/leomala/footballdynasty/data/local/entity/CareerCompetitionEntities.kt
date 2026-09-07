@@ -26,10 +26,14 @@ data class CareerCompetitionEntity(
     val legacyFormatCode: Int,
     val currentRoundNumber: Int,
     val totalRounds: Int,
-    /** Exact serialized `LoadLigaOptions.nRebaixados`; null means the previous row has no proven source. */
+    /** Exact serialized `LoadLigaOptions.nRebaixados`; null means the source is not proven. */
     val legacyRelegationCount: Int? = null,
-    /** Exact serialized `konrent.t.x0()`; null means the previous row has no proven source. */
+    /** Exact serialized `konrent.t.x0()`; null means the source is not proven. */
     val legacyLeagueSubtype: Int? = null,
+    /** Exact list index passed to legacy `best.k0.c(index)`; null for pre-V17/unproved imports. */
+    val legacyCompetitionIndex: Int? = null,
+    /** Exact serialized `konrent.t.a0`, sourced from `LoadLigaOptions.nGrupos`. */
+    val legacyGroupCountA0: Int? = null,
 )
 
 /** Persisted `best.e0` counters plus the current stable ordering used by the legacy comparator. */
