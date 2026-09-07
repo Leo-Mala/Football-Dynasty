@@ -26,12 +26,13 @@ data class CareerMatchTicketRuntimeInput(
 /**
  * Exact extra output required to execute the recovered post-simulation `best.s.e()` rating pass.
  *
- * [ratingMetricState] is the match-local `best.s` counter projection produced by the simulation.
- * It is deliberately supplied by the simulator rather than reconstructed from score/events later.
+ * [ratingMetricState] is supplied by the simulator rather than reconstructed. [tieBreakMutation]
+ * likewise carries raw `best.s.N0()/A0()` only when the simulator actually reached that legacy path.
  */
 data class CareerMatchRatedSimulationResult(
     val match: Match,
     val ratingMetricState: LegacyMatchRatingMetricRuntimeRules.State,
+    val tieBreakMutation: CareerMatchTieBreakMutation? = null,
 )
 
 /** End-to-end persisted match execution seam around the certified Phase 8 runtime. */
@@ -51,6 +52,7 @@ class CareerMatchExecutionCoordinator(
     private data class InternalSimulationResult(
         val match: Match,
         val ratingMetricState: LegacyMatchRatingMetricRuntimeRules.State? = null,
+        val tieBreakMutation: CareerMatchTieBreakMutation? = null,
     )
 
     suspend fun executeManagerMatch(
@@ -92,11 +94,6 @@ class CareerMatchExecutionCoordinator(
         )
     }
 
-    /**
-     * Manager-facing rated path. The simulator returns its exact match-local rating metrics; this
-     * boundary captures original starters before simulation and performs the recovered `best.s.e()`
-     * pass afterward without consuming the career RNG.
-     */
     suspend fun executeManagerMatchWithRatings(
         careerId: String,
         matchId: String,
@@ -170,16 +167,6 @@ class CareerMatchExecutionCoordinator(
         simulate = simulate,
     )
 
-    /**
-     * Low-level seam retained for exact transient-state characterization and specialized callers.
-     *
-     * When [includeTicketFinance] is true, every ticket input is resolved from persisted V9/source
-     * state. Legacy `best.s.Q0()` performs stadium attendance before its later match RNG sites, so
-     * ticket calculation consumes the exact career [RandomSource] before [simulate]. The gross is
-     * credited only after simulation, matching the later `best.s.h()` step. Finance, score, player
-     * effects, type-7 coach post-match state, calendar and advanced RNG are committed by
-     * [CareerMatchAtomicCommitter] atomically.
-     */
     suspend fun execute(
         careerId: String,
         matchId: String,
@@ -200,11 +187,6 @@ class CareerMatchExecutionCoordinator(
         InternalSimulationResult(match = simulate(scheduled, state, random))
     }
 
-    /**
-     * Rated low-level seam. Original starters are captured before [simulate], then the exact metric
-     * state returned by [simulate] drives `best.o.n(...)` in legacy `u0 -> v0 -> F -> G` order.
-     * The fresh implicit rating RNG is separate from the persisted career RNG by construction.
-     */
     suspend fun executeWithRatings(
         careerId: String,
         matchId: String,
@@ -227,6 +209,7 @@ class CareerMatchExecutionCoordinator(
             InternalSimulationResult(
                 match = resolved.match,
                 ratingMetricState = resolved.ratingMetricState,
+                tieBreakMutation = resolved.tieBreakMutation,
             )
         }
     }
@@ -281,6 +264,7 @@ class CareerMatchExecutionCoordinator(
         }
         var financeAfter: LegacyFinanceRuntimeState? = null
         var ratingMetricState: LegacyMatchRatingMetricRuntimeRules.State? = null
+        var tieBreakMutation: CareerMatchTieBreakMutation? = null
 
         val result = CareerMatchRuntimeBridge.run(
             state = state,
@@ -300,6 +284,7 @@ class CareerMatchExecutionCoordinator(
 
             val simulation = simulate(event, transientState, random)
             ratingMetricState = simulation.ratingMetricState
+            tieBreakMutation = simulation.tieBreakMutation
 
             if (grossTicketIncome != null) {
                 val ticket = requireNotNull(ticketRuntimeInput)
@@ -313,7 +298,7 @@ class CareerMatchExecutionCoordinator(
             simulation.match
         }
 
-        val competitionPlayerRatingMutations = implicitRatingRandomFactory?.let { factory ->
+        val ratedPlayers = implicitRatingRandomFactory?.let { factory ->
             CareerMatchPlayerRatingRuntimeExecutor.execute(
                 state = transientState,
                 participantSnapshot = requireNotNull(ratingParticipantSnapshot) {
@@ -323,8 +308,15 @@ class CareerMatchExecutionCoordinator(
                     "Rated match simulation must return exact legacy rating metric state"
                 },
                 implicitRandomFactory = factory,
-            ).map { rated -> rated.toCompetitionMutation() }
+            )
         }.orEmpty()
+        val competitionPlayerRatingMutations = ratedPlayers.map { it.toCompetitionMutation() }
+        val playerMatchRatingHistoryMutations = ratedPlayers.map { rated ->
+            CareerPlayerMatchRatingHistoryMutation(
+                playerId = rated.playerId,
+                ratingY0 = rated.ratingY0,
+            )
+        }
 
         val coachUpdates = coachPostMatchResolver.resolveTypeSeven(
             careerId = careerId,
@@ -351,6 +343,8 @@ class CareerMatchExecutionCoordinator(
             },
             coachUpdatesInLegacyOrder = coachUpdates,
             competitionPlayerRatingMutationsInLegacyOrder = competitionPlayerRatingMutations,
+            playerMatchRatingHistoryMutationsInLegacyOrder = playerMatchRatingHistoryMutations,
+            tieBreakMutation = tieBreakMutation,
         )
         return result
     }
