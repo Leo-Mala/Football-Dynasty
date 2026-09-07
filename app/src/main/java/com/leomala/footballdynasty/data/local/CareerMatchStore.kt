@@ -45,9 +45,16 @@ class CareerMatchStore(
             database.careerCoreStateDao().upsert(
                 CareerCoreStateRoomAdapter.entity(state, clockMillis())
             )
-            // Legacy best.b.q0() is an ArrayList and components.s2.c stores its zero-based index.
-            // Preserve the caller's proven source order rather than reconstructing it from dates/ids.
-            dao.upsertAll(schedule.mapIndexed { ordinal, event -> event.toEntity(state.id, ordinal) })
+            // Legacy best.b.c(year) owns one best.a per calendar day. components.s2.c is indexOf
+            // inside that day's best.a.A() list, so preserve source insertion order independently per day.
+            val nextOrdinalByDay = mutableMapOf<Int, Int>()
+            dao.upsertAll(
+                schedule.map { event ->
+                    val ordinal = nextOrdinalByDay.getOrDefault(event.dayIndex, 0)
+                    nextOrdinalByDay[event.dayIndex] = ordinal + 1
+                    event.toEntity(state.id, ordinal)
+                }
+            )
         }
     }
 
@@ -256,7 +263,7 @@ class CareerMatchStore(
         require(entity.awayClubId == scheduled.awayClubId)
     }
 
-    private fun ScheduledCareerMatch.toEntity(careerId: String, legacyScheduleOrdinal: Int) =
+    private fun ScheduledCareerMatch.toEntity(careerId: String, legacyDayMatchOrdinal: Int) =
         CareerScheduledMatchEntity(
             careerId = careerId,
             matchId = matchId,
@@ -267,7 +274,7 @@ class CareerMatchStore(
             processed = processed,
             homeGoals = null,
             awayGoals = null,
-            legacyScheduleOrdinal = legacyScheduleOrdinal,
+            legacyDayMatchOrdinal = legacyDayMatchOrdinal,
         )
 
     private fun CareerScheduledMatchEntity.toScheduledMatch() = ScheduledCareerMatch(
