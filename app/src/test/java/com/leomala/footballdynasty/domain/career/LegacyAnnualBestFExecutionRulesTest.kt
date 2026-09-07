@@ -39,7 +39,9 @@ class LegacyAnnualBestFExecutionRulesTest {
     @Test
     fun `alternate route tries tertiary first without n RNG when O0 and current Q0 are true`() {
         val random = IdentityShuffleRandomSource()
-        val tertiary = group("i", listOf(club("target", legacyO = 2)))
+        // `best.f.q()` still applies `best.c0.Z0(...)`; p0=3 keeps overall 50 inside the
+        // exact legacy divisional maximum while this test isolates only the n(...) route/RNG order.
+        val tertiary = group("i", listOf(club("target", legacyO = 2, legacyP0 = 3)))
         val pools = LegacyAnnualBestFSourceRules.GroupPools<String, String>(
             primary = emptyList(),
             secondary = emptyList(),
@@ -60,6 +62,33 @@ class LegacyAnnualBestFExecutionRulesTest {
         assertEquals(LegacyAnnualSelectionRules.BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G, result.route)
         assertEquals("target", result.selected?.id)
         assertEquals(1, result.qAttempts.size)
+        assertEquals(0L, random.draws)
+    }
+
+    @Test
+    fun `alternate route still applies Z0 divisional maximum when Q0 disables only position caps`() {
+        val random = IdentityShuffleRandomSource()
+        val tertiary = group("i", listOf(club("too-low-division", legacyO = 2, legacyP0 = 0)))
+        val pools = LegacyAnnualBestFSourceRules.GroupPools<String, String>(
+            primary = emptyList(),
+            secondary = emptyList(),
+            tertiary = listOf(tertiary),
+        )
+
+        val result =
+            select(
+                random = random,
+                subjectOverall = 50,
+                subjectO0 = true,
+                currentP0 = 2,
+                currentQ0 = true,
+                pools = pools,
+                allClubs = emptyList(),
+            )
+
+        assertEquals(LegacyAnnualSelectionRules.BestFNRoute.OPTIONAL_I_THEN_OPTIONAL_H_THEN_G, result.route)
+        assertNull(result.selected)
+        assertEquals(listOf("too-low-division"), result.qAttempts.single().shuffledCandidates.map { it.id })
         assertEquals(0L, random.draws)
     }
 
