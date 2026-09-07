@@ -45,6 +45,7 @@ import androidx.room.Index
 data class CareerScheduledMatchEntity(
     val careerId: String,
     val matchId: String,
+    /** Exact legacy `best.b.d/j0()` index into the one-best.a-per-day calendar. */
     val dayIndex: Int,
     val eventTypeCode: Int,
     val homeClubId: String,
@@ -52,8 +53,8 @@ data class CareerScheduledMatchEntity(
     val processed: Boolean,
     val homeGoals: Int?,
     val awayGoals: Int?,
-    /** Zero-based source-list index used by serialized `components.s2.c`. */
-    val legacyScheduleOrdinal: Int? = null,
+    /** Zero-based index inside that day's `best.a.A()` match ArrayList: raw `components.s2.c`. */
+    val legacyDayMatchOrdinal: Int? = null,
     /** Raw serialized `best.s.N0()` / `a0`; null means the previous row has no proven value. */
     val legacyTieBreakActive: Boolean? = null,
     /** Raw serialized `best.s.A0()` / `f0` explicit winner; never reconstructed from a tied score. */
