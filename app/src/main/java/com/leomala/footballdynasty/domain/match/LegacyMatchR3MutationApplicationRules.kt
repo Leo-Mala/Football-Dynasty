@@ -23,6 +23,7 @@ object LegacyMatchR3MutationApplicationRules {
         currentSide: Int,
         plan: LegacyMatchR3EventRoutingRules.Result,
         state: State,
+        incrementPrimaryR0P: () -> Unit = {},
         materializeGoalCurrent: () -> Unit = {},
     ): Result {
         require(currentSide in state.legacyIBySide.indices) { "currentSide outside legacyIBySide" }
@@ -48,9 +49,10 @@ object LegacyMatchR3MutationApplicationRules {
                     legacyYBySide = incrementAt(next.legacyYBySide, currentSide),
                 )
 
-                LegacyMatchR3EventRoutingRules.Mutation.INCREMENT_PRIMARY_R0_P -> next.copy(
-                    primaryLegacyR0P = next.primaryLegacyR0P?.plus(1),
-                )
+                LegacyMatchR3EventRoutingRules.Mutation.INCREMENT_PRIMARY_R0_P -> {
+                    incrementPrimaryR0P()
+                    next.copy(primaryLegacyR0P = next.primaryLegacyR0P?.plus(1))
+                }
 
                 LegacyMatchR3EventRoutingRules.Mutation.INCREMENT_Z_CURRENT -> next.copy(
                     legacyZBySide = incrementAt(next.legacyZBySide, currentSide),

@@ -24,6 +24,8 @@ object LegacyMatchTransientRuntime {
         var legacyStatN: Int = 0,
         var selectedOrUsed: Boolean = false,
         var clubSeasonStats: List<LegacyPlayerClubSeasonStatsRules.Entry>? = emptyList(),
+        // Legacy `best.o.i0` is transient and reset for every match by `components.r3`.
+        var legacyN2: LegacyMatchN2CounterRules.State = LegacyMatchN2CounterRules.State(),
     ) {
         var lastInjuryResult: LegacyMatchInjuryRules.Result? = null
             internal set
@@ -116,10 +118,22 @@ object LegacyMatchTransientRuntime {
             result = application,
             appendEvent = { state.events += it },
             applyLegacyPlayerStatM = {
-                originalPrimary?.legacyStatM = (originalPrimary?.legacyStatM ?: 0) + 1
+                originalPrimary?.let { player ->
+                    player.legacyStatM += 1
+                    player.legacyN2 = LegacyMatchN2CounterRules.apply(
+                        player.legacyN2,
+                        LegacyMatchN2CounterRules.Mutation.LEGACY_M,
+                    )
+                }
             },
             applyLegacyPlayerStatN = {
-                originalPrimary?.legacyStatN = (originalPrimary?.legacyStatN ?: 0) + 1
+                originalPrimary?.let { player ->
+                    player.legacyStatN += 1
+                    player.legacyN2 = LegacyMatchN2CounterRules.apply(
+                        player.legacyN2,
+                        LegacyMatchN2CounterRules.Mutation.LEGACY_N,
+                    )
+                }
             },
             applyInjuryToOriginalPrimary = {
                 val player = checkNotNull(originalPrimary) {
