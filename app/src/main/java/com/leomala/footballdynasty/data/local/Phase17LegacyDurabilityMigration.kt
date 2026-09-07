@@ -26,7 +26,7 @@ object Phase17LegacyDurabilityMigration {
                 "CREATE INDEX IF NOT EXISTS `index_career_competition_snapshots_careerId_competitionId` ON `career_competition_snapshots` (`careerId`, `competitionId`)"
             )
             db.execSQL(
-                """CREATE TABLE IF NOT EXISTS `career_competition_snapshot_members` (`careerId` TEXT NOT NULL, `competitionId` TEXT NOT NULL, `snapshotKind` TEXT NOT NULL, `snapshotOrdinal` INTEGER NOT NULL, `memberOrdinal` INTEGER NOT NULL, `playerId` TEXT NOT NULL, `clubIdAtSnapshot` TEXT NOT NULL, PRIMARY KEY(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`, `memberOrdinal`), FOREIGN KEY(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`) REFERENCES `career_competition_snapshots`(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`) ON UPDATE NO ACTION ON DELETE CASCADE)"""
+                """CREATE TABLE IF NOT EXISTS `career_competition_snapshot_members` (`careerId` TEXT NOT NULL, `competitionId` TEXT NOT NULL, `snapshotKind` TEXT NOT NULL, `snapshotOrdinal` INTEGER NOT NULL, `memberOrdinal` INTEGER NOT NULL, `playerId` TEXT NOT NULL, `clubIdAtSnapshot` TEXT, PRIMARY KEY(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`, `memberOrdinal`), FOREIGN KEY(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`) REFERENCES `career_competition_snapshots`(`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`) ON UPDATE NO ACTION ON DELETE CASCADE)"""
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_career_competition_snapshot_members_careerId_competitionId_snapshotKind_snapshotOrdinal` ON `career_competition_snapshot_members` (`careerId`, `competitionId`, `snapshotKind`, `snapshotOrdinal`)"
