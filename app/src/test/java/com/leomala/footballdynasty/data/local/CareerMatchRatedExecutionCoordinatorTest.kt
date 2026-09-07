@@ -118,7 +118,7 @@ class CareerMatchRatedExecutionCoordinatorTest {
     private fun transientEvidence() = CareerMatchPersistedRuntimeResolver.TransientMatchEvidence(
         home = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
             active = listOf(
-                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence("home-player", legacyG0 = 2)
+                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence("home-player", legacyG0 = 10)
             ),
             bench = emptyList(),
             substitutionsRemaining = 0,
@@ -126,7 +126,7 @@ class CareerMatchRatedExecutionCoordinatorTest {
         ),
         away = CareerMatchPersistedRuntimeResolver.TransientClubEvidence(
             active = listOf(
-                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence("away-player", legacyG0 = 2)
+                CareerMatchPersistedRuntimeResolver.TransientPlayerEvidence("away-player", legacyG0 = 10)
             ),
             bench = emptyList(),
             substitutionsRemaining = 0,
