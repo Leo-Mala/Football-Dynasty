@@ -58,8 +58,8 @@ data class CareerCompetitionSnapshotMemberEntity(
     val snapshotOrdinal: Int,
     val memberOrdinal: Int,
     val playerId: String,
-    /** Historical club reference is intentionally not FK-cascaded; legacy h0 retains the snapshot. */
-    val clubIdAtSnapshot: String,
+    /** Legacy `best.k0.c()` appends player.u0() without a null check. */
+    val clubIdAtSnapshot: String?,
 )
 
 /** Serialized annual `best.o.V` / `components.s2` player rating history. */
