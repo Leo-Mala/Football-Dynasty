@@ -10,7 +10,7 @@ import com.leomala.footballdynasty.domain.career.LegacyPlayerValueRules
 import com.leomala.footballdynasty.domain.career.LegacyProceduralMaterializationRules
 import com.leomala.footballdynasty.foundation.random.RandomSource
 
-/** Maps proven legacy runtime values into the career-scoped Room V3 tables. */
+/** Maps proven legacy runtime values into the career-scoped Room tables. */
 object CareerPlayerRuntimeMapper {
     const val MILLIS_PER_DAY: Long = 86_400_000L
 
@@ -95,6 +95,11 @@ object CareerPlayerRuntimeMapper {
                 legacyX = false,
                 legacyY = false,
                 legacyZ = false,
+                // Every official best.o constructor initializes M=false and N=0.0 before player setup.
+                legacyAnnualM = false,
+                legacyAnnualN = 0.0,
+                // best.o.n is produced by best.o.o() after club/player inputs are available.
+                legacyRawPayrollN = null,
             ),
             membership = CareerSquadMembershipEntity(
                 careerId = careerId,
@@ -133,6 +138,9 @@ object CareerPlayerRuntimeMapper {
                 legacyX = false,
                 legacyY = false,
                 legacyZ = false,
+                legacyAnnualM = false,
+                legacyAnnualN = 0.0,
+                legacyRawPayrollN = null,
             ),
             procedural = CareerProceduralPlayerEntity(
                 careerId = careerId,

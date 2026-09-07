@@ -19,6 +19,94 @@ class LegacyAnnualRandomRulesTest {
     }
 
     @Test
+    fun `best o s growth draw preserves bound five and one draw`() {
+        val random = FixedIntRandomSource(4)
+        assertEquals(4, LegacyAnnualRandomRules.bestOSGrowthDraw(random))
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `best o s growth high d0 branch skips rng below sixty`() {
+        val random = FixedIntRandomSource(4)
+        assertEquals(
+            73,
+            LegacyAnnualRandomRules.bestOSApplyHighD0CapAdjustment(
+                random = random,
+                cappedTarget = 73,
+                d0 = 59,
+                m = 10,
+            ),
+        )
+        assertEquals(0L, random.draws)
+    }
+
+    @Test
+    fun `best o s growth high d0 branch consumes draw even when m has no bonus`() {
+        val random = FixedIntRandomSource(4)
+        assertEquals(
+            73,
+            LegacyAnnualRandomRules.bestOSApplyHighD0CapAdjustment(
+                random = random,
+                cappedTarget = 73,
+                d0 = 60,
+                m = 6,
+            ),
+        )
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `best o s growth high d0 branch preserves m bonuses plus draw`() {
+        listOf(
+            7 to 5,
+            8 to 15,
+            9 to 25,
+            10 to 30,
+        ).forEach { (m, bonus) ->
+            val random = FixedIntRandomSource(3)
+            assertEquals(
+                40 + bonus + 3,
+                LegacyAnnualRandomRules.bestOSApplyHighD0CapAdjustment(
+                    random = random,
+                    cappedTarget = 40,
+                    d0 = 60,
+                    m = m,
+                ),
+            )
+            assertEquals("m=$m", 1L, random.draws)
+        }
+    }
+
+    @Test
+    fun `best o s growth high d0 branch clamps adjusted target to one hundred`() {
+        val random = FixedIntRandomSource(4)
+        assertEquals(
+            100,
+            LegacyAnnualRandomRules.bestOSApplyHighD0CapAdjustment(
+                random = random,
+                cappedTarget = 80,
+                d0 = 60,
+                m = 10,
+            ),
+        )
+        assertEquals(1L, random.draws)
+    }
+
+    @Test
+    fun `best o s growth draw resumes exactly from persisted rng snapshot`() {
+        val original = StatefulJavaRandomSource(202632L)
+        repeat(9) { LegacyAnnualRandomRules.bestA0AGate(original) }
+        val snapshot = original.snapshot()
+
+        val expected = LegacyAnnualRandomRules.bestOSGrowthDraw(original)
+        val restored = StatefulJavaRandomSource.restore(snapshot)
+        val actual = LegacyAnnualRandomRules.bestOSGrowthDraw(restored)
+
+        assertEquals(expected, actual)
+        assertEquals(original.snapshot(), restored.snapshot())
+    }
+
+    @Test
     fun `best a0 j sites retain the eight smali thresholds`() {
         assertEquals(
             listOf(10, 90, 30, 30, 35, 45, 75, 95),

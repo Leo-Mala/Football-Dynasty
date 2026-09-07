@@ -15,6 +15,8 @@ data class CareerMatchPlayerRuntimeUpdate(
     val energy: Int,
     val overall: Int,
     val injuryUntilEpochDay: Long,
+    /** Null means this match has no proven write for legacy best.o.M. */
+    val legacyAnnualM: Boolean? = null,
 )
 
 /**
@@ -139,6 +141,7 @@ class CareerMatchStore(
                     energy = update.energy,
                     overall = update.overall,
                     injuryUntilEpochDay = update.injuryUntilEpochDay,
+                    legacyAnnualM = update.legacyAnnualM ?: runtime.legacyAnnualM,
                 )
             )
         }
