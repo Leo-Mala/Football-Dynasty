@@ -40,6 +40,7 @@ class CareerMatchAtomicCommitter(
     private val matchStore = CareerMatchStore(database, clockMillis)
     private val managerStore = CareerManagerRuntimeStore(database)
     private val coachStore = CareerCoachRuntimeStore(database)
+    private val competitionPlayerRatingStore = CareerCompetitionPlayerRatingStore(database)
 
     suspend fun commit(
         result: CareerMatchRuntimeResult,
@@ -47,6 +48,7 @@ class CareerMatchAtomicCommitter(
         playerClubSeasonStatUpdates: List<CareerMatchPlayerClubSeasonStatUpdate> = emptyList(),
         financeUpdate: CareerMatchFinanceUpdate? = null,
         coachUpdatesInLegacyOrder: List<CareerMatchCoachUpdate> = emptyList(),
+        competitionPlayerRatingMutationsInLegacyOrder: List<CareerCompetitionPlayerRatingMutation> = emptyList(),
     ) = database.withTransaction {
         val coachSideOrder = coachUpdatesInLegacyOrder.map { update ->
             when (update.resolvedClubId) {
@@ -61,6 +63,13 @@ class CareerMatchAtomicCommitter(
             "Coach updates must preserve legacy home-then-away order without duplicate match sides"
         }
 
+        // Legacy `best.o.n(...)` updates competition `k0.g` during rating, before the later match
+        // persistence/competition-round effects. Keep that ordering while sharing one Room transaction.
+        competitionPlayerRatingStore.applyForMatchInCurrentTransaction(
+            careerId = result.state.id,
+            matchId = result.match.id,
+            mutationsInLegacyOrder = competitionPlayerRatingMutationsInLegacyOrder,
+        )
         matchStore.commitMatch(
             result = result,
             playerRuntimeUpdates = playerRuntimeUpdates,
