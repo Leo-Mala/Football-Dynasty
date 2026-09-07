@@ -38,9 +38,9 @@ data class CareerMatchRatedSimulationResult(
 /** End-to-end persisted match execution seam around the certified Phase 8 runtime. */
 class CareerMatchExecutionCoordinator(
     private val database: FootballDynastyDatabase,
-    clockMillis: () -> Long = System::currentTimeMillis,
     private val roundTransientRatingRuntime: CareerLeagueRoundTransientRatingRuntime =
         CareerLeagueRoundTransientRatingRuntime(),
+    clockMillis: () -> Long = System::currentTimeMillis,
 ) {
     private val stateRepository = RoomCareerStateRepository(database)
     private val store = CareerMatchStore(database, clockMillis)
