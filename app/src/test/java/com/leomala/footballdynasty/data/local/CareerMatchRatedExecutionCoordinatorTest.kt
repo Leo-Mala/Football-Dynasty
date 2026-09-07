@@ -78,7 +78,7 @@ class CareerMatchRatedExecutionCoordinatorTest {
             "league-rated",
         )
         assertEquals(listOf("away-player", "home-player"), beforeReopen.map { it.playerId })
-        assertTrue(beforeReopen.all { it.legacyRatingCount == 1 })
+        assertTrue(beforeReopen.all { it.legacyRatingCount == 1.0 })
         assertTrue(beforeReopen.all { it.legacyRatingSum > 0.0 })
         assertTrue(beforeReopen.all { it.legacyAverageRating > 0.0 })
 
