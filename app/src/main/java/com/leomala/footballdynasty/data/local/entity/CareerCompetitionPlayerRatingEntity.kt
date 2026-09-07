@@ -37,4 +37,6 @@ data class CareerCompetitionPlayerRatingEntity(
     val legacyRatingCount: Double,
     val legacyAverageRating: Double,
     val legacyCategory: Int,
+    /** Original serialized `k0.g` insertion order used by Java's stable comparator on full ties. */
+    val legacyStableOrdinal: Int? = null,
 )
