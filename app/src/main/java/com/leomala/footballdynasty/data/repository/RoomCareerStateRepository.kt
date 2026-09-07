@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.data.repository
 
 import androidx.room.withTransaction
+import com.leomala.footballdynasty.data.local.CareerAnnualCompetitionSnapshotStore
 import com.leomala.footballdynasty.data.local.CareerCoreStateRoomAdapter
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.local.entity.CareerClubManagerRuntimeEntity
@@ -23,6 +24,17 @@ class RoomCareerStateRepository(
         command: CareerCommand,
     ): CareerState = when (command) {
         CareerCommand.TransitionSeason -> database.withTransaction {
+            // Read the still-persisted old season rather than deriving `best.b.J()` from the new
+            // transition result. The annual h0/i snapshot and k0.g / best.o.V resets happen before
+            // the next season state becomes observable, all in the same Room transaction.
+            val before = requireNotNull(database.careerCoreStateDao().findById(state.id)) {
+                "Career ${state.id} must have persisted core state before season transition"
+            }
+            CareerAnnualCompetitionSnapshotStore(database).snapshotAndResetInCurrentTransaction(
+                careerId = state.id,
+                legacySeasonIndex = before.seasonNumber,
+            )
+
             // Legacy best.b.d() begins with g1().*.l1(), whose proved finance side effect is
             // best.c0.l1() -> best.m.z(). Apply that persisted mutation before the later calendar
             // state becomes observable, without reconstructing any unproved annual stages.
