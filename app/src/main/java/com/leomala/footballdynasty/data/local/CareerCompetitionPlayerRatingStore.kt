@@ -59,6 +59,14 @@ class CareerCompetitionPlayerRatingStore(
             "Missing competition $competitionId linked to match $careerId/$matchId"
         }
 
+        // V16 did not persist ArrayList insertion order. Once such rows exist we cannot manufacture
+        // a stable comparator tie-break. Fail closed until the proven annual reset clears k0.g.
+        val persistedBefore = dao.playerRatings(careerId, competitionId)
+        require(persistedBefore.all { it.legacyStableOrdinal != null }) {
+            "Competition $competitionId contains pre-V17 k0.g rows with unknown insertion order"
+        }
+        var nextStableOrdinal = (dao.maxPlayerRatingStableOrdinal(careerId, competitionId) ?: -1) + 1
+
         val changed = mutableListOf<CareerCompetitionPlayerRatingEntity>()
         mutationsInLegacyOrder.forEach { mutation ->
             val existing = dao.findPlayerRating(careerId, competitionId, mutation.playerId)
@@ -74,6 +82,7 @@ class CareerCompetitionPlayerRatingStore(
                 ),
             ) ?: return@forEach
 
+            val stableOrdinal = existing?.legacyStableOrdinal ?: nextStableOrdinal++
             val entity = CareerCompetitionPlayerRatingEntity(
                 careerId = careerId,
                 competitionId = competitionId,
@@ -82,6 +91,7 @@ class CareerCompetitionPlayerRatingStore(
                 legacyRatingCount = aggregate.legacyRatingCount,
                 legacyAverageRating = aggregate.legacyAverageRating,
                 legacyCategory = aggregate.legacyCategory,
+                legacyStableOrdinal = stableOrdinal,
             )
             dao.upsertPlayerRating(entity)
             changed += entity
