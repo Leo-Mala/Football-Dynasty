@@ -7,7 +7,8 @@ import androidx.room.Index
 /**
  * Career-local scheduled match event and its resolved score.
  *
- * Competition/table semantics deliberately remain outside this Phase 9 persistence boundary.
+ * V17 also retains only recovered non-reconstructible legacy match identity/tie state. All added
+ * values remain nullable for pre-V17 saves because those older rows have no proven source.
  */
 @Entity(
     tableName = "career_scheduled_matches",
@@ -51,4 +52,10 @@ data class CareerScheduledMatchEntity(
     val processed: Boolean,
     val homeGoals: Int?,
     val awayGoals: Int?,
+    /** Zero-based source-list index used by serialized `components.s2.c`. */
+    val legacyScheduleOrdinal: Int? = null,
+    /** Raw serialized `best.s.N0()` / `a0`; null means the previous row has no proven value. */
+    val legacyTieBreakActive: Boolean? = null,
+    /** Raw serialized `best.s.A0()` / `f0` explicit winner; never reconstructed from a tied score. */
+    val legacyTieBreakWinnerClubId: String? = null,
 )
