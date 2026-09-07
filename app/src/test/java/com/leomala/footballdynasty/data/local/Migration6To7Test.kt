@@ -26,7 +26,8 @@ class Migration6To7Test {
             Phase13StadiumConstructionOwnershipMigration.MIGRATION_9_10,Phase14CoachRuntimeMigration.MIGRATION_10_11,
             Phase14CompetitionInputsMigration.MIGRATION_11_12,Phase14CompetitionInputsMigration.MIGRATION_12_13,
             Phase15JuniorDraftMigration.MIGRATION_13_14,Phase15SeniorRuntimeMigration.MIGRATION_14_15,
-            Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16)
+            Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
+            Phase17LegacyDurabilityMigration.MIGRATION_16_17)
         db.execSQL("PRAGMA foreign_keys=ON")
         val expectedTables=setOf("career_player_commercial","career_player_transfer_state","career_club_manager_runtime","career_active_loans","career_stadium_constructions")
         db.query("SELECT name FROM sqlite_master WHERE type='table'").use { c -> val actual=mutableSetOf<String>(); while(c.moveToNext()) actual+=c.getString(0); assertTrue(actual.containsAll(expectedTables)); assertTrue(actual.contains("career_stadium_runtime")); assertTrue(actual.contains("career_club_ticket_runtime")); assertTrue(actual.contains("career_coach_runtime")); assertTrue(actual.contains("career_coach_season_club_records")) }
