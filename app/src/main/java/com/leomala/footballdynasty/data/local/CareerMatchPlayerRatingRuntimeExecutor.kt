@@ -13,7 +13,20 @@ object CareerMatchPlayerRatingRuntimeExecutor {
         val side: Int,
         val ratingY0: Double,
         val resolvedLegacyS: Int,
-    )
+        val legacyL0: Int,
+        val legacyF0: Int,
+        val legacyR: Int,
+    ) {
+        /** Exact inputs consumed immediately afterward by legacy `best.k0.a(best.o)`. */
+        fun toCompetitionMutation() = CareerCompetitionPlayerRatingMutation(
+            playerId = playerId,
+            ratingY0 = ratingY0,
+            legacyG0 = resolvedLegacyS,
+            legacyL0 = legacyL0,
+            legacyF0 = legacyF0,
+            legacyR = legacyR,
+        )
+    }
 
     fun execute(
         state: LegacyMatchTransientRuntime.State<
@@ -43,6 +56,9 @@ object CareerMatchPlayerRatingRuntimeExecutor {
                 side = entry.side,
                 ratingY0 = result.ratingY0,
                 resolvedLegacyS = result.resolvedLegacyS,
+                legacyL0 = entry.player.legacyL0,
+                legacyF0 = entry.player.legacyF0,
+                legacyR = entry.player.legacyR,
             )
         }
 }
