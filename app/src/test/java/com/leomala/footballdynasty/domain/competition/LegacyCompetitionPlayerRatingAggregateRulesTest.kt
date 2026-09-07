@@ -125,6 +125,7 @@ class LegacyCompetitionPlayerRatingAggregateRulesTest {
                 legacyG0 = 17,
                 legacyL0 = 1,
                 legacyF0 = 0,
+                legacyR = 1,
             ),
         )
         val right = LegacyCompetitionPlayerRatingAggregateRules.apply(
@@ -135,6 +136,7 @@ class LegacyCompetitionPlayerRatingAggregateRulesTest {
                 legacyG0 = 10,
                 legacyL0 = 1,
                 legacyF0 = 1,
+                legacyR = 1,
             ),
         )
 
