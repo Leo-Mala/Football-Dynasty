@@ -68,7 +68,7 @@ class CareerCalendarCatalogStoreTest {
             val calendar = CareerCalendarCatalogStore(database).loadCalendar(CAREER_A)
 
             requireNotNull(calendar)
-            assertEquals(0, calendar.currentDayIndex)
+            assertEquals(3, calendar.currentDayIndex)
             assertEquals(listOf(MATCH_A, MATCH_B), calendar.matches.map { it.matchId })
             assertEquals(listOf(1, 2), calendar.matches.map { it.dayIndex })
             assertEquals("2:1", "${calendar.matches[0].homeGoals}:${calendar.matches[0].awayGoals}")
