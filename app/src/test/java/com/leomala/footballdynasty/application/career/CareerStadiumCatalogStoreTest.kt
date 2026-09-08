@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.leomala.footballdynasty.data.local.CareerStadiumRuntimeState
 import com.leomala.footballdynasty.data.local.CareerStadiumRuntimeStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
+import com.leomala.footballdynasty.data.local.entity.CareerStadiumConstructionEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -28,12 +29,7 @@ class CareerStadiumCatalogStoreTest {
                     club(CLUB_B, "Club B", "Arena B", 60_000),
                 )
             )
-            CareerEntryCommandStore(database, clockMillis = { 100L }).createCareer(
-                careerId = CAREER_A,
-                displayName = "Career A",
-                seed = 7L,
-                managedClubId = CLUB_A,
-            )
+            createCareer(database)
             CareerStadiumRuntimeStore(database).materialize(
                 careerId = CAREER_A,
                 clubId = CLUB_A,
@@ -49,6 +45,78 @@ class CareerStadiumCatalogStoreTest {
             assertEquals("Arena A", stadium.stadiumName)
             assertEquals(listOf(1_500, 7_410, 900, 90), stadium.sectorCapacities)
             assertEquals(9_900L, stadium.totalCapacity)
+            assertEquals(emptyList<CareerStadiumCatalogStore.ConstructionSnapshot>(), stadium.constructions)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `construction projection keeps source order and isolates managed club ownership`() = runBlocking {
+        val database = database()
+        try {
+            database.clubDao().upsertAll(
+                listOf(
+                    club(CLUB_A, "Club A", "Arena A", 50_000),
+                    club(CLUB_B, "Club B", "Arena B", 60_000),
+                )
+            )
+            createCareer(database)
+            CareerStadiumRuntimeStore(database).materialize(
+                careerId = CAREER_A,
+                clubId = CLUB_A,
+                state = CareerStadiumRuntimeState(listOf(1_500, 7_410, 900, 90)),
+            )
+            database.careerManagerRuntimeDao().upsertStadiumConstructions(
+                listOf(
+                    construction(0, CLUB_A, 20_000L, listOf(100, 0, 20, 0)),
+                    construction(1, CLUB_B, 30_000L, listOf(0, 200, 0, 0)),
+                    construction(2, CLUB_A, 40_000L, listOf(0, 0, 0, 10)),
+                )
+            )
+
+            val stadium = requireNotNull(CareerStadiumCatalogStore(database).loadStadium(CAREER_A))
+
+            assertEquals(
+                listOf(
+                    CareerStadiumCatalogStore.ConstructionSnapshot(
+                        sourceOrdinal = 0,
+                        endTimestampMillis = 20_000L,
+                        additions = listOf(100, 0, 20, 0),
+                    ),
+                    CareerStadiumCatalogStore.ConstructionSnapshot(
+                        sourceOrdinal = 2,
+                        endTimestampMillis = 40_000L,
+                        additions = listOf(0, 0, 0, 10),
+                    ),
+                ),
+                stadium.constructions,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `unknown migrated construction ownership hides only construction projection`() = runBlocking {
+        val database = database()
+        try {
+            database.clubDao().upsertAll(listOf(club(CLUB_A, "Club A", "Arena A", 50_000)))
+            createCareer(database)
+            CareerStadiumRuntimeStore(database).materialize(
+                careerId = CAREER_A,
+                clubId = CLUB_A,
+                state = CareerStadiumRuntimeState(listOf(1_500, 7_410, 900, 90)),
+            )
+            database.careerManagerRuntimeDao().upsertStadiumConstruction(
+                construction(0, null, 20_000L, listOf(100, 0, 0, 0))
+            )
+
+            val stadium = requireNotNull(CareerStadiumCatalogStore(database).loadStadium(CAREER_A))
+
+            assertEquals(listOf(1_500, 7_410, 900, 90), stadium.sectorCapacities)
+            assertEquals(9_900L, stadium.totalCapacity)
+            assertNull(stadium.constructions)
         } finally {
             database.close()
         }
@@ -59,18 +127,42 @@ class CareerStadiumCatalogStoreTest {
         val database = database()
         try {
             database.clubDao().upsertAll(listOf(club(CLUB_A, "Club A", "Arena A", 50_000)))
-            CareerEntryCommandStore(database, clockMillis = { 100L }).createCareer(
-                careerId = CAREER_A,
-                displayName = "Career A",
-                seed = 7L,
-                managedClubId = CLUB_A,
-            )
+            createCareer(database)
 
             assertNull(CareerStadiumCatalogStore(database).loadStadium(CAREER_A))
             assertNull(CareerStadiumCatalogStore(database).loadStadium("missing"))
         } finally {
             database.close()
         }
+    }
+
+    private suspend fun createCareer(database: FootballDynastyDatabase) {
+        CareerEntryCommandStore(database, clockMillis = { 100L }).createCareer(
+            careerId = CAREER_A,
+            displayName = "Career A",
+            seed = 7L,
+            managedClubId = CLUB_A,
+        )
+    }
+
+    private fun construction(
+        sourceOrdinal: Int,
+        ownerClubId: String?,
+        endTimestampMillis: Long,
+        additions: List<Int>,
+    ): CareerStadiumConstructionEntity {
+        require(additions.size == 4)
+        return CareerStadiumConstructionEntity(
+            careerId = CAREER_A,
+            sourceOrdinal = sourceOrdinal,
+            stadiumCode = 77 + sourceOrdinal,
+            endTimestampMillis = endTimestampMillis,
+            addition0 = additions[0],
+            addition1 = additions[1],
+            addition2 = additions[2],
+            addition3 = additions[3],
+            ownerClubId = ownerClubId,
+        )
     }
 
     private fun club(id: String, name: String, stadium: String, capacity: Int) = ClubEntity(
