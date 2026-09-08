@@ -87,7 +87,6 @@ class CareerLineupInputCatalogStoreTest {
                         side = -1,
                         cr1 = 13,
                         cr2 = 0,
-                        skill = 12,
                         star = false,
                     )
                 )
@@ -230,13 +229,11 @@ class CareerLineupInputCatalogStoreTest {
         side: Int,
         cr1: Int,
         cr2: Int,
-        skill: Int,
         star: Boolean,
     ) = PlayerEntity(
         id = playerId,
         dataVersion = 1,
         importScope = null,
-        sourceFileRef = "test/$playerId.ban",
         name = playerId,
         age = 25,
         country = 11,
@@ -245,7 +242,6 @@ class CareerLineupInputCatalogStoreTest {
         side = side,
         cr1 = cr1,
         cr2 = cr2,
-        skill = skill,
         star = star,
         worldTop = false,
         legacyAid = 0,
