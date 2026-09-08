@@ -526,6 +526,11 @@ private fun SeniorSquadScreen(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
+                        text = "Energia: ${player.energy}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    Text(
                         text = "Término contratual persistido (ms): ${player.contractEndEpochMillis}",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 4.dp),
