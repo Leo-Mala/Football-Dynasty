@@ -22,20 +22,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
+import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
 import kotlinx.coroutines.launch
 
 /**
  * First production-facing Phase 17 Compose path backed exclusively by the
- * certified persisted-career read boundary.
+ * certified persisted-career read boundaries.
  *
  * New-career creation is intentionally not exposed here yet: the owner of the
  * career identity/RNG seed policy is still being proven. Loading an existing
- * career is already end-to-end and therefore safe to expose.
+ * career and reading its persisted senior squad are already end-to-end and
+ * therefore safe to expose.
  */
 @Composable
 fun Phase17CareerEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
+    squadCatalogStore: CareerSquadCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -49,7 +52,11 @@ fun Phase17CareerEntryScreen(
 
     val career = loadedCareer
     if (career != null) {
-        CareerHomeScreen(career = career, modifier = modifier)
+        CareerHomeScreen(
+            career = career,
+            squadCatalogStore = squadCatalogStore,
+            modifier = modifier,
+        )
         return
     }
 
@@ -146,8 +153,34 @@ private fun CareerListScreen(
 @Composable
 private fun CareerHomeScreen(
     career: CareerState,
+    squadCatalogStore: CareerSquadCatalogStore,
     modifier: Modifier,
 ) {
+    var squad by remember(career.careerId) {
+        mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null)
+    }
+    var squadRequested by remember(career.careerId) { mutableStateOf(false) }
+    var squadUnavailable by remember(career.careerId) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    if (squadRequested) {
+        val loadedSquad = squad
+        if (loadedSquad != null) {
+            SeniorSquadScreen(squad = loadedSquad, modifier = modifier)
+            return
+        }
+        if (!squadUnavailable) {
+            Column(
+                modifier = modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator()
+            }
+            return
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
         Text(
             text = "Central da carreira",
@@ -169,6 +202,58 @@ private fun CareerHomeScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 6.dp),
             )
+        }
+        Button(
+            onClick = {
+                squadRequested = true
+                squadUnavailable = false
+                scope.launch {
+                    squad = squadCatalogStore.loadSeniorSquad(career.careerId)
+                    squadUnavailable = squad == null
+                }
+            },
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            Text("Elenco")
+        }
+        if (squadUnavailable) {
+            Text(
+                text = "Elenco persistido indisponível.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SeniorSquadScreen(
+    squad: CareerSquadCatalogStore.SeniorSquad,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+        Text(
+            text = "Elenco",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Text(
+            text = "Clube: ${squad.clubId}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
+        )
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(squad.players, key = { it.playerId }) { player ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = player.name,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = "Posição ${player.position} • Idade ${player.age} • Força ${player.overall}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
     }
 }
