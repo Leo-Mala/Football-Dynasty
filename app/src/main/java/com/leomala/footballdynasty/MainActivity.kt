@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
         val entryCoordinator = CareerEntryFlowCoordinator(catalogStore)
         val squadCatalogStore = CareerSquadCatalogStore(database)
         val competitionCatalogStore = CareerCompetitionCatalogStore(database)
+        val calendarCatalogStore = CareerCalendarCatalogStore(database)
 
         setContent {
             MaterialTheme {
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
                         coordinator = entryCoordinator,
                         squadCatalogStore = squadCatalogStore,
                         competitionCatalogStore = competitionCatalogStore,
+                        calendarCatalogStore = calendarCatalogStore,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
