@@ -9,16 +9,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.leomala.footballdynasty.ui.Phase2BootstrapScreen
+import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
+import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
+import com.leomala.footballdynasty.data.local.FootballDynastyDatabaseFactory
+import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
+import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
 class MainActivity : ComponentActivity() {
+    private lateinit var database: FootballDynastyDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        database = FootballDynastyDatabaseFactory.create(applicationContext)
+        val catalogStore = CareerEntryCatalogStore(
+            careerMetadataDao = database.careerMetadataDao(),
+            careerCoreStateDao = database.careerCoreStateDao(),
+            clubDao = database.clubDao(),
+        )
+        val entryCoordinator = CareerEntryFlowCoordinator(catalogStore)
+
         setContent {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Phase2BootstrapScreen(
+                    Phase17CareerEntryScreen(
+                        coordinator = entryCoordinator,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
@@ -26,5 +42,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        if (::database.isInitialized) {
+            database.close()
+        }
+        super.onDestroy()
     }
 }
