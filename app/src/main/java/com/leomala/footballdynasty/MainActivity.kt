@@ -8,17 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
+import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabaseFactory
 import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
+import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
 class MainActivity : ComponentActivity() {
@@ -41,22 +44,25 @@ class MainActivity : ComponentActivity() {
         val calendarCommandStore = CareerCalendarCommandStore(database)
         val stadiumCatalogStore = CareerStadiumCatalogStore(database)
         val financeCatalogStore = CareerFinanceCatalogStore(database)
+        val financeCommandStore = CareerFinanceCommandStore(database)
 
         setContent {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Phase17CareerEntryScreen(
-                        coordinator = entryCoordinator,
-                        squadCatalogStore = squadCatalogStore,
-                        competitionCatalogStore = competitionCatalogStore,
-                        calendarCatalogStore = calendarCatalogStore,
-                        calendarCommandStore = calendarCommandStore,
-                        stadiumCatalogStore = stadiumCatalogStore,
-                        financeCatalogStore = financeCatalogStore,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    )
+                    CompositionLocalProvider(LocalCareerFinanceCommandStore provides financeCommandStore) {
+                        Phase17CareerEntryScreen(
+                            coordinator = entryCoordinator,
+                            squadCatalogStore = squadCatalogStore,
+                            competitionCatalogStore = competitionCatalogStore,
+                            calendarCatalogStore = calendarCatalogStore,
+                            calendarCommandStore = calendarCommandStore,
+                            stadiumCatalogStore = stadiumCatalogStore,
+                            financeCatalogStore = financeCatalogStore,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                        )
+                    }
                 }
             }
         }
