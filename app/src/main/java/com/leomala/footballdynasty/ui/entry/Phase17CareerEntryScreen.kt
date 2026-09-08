@@ -305,7 +305,7 @@ private fun CareerHomeScreen(
                         onCareerChanged(transition.state)
                         calendar = calendarCatalogStore.loadCalendar(career.id)
                         calendarUnavailable = calendar == null
-                        nextEventMessage = if (transition.eventFound) {
+                        nextEventMessage = if (transition.eventFound == true) {
                             "Próximo evento: dia ${transition.state.calendar.currentDayIndex + 1}."
                         } else {
                             "Nenhum próximo evento agendado."
