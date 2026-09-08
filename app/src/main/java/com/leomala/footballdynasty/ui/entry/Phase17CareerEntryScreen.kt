@@ -520,7 +520,7 @@ private fun SeniorSquadScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(text = player.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "Posição ${player.position} • Idade ${player.age} • Força ${player.overall}",
+                        text = "Posição ${player.position} • Idade ${player.age} • Força ${player.overall} • Valor de mercado ${player.marketValue}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
