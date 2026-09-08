@@ -156,11 +156,11 @@ private fun CareerHomeScreen(
     squadCatalogStore: CareerSquadCatalogStore,
     modifier: Modifier,
 ) {
-    var squad by remember(career.careerId) {
+    var squad by remember(career.id) {
         mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null)
     }
-    var squadRequested by remember(career.careerId) { mutableStateOf(false) }
-    var squadUnavailable by remember(career.careerId) { mutableStateOf(false) }
+    var squadRequested by remember(career.id) { mutableStateOf(false) }
+    var squadUnavailable by remember(career.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     if (squadRequested) {
@@ -208,7 +208,7 @@ private fun CareerHomeScreen(
                 squadRequested = true
                 squadUnavailable = false
                 scope.launch {
-                    squad = squadCatalogStore.loadSeniorSquad(career.careerId)
+                    squad = squadCatalogStore.loadSeniorSquad(career.id)
                     squadUnavailable = squad == null
                 }
             },
