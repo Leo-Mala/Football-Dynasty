@@ -24,6 +24,7 @@ class CareerSquadCatalogStore(
         val marketValue: Int,
         val star: Boolean,
         val worldTop: Boolean,
+        val contractEndEpochMillis: Long,
         val sourceOrdinal: Int,
     )
 
@@ -78,6 +79,7 @@ class CareerSquadCatalogStore(
                 marketValue = runtime.marketValue,
                 star = runtime.star,
                 worldTop = runtime.worldTop,
+                contractEndEpochMillis = runtime.contractEndEpochMillis,
                 sourceOrdinal = membership.sourceOrdinal,
             )
         }
