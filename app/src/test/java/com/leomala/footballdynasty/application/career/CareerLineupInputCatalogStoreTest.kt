@@ -10,6 +10,7 @@ import com.leomala.footballdynasty.data.local.entity.CareerPlayerRuntimeEntity
 import com.leomala.footballdynasty.data.local.entity.CareerProceduralPlayerEntity
 import com.leomala.footballdynasty.data.local.entity.CareerSquadMembershipEntity
 import com.leomala.footballdynasty.data.local.entity.ClubEntity
+import com.leomala.footballdynasty.data.local.entity.PlayerEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -62,6 +63,58 @@ class CareerLineupInputCatalogStoreTest {
             assertEquals(listOf(84, 71), inputs?.players?.map { it.skill })
             assertEquals(listOf(88, 63), inputs?.players?.map { it.energy })
             assertEquals(listOf(true, false), inputs?.players?.map { it.star })
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `canonical static fields stay separate from persisted career runtime values`() = runBlocking {
+        val database = database()
+        try {
+            database.clubDao().upsertAll(listOf(club(CLUB_A)))
+            CareerEntryCommandStore(database, clockMillis = { 100L }).createCareer(
+                careerId = CAREER_A,
+                displayName = "Career A",
+                seed = 7L,
+                managedClubId = CLUB_A,
+            )
+            database.playerDao().upsertAll(
+                listOf(
+                    canonical(
+                        playerId = PLAYER_CANONICAL,
+                        position = 1,
+                        side = -1,
+                        cr1 = 13,
+                        cr2 = 0,
+                        skill = 12,
+                        star = false,
+                    )
+                )
+            )
+            CareerPlayerRuntimeStore(database, clockMillis = { 100L })
+                .saveCanonicalRuntimeAndMembership(
+                    runtime = canonicalRuntime(
+                        playerId = PLAYER_CANONICAL,
+                        overall = 77,
+                        energy = 55,
+                        star = true,
+                    ),
+                    membership = membership(PLAYER_CANONICAL, CLUB_A, 0),
+                )
+
+            val player = CareerLineupInputCatalogStore(database)
+                .loadManagedClubLineupInputs(CAREER_A)
+                ?.players
+                ?.single()
+
+            assertEquals(PLAYER_CANONICAL, player?.playerId)
+            assertEquals(1, player?.positionCode)
+            assertEquals(-1, player?.sideCode)
+            assertEquals(1, player?.subroleCode)
+            assertEquals(77, player?.skill)
+            assertEquals(55, player?.energy)
+            assertEquals(true, player?.star)
         } finally {
             database.close()
         }
@@ -122,6 +175,37 @@ class CareerLineupInputCatalogStoreTest {
         injuryUntilEpochDay = 0L,
     )
 
+    private fun canonicalRuntime(
+        playerId: String,
+        overall: Int,
+        energy: Int,
+        star: Boolean,
+    ) = CareerPlayerRuntimeEntity(
+        careerId = CAREER_A,
+        playerId = playerId,
+        sourceType = CareerPlayerRuntimeStore.SOURCE_CANONICAL,
+        stateVersion = CareerPlayerRuntimeStore.RUNTIME_STATE_VERSION,
+        age = 25,
+        overall = overall,
+        marketValue = 7_700,
+        star = star,
+        worldTop = false,
+        legacyHash = playerId.hashCode(),
+        legacyGeneratedO = 0,
+        legacyCreatedYear = 2026,
+        contractEndEpochMillis = 3_333L,
+        legacyPreviousMarketValue = 7_700,
+        legacyQ = false,
+        legacyX = false,
+        legacyY = false,
+        legacyZ = false,
+        legacyAnnualM = false,
+        legacyAnnualN = 0.0,
+        legacyRawPayrollN = 0,
+        energy = energy,
+        injuryUntilEpochDay = 0L,
+    )
+
     private fun procedural(
         playerId: String,
         position: Int,
@@ -138,6 +222,36 @@ class CareerLineupInputCatalogStoreTest {
         side = side,
         cr1 = cr1,
         cr2 = cr2,
+    )
+
+    private fun canonical(
+        playerId: String,
+        position: Int,
+        side: Int,
+        cr1: Int,
+        cr2: Int,
+        skill: Int,
+        star: Boolean,
+    ) = PlayerEntity(
+        id = playerId,
+        dataVersion = 1,
+        importScope = null,
+        sourceFileRef = "test/$playerId.ban",
+        name = playerId,
+        age = 25,
+        country = 11,
+        position = position,
+        status = 0,
+        side = side,
+        cr1 = cr1,
+        cr2 = cr2,
+        skill = skill,
+        star = star,
+        worldTop = false,
+        legacyAid = 0,
+        legacySid = 0,
+        legacyTid = 0,
+        legacyHash = playerId.hashCode(),
     )
 
     private fun membership(playerId: String, clubId: String, sourceOrdinal: Int) =
@@ -188,5 +302,6 @@ class CareerLineupInputCatalogStoreTest {
         const val PLAYER_A1 = "player-a1"
         const val PLAYER_A2 = "player-a2"
         const val PLAYER_B = "player-b"
+        const val PLAYER_CANONICAL = "player-canonical"
     }
 }
