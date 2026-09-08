@@ -34,17 +34,17 @@ class CareerSquadCatalogStoreTest {
             )
             val runtimeStore = CareerPlayerRuntimeStore(database, clockMillis = { 100L })
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_A2, 24, 71),
+                runtime = runtime(PLAYER_A2, 24, 71, 7_100),
                 procedural = procedural(PLAYER_A2, "Player A2", 2),
                 membership = membership(PLAYER_A2, CLUB_A, 1),
             )
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_A1, 21, 74),
+                runtime = runtime(PLAYER_A1, 21, 74, 7_400),
                 procedural = procedural(PLAYER_A1, "Player A1", 1),
                 membership = membership(PLAYER_A1, CLUB_A, 0),
             )
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_B, 30, 80),
+                runtime = runtime(PLAYER_B, 30, 80, 8_000),
                 procedural = procedural(PLAYER_B, "Player B", 3),
                 membership = membership(PLAYER_B, CLUB_B, 0),
             )
@@ -56,6 +56,7 @@ class CareerSquadCatalogStoreTest {
             assertEquals(listOf(0, 1), squad?.players?.map { it.sourceOrdinal })
             assertEquals(listOf("Player A1", "Player A2"), squad?.players?.map { it.name })
             assertEquals(listOf(74, 71), squad?.players?.map { it.overall })
+            assertEquals(listOf(7_400, 7_100), squad?.players?.map { it.marketValue })
         } finally {
             database.close()
         }
@@ -84,21 +85,21 @@ class CareerSquadCatalogStoreTest {
         }
     }
 
-    private fun runtime(playerId: String, age: Int, overall: Int) = CareerPlayerRuntimeEntity(
+    private fun runtime(playerId: String, age: Int, overall: Int, marketValue: Int) = CareerPlayerRuntimeEntity(
         careerId = CAREER_A,
         playerId = playerId,
         sourceType = CareerPlayerRuntimeStore.SOURCE_PROCEDURAL,
         stateVersion = CareerPlayerRuntimeStore.RUNTIME_STATE_VERSION,
         age = age,
         overall = overall,
-        marketValue = 100,
+        marketValue = marketValue,
         star = false,
         worldTop = false,
         legacyHash = playerId.hashCode(),
         legacyGeneratedO = 0,
         legacyCreatedYear = 2026,
         contractEndEpochMillis = 0L,
-        legacyPreviousMarketValue = 100,
+        legacyPreviousMarketValue = marketValue,
         legacyQ = false,
         legacyX = false,
         legacyY = false,
