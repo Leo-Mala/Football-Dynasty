@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class CareerMatchRatedExecutionCoordinatorTest {
     @Test
-    fun `rated execution uses simulator metrics persists V16 aggregate and leaves career rng untouched`() = runBlocking {
+    fun `rated execution persists V17 aggregate capture and leaves career rng untouched`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "phase16-rated-execution-reopen"
         context.deleteDatabase(name)
@@ -69,7 +69,10 @@ class CareerMatchRatedExecutionCoordinatorTest {
             )
         }
 
-        assertEquals(2, implicitFactoryCalls)
+        // Each of the two rated players consumes one fresh legacy RNG for best.o.n(...), then one
+        // more for the transient konrent.t.a0(player) -> components.z2 capture. Neither belongs to
+        // the persisted career RNG stream.
+        assertEquals(4, implicitFactoryCalls)
         assertEquals(initial.random.draws, result.state.random.draws)
         assertEquals(result.match, CareerMatchStore(database).findResult("career-rated", scheduled.matchId))
 
