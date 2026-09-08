@@ -7,6 +7,7 @@ import com.leomala.footballdynasty.domain.career.CareerIntegrityValidator
 import com.leomala.footballdynasty.domain.career.CareerMatchRuntimeResult
 import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.competition.LegacyCompetitionSnapshotRules
 import com.leomala.footballdynasty.domain.model.Match
 import com.leomala.footballdynasty.foundation.error.CareerIntegrityException
 
@@ -17,6 +18,23 @@ data class CareerMatchPlayerRuntimeUpdate(
     val injuryUntilEpochDay: Long,
     /** Null means this match has no proven write for legacy best.o.M. */
     val legacyAnnualM: Boolean? = null,
+)
+
+/**
+ * Staged process-local `konrent.t.k0/components.z2` view for the round containing the current match.
+ * The candidates themselves are never persisted; only `konrent.t.l0()`'s serialized `best.h0`
+ * projection is written if this exact match closes the round.
+ */
+data class CareerRoundSnapshotStaging(
+    val competitionId: String,
+    val roundNumber: Int,
+    val legacySeasonIndex: Int,
+    val candidatesInLegacyOrder: List<LegacyCompetitionSnapshotRules.RoundCandidate>,
+)
+
+data class CareerMatchCommitOutcome(
+    val advancedCompetitionId: String? = null,
+    val advancedRoundNumber: Int? = null,
 )
 
 /**
@@ -45,7 +63,16 @@ class CareerMatchStore(
             database.careerCoreStateDao().upsert(
                 CareerCoreStateRoomAdapter.entity(state, clockMillis())
             )
-            dao.upsertAll(schedule.map { it.toEntity(state.id) })
+            // Legacy best.b.c(year) owns one best.a per calendar day. components.s2.c is indexOf
+            // inside that day's best.a.A() list, so preserve source insertion order independently per day.
+            val nextOrdinalByDay = mutableMapOf<Int, Int>()
+            dao.upsertAll(
+                schedule.map { event ->
+                    val ordinal = nextOrdinalByDay.getOrDefault(event.dayIndex, 0)
+                    nextOrdinalByDay[event.dayIndex] = ordinal + 1
+                    event.toEntity(state.id, ordinal)
+                }
+            )
         }
     }
 
@@ -63,14 +90,16 @@ class CareerMatchStore(
         result: CareerMatchRuntimeResult,
         playerRuntimeUpdates: List<CareerMatchPlayerRuntimeUpdate> = emptyList(),
         playerClubSeasonStatUpdates: List<CareerMatchPlayerClubSeasonStatUpdate> = emptyList(),
-    ) {
+        roundSnapshotStaging: CareerRoundSnapshotStaging? = null,
+    ): CareerMatchCommitOutcome {
         CareerIntegrityValidator.validate(result.state)
         validateSchedule(result.state, result.schedule)
         validateResolvedMatch(result)
         validatePlayerRuntimeUpdates(playerRuntimeUpdates)
         validatePlayerClubSeasonStatUpdates(playerClubSeasonStatUpdates)
+        roundSnapshotStaging?.let(::validateRoundSnapshotStaging)
 
-        database.withTransaction {
+        return database.withTransaction {
             requireCareerOwner(result.state.id)
             val dao = database.careerScheduledMatchDao()
             val persisted = dao.findAll(result.state.id)
@@ -105,24 +134,78 @@ class CareerMatchStore(
             )
             persistPlayerRuntimeUpdates(result, playerRuntimeUpdates)
             persistPlayerClubSeasonStatUpdates(result, playerClubSeasonStatUpdates)
-            advanceLinkedCompetitionRound(result.state.id, result.match.id)
+            advanceLinkedCompetitionRound(
+                careerId = result.state.id,
+                matchId = result.match.id,
+                roundSnapshotStaging = roundSnapshotStaging,
+            )
         }
     }
 
-    private suspend fun advanceLinkedCompetitionRound(careerId: String, matchId: String) {
+    private suspend fun advanceLinkedCompetitionRound(
+        careerId: String,
+        matchId: String,
+        roundSnapshotStaging: CareerRoundSnapshotStaging?,
+    ): CareerMatchCommitOutcome {
         val competitionDao = database.careerCompetitionDao()
         val links = competitionDao.matchLinksForMatch(careerId, matchId)
         require(links.size <= 1) { "Scheduled match $matchId belongs to multiple competitions" }
-        val link = links.singleOrNull() ?: return
+        val link = links.singleOrNull()
+        if (link == null) {
+            require(roundSnapshotStaging == null) {
+                "Transient round snapshot staging supplied for unlinked match $careerId/$matchId"
+            }
+            return CareerMatchCommitOutcome()
+        }
         val competition = requireNotNull(
             competitionDao.findCompetition(careerId, link.competitionId)
         ) { "Missing linked competition ${link.competitionId}" }
         require(link.roundNumber == competition.currentRoundNumber) {
             "Resolved match $matchId does not belong to current competition round"
         }
-        CareerCompetitionStore(database).advanceCurrentRoundIfResolvedInCurrentTransaction(
+        roundSnapshotStaging?.let { staging ->
+            require(staging.competitionId == link.competitionId) {
+                "Transient round snapshot owner diverged for $careerId/$matchId"
+            }
+            require(staging.roundNumber == link.roundNumber) {
+                "Transient round snapshot round diverged for $careerId/$matchId"
+            }
+            require(competition.legacyCompetitionType == 1) {
+                "konrent.t round snapshot staging requires legacy competition type 1"
+            }
+        }
+
+        val advanced = CareerCompetitionStore(database).advanceCurrentRoundIfResolvedInCurrentTransaction(
             careerId = careerId,
             competitionId = link.competitionId,
+        ) ?: return CareerMatchCommitOutcome()
+
+        if (roundSnapshotStaging != null) {
+            val durabilityDao = database.careerLegacyDurabilityDao()
+            val existingSnapshotCount = durabilityDao.snapshots(
+                careerId,
+                link.competitionId,
+                CareerLegacyDurabilityStore.SNAPSHOT_ROUND,
+            ).size
+            val snapshot = LegacyCompetitionSnapshotRules.round(
+                candidates = roundSnapshotStaging.candidatesInLegacyOrder,
+                legacyYear = roundSnapshotStaging.legacySeasonIndex,
+                existingSnapshotCount = existingSnapshotCount,
+            )
+            CareerLegacyDurabilityStore(database).persistCompetitionSnapshotInCurrentTransaction(
+                careerId = careerId,
+                competitionId = link.competitionId,
+                snapshotKind = CareerLegacyDurabilityStore.SNAPSHOT_ROUND,
+                snapshot = snapshot,
+            )
+        }
+
+        require(advanced.currentRoundNumber == link.roundNumber + 1) {
+            "Linked competition did not advance exactly one round"
+        }
+        return CareerMatchCommitOutcome(
+            advancedCompetitionId = link.competitionId,
+            advancedRoundNumber = link.roundNumber,
         )
     }
 
@@ -244,6 +327,12 @@ class CareerMatchStore(
         }
     }
 
+    private fun validateRoundSnapshotStaging(staging: CareerRoundSnapshotStaging) {
+        require(staging.competitionId.isNotBlank()) { "Round snapshot competition id must not be blank" }
+        require(staging.roundNumber > 0) { "Round snapshot round must be positive" }
+        require(staging.legacySeasonIndex >= 0) { "Round snapshot legacy season index must not be negative" }
+    }
+
     private fun requireImmutableIdentity(
         entity: CareerScheduledMatchEntity,
         scheduled: ScheduledCareerMatch,
@@ -254,17 +343,19 @@ class CareerMatchStore(
         require(entity.awayClubId == scheduled.awayClubId)
     }
 
-    private fun ScheduledCareerMatch.toEntity(careerId: String) = CareerScheduledMatchEntity(
-        careerId = careerId,
-        matchId = matchId,
-        dayIndex = dayIndex,
-        eventTypeCode = eventTypeCode,
-        homeClubId = homeClubId,
-        awayClubId = awayClubId,
-        processed = processed,
-        homeGoals = null,
-        awayGoals = null,
-    )
+    private fun ScheduledCareerMatch.toEntity(careerId: String, legacyDayMatchOrdinal: Int) =
+        CareerScheduledMatchEntity(
+            careerId = careerId,
+            matchId = matchId,
+            dayIndex = dayIndex,
+            eventTypeCode = eventTypeCode,
+            homeClubId = homeClubId,
+            awayClubId = awayClubId,
+            processed = processed,
+            homeGoals = null,
+            awayGoals = null,
+            legacyDayMatchOrdinal = legacyDayMatchOrdinal,
+        )
 
     private fun CareerScheduledMatchEntity.toScheduledMatch() = ScheduledCareerMatch(
         matchId = matchId,

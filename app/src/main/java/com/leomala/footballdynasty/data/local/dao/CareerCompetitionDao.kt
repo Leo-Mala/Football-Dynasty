@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.leomala.footballdynasty.data.local.entity.CareerCompetitionEntity
 import com.leomala.footballdynasty.data.local.entity.CareerCompetitionMatchEntity
+import com.leomala.footballdynasty.data.local.entity.CareerCompetitionPlayerRatingEntity
 import com.leomala.footballdynasty.data.local.entity.CareerCompetitionStandingEntity
 
 @Dao
@@ -18,11 +19,17 @@ interface CareerCompetitionDao {
     @Upsert
     suspend fun upsertMatches(entities: List<CareerCompetitionMatchEntity>)
 
+    @Upsert
+    suspend fun upsertPlayerRating(entity: CareerCompetitionPlayerRatingEntity)
+
     @Query(
         "SELECT * FROM career_competitions " +
             "WHERE careerId = :careerId AND competitionId = :competitionId LIMIT 1"
     )
     suspend fun findCompetition(careerId: String, competitionId: String): CareerCompetitionEntity?
+
+    @Query("SELECT * FROM career_competitions WHERE careerId = :careerId ORDER BY competitionId ASC")
+    suspend fun competitionsForCareer(careerId: String): List<CareerCompetitionEntity>
 
     @Query(
         "SELECT * FROM career_competition_standings " +
@@ -55,4 +62,35 @@ interface CareerCompetitionDao {
             "ORDER BY competitionId ASC"
     )
     suspend fun matchLinksForMatch(careerId: String, matchId: String): List<CareerCompetitionMatchEntity>
+
+    @Query(
+        "SELECT * FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId AND playerId = :playerId LIMIT 1"
+    )
+    suspend fun findPlayerRating(
+        careerId: String,
+        competitionId: String,
+        playerId: String,
+    ): CareerCompetitionPlayerRatingEntity?
+
+    @Query(
+        "SELECT * FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId ORDER BY playerId ASC"
+    )
+    suspend fun playerRatings(
+        careerId: String,
+        competitionId: String,
+    ): List<CareerCompetitionPlayerRatingEntity>
+
+    @Query(
+        "SELECT MAX(legacyStableOrdinal) FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId"
+    )
+    suspend fun maxPlayerRatingStableOrdinal(careerId: String, competitionId: String): Int?
+
+    @Query(
+        "DELETE FROM career_competition_player_ratings " +
+            "WHERE careerId = :careerId AND competitionId = :competitionId"
+    )
+    suspend fun clearPlayerRatings(careerId: String, competitionId: String)
 }

@@ -11,11 +11,12 @@ import com.leomala.footballdynasty.domain.match.LegacyPlayerClubSeasonStatsRules
  * runtime.
  *
  * Room is authoritative here for the career/player state already proven serializable in the legacy
- * graph: identity, squad ownership, age, overall (`best.o.j/O()`), energy (`best.o.L/N()`), injury
- * deadline (`best.o.J/F()`), season id and player x club x season counters (`best.o.U` / `best.e`).
- * `l0`, normalized `f0`, and `R` are reconstructed exactly from persisted facts. `g0` remains an
- * explicit lineup-state input because its producer belongs to the later lineup/tactics boundary.
- * The `n2` disciplinary counters remain transient match state as in the legacy class.
+ * graph: identity, squad ownership, age, overall (`best.o.j/O()`), star (`best.o.c/O0()`), worldTop
+ * (`best.o.d/W0()`), energy (`best.o.L/N()`), injury deadline (`best.o.J/F()`), season id and player
+ * x club x season counters (`best.o.U` / `best.e`). `l0`, normalized `f0`, and `R` are reconstructed
+ * exactly from persisted facts. `g0` remains an explicit lineup-state input because its producer
+ * belongs to the later lineup/tactics boundary. The `n2` disciplinary counters remain transient
+ * match state as in the legacy class.
  */
 class CareerMatchPersistedRuntimeResolver(
     private val database: FootballDynastyDatabase,
@@ -35,6 +36,8 @@ class CareerMatchPersistedRuntimeResolver(
         val sourceType: String,
         val age: Int,
         val overall: Int,
+        val star: Boolean = false,
+        val worldTop: Boolean = false,
         val energy: Int,
         val injuryUntilEpochDay: Long,
         val legacyHash: Int,
@@ -147,6 +150,8 @@ class CareerMatchPersistedRuntimeResolver(
                         sourceType = runtime.sourceType,
                         age = runtime.age,
                         overall = runtime.overall,
+                        star = runtime.star,
+                        worldTop = runtime.worldTop,
                         energy = runtime.energy,
                         injuryUntilEpochDay = runtime.injuryUntilEpochDay,
                         legacyHash = runtime.legacyHash,

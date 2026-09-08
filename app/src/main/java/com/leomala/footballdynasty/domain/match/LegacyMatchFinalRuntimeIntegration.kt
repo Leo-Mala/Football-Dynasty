@@ -3,8 +3,6 @@ package com.leomala.footballdynasty.domain.match
 import com.leomala.footballdynasty.foundation.random.RandomSource
 import com.leomala.footballdynasty.domain.model.Match
 
-
-
 /** Applies the already-resolved legacy `best.s.k(...)` action directly to the transient match runtime. */
 object LegacyMatchMinuteRuntimeRules {
     data class Result<TClub, TPlayer>(
@@ -72,7 +70,6 @@ object LegacyMatchMinuteRuntimeRules {
     }
 }
 
-
 /** Exact reusable core of legacy `best.s.q(minute, period)` used by accompanied `ActivityJogo.D()`. */
 object LegacyMatchAccompaniedMinuteRules {
     enum class Operation { RUN_LEGACY_K, RUN_R3_K, STAMP_AND_APPEND_EVENT }
@@ -96,7 +93,6 @@ object LegacyMatchAccompaniedMinuteRules {
     }
 }
 
-
 /** Non-UI core routing recovered from `ActivityJogo.E()/d()/h()` at accompanied-match end. */
 object LegacyMatchAccompaniedFinalizationRules {
     data class Result(val rebuildScoreFromEvents: Boolean, val routeToPenaltyFlow: Boolean)
@@ -112,7 +108,6 @@ object LegacyMatchAccompaniedFinalizationRules {
         routeToPenaltyFlow = legacyJ0Flag && p0Unresolved && (homeLegacyQ0Flag || awayLegacyQ0Flag),
     )
 }
-
 
 /** Applies a proven `r3.b/c` mutation plan, including goal materialization, to the transient runtime. */
 object LegacyMatchR3RuntimeRules {
@@ -134,27 +129,72 @@ object LegacyMatchR3RuntimeRules {
         goalStats: GoalStatState<TPlayer> = GoalStatState(),
         goal: LegacyMatchGoalMaterializationRules.Result<LegacyMatchTransientRuntime.Player<TPlayer>>?,
         legacyPeriod: Int, legacyMinute: Int,
+        r3Primary: LegacyMatchTransientRuntime.Player<TPlayer>? = null,
     ): Result<TClub, TPlayer> {
-        var stats=goalStats
-        var event: LegacyMatchEventRecord<LegacyMatchTransientRuntime.Club<TClub, TPlayer>, LegacyMatchTransientRuntime.Player<TPlayer>>?=null
-        fun inc(map:Map<LegacyMatchTransientRuntime.Player<TPlayer>,Int>, p:LegacyMatchTransientRuntime.Player<TPlayer>)=map.toMutableMap().also{it[p]=(it[p]?:0)+1}.toMap()
-        val applied=LegacyMatchR3MutationApplicationRules.apply(currentSide,plan,r3State){
-            val g=checkNotNull(goal){"Recovered r3 goal mutation requires materialized goal"}
-            for(m in g.statMutations){ val p=m.player.value; stats=when(m.operation){
-                LegacyMatchGoalMaterializationRules.StatOperation.PRIMARY_S->stats.copy(primaryS=inc(stats.primaryS,p))
-                LegacyMatchGoalMaterializationRules.StatOperation.SECONDARY_L->stats.copy(secondaryL=inc(stats.secondaryL,p))
-                LegacyMatchGoalMaterializationRules.StatOperation.SECONDARY_COMPETITION_SIDE_EFFECT->stats.copy(competitionSideEffect=inc(stats.competitionSideEffect,p))
-                LegacyMatchGoalMaterializationRules.StatOperation.OWN_GOAL_T->stats.copy(ownGoalT=inc(stats.ownGoalT,p))
-            }}
-            val club=when(currentSide){0->state.home;1->state.away;else->throw IllegalArgumentException("Legacy r3 side must be 0 or 1: $currentSide")}
-            event=LegacyMatchEventRecord(legacyClub=club,legacyType=LegacyMatchEventType.GOAL.legacyCode,legacySubtype=g.finalSubtype.legacyCode,legacyMinute=legacyMinute,legacyPeriod=legacyPeriod,primaryPlayer=g.eventPrimary?.value,secondaryPlayer=g.eventSecondary?.value,legacyFlagH=g.penaltyFlag,legacySide=currentSide)
+        var stats = goalStats
+        var event: LegacyMatchEventRecord<LegacyMatchTransientRuntime.Club<TClub, TPlayer>, LegacyMatchTransientRuntime.Player<TPlayer>>? = null
+
+        fun inc(
+            map: Map<LegacyMatchTransientRuntime.Player<TPlayer>, Int>,
+            player: LegacyMatchTransientRuntime.Player<TPlayer>,
+        ) = map.toMutableMap().also { it[player] = (it[player] ?: 0) + 1 }.toMap()
+
+        fun mutateN2(
+            player: LegacyMatchTransientRuntime.Player<TPlayer>,
+            mutation: LegacyMatchN2CounterRules.Mutation,
+        ) {
+            player.legacyN2 = LegacyMatchN2CounterRules.apply(player.legacyN2, mutation)
+        }
+
+        val applied = LegacyMatchR3MutationApplicationRules.apply(
+            currentSide = currentSide,
+            plan = plan,
+            state = r3State,
+            incrementPrimaryR0P = {
+                r3Primary?.let { mutateN2(it, LegacyMatchN2CounterRules.Mutation.LEGACY_P) }
+            },
+        ) {
+            val g = checkNotNull(goal) { "Recovered r3 goal mutation requires materialized goal" }
+            for (mutation in g.statMutations) {
+                val player = mutation.player.value
+                stats = when (mutation.operation) {
+                    LegacyMatchGoalMaterializationRules.StatOperation.PRIMARY_S -> {
+                        mutateN2(player, LegacyMatchN2CounterRules.Mutation.LEGACY_S)
+                        stats.copy(primaryS = inc(stats.primaryS, player))
+                    }
+                    LegacyMatchGoalMaterializationRules.StatOperation.SECONDARY_L -> {
+                        mutateN2(player, LegacyMatchN2CounterRules.Mutation.LEGACY_L)
+                        stats.copy(secondaryL = inc(stats.secondaryL, player))
+                    }
+                    LegacyMatchGoalMaterializationRules.StatOperation.SECONDARY_COMPETITION_SIDE_EFFECT ->
+                        stats.copy(competitionSideEffect = inc(stats.competitionSideEffect, player))
+                    LegacyMatchGoalMaterializationRules.StatOperation.OWN_GOAL_T -> {
+                        mutateN2(player, LegacyMatchN2CounterRules.Mutation.LEGACY_T)
+                        stats.copy(ownGoalT = inc(stats.ownGoalT, player))
+                    }
+                }
+            }
+            val club = when (currentSide) {
+                0 -> state.home
+                1 -> state.away
+                else -> throw IllegalArgumentException("Legacy r3 side must be 0 or 1: $currentSide")
+            }
+            event = LegacyMatchEventRecord(
+                legacyClub = club,
+                legacyType = LegacyMatchEventType.GOAL.legacyCode,
+                legacySubtype = g.finalSubtype.legacyCode,
+                legacyMinute = legacyMinute,
+                legacyPeriod = legacyPeriod,
+                primaryPlayer = g.eventPrimary?.value,
+                secondaryPlayer = g.eventSecondary?.value,
+                legacyFlagH = g.penaltyFlag,
+                legacySide = currentSide,
+            )
             state.events += checkNotNull(event)
         }
-        return Result(applied.state,stats,event,state.score())
+        return Result(applied.state, stats, event, state.score())
     }
 }
-
-
 
 /** Stable Phase 8 output boundary from transient legacy runtime into the existing modern match model. */
 object LegacyMatchModernResultMapper {
@@ -174,8 +214,6 @@ object LegacyMatchModernResultMapper {
         )
     }
 }
-
-
 
 /** Executes the recovered automatic `Q0()` half loops while applying direct `k()` mutations to the transient runtime. */
 object LegacyMatchAutomaticRuntimeRules {
