@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
@@ -34,14 +35,15 @@ import kotlinx.coroutines.launch
  *
  * New-career creation is intentionally not exposed here yet: the owner of the
  * career identity/RNG seed policy is still being proven. Loading an existing
- * career and reading its persisted squad/competition state are end-to-end and
- * therefore safe to expose.
+ * career and reading its persisted squad/competition/calendar state are
+ * end-to-end and therefore safe to expose.
  */
 @Composable
 fun Phase17CareerEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
     squadCatalogStore: CareerSquadCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
+    calendarCatalogStore: CareerCalendarCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -59,6 +61,7 @@ fun Phase17CareerEntryScreen(
             career = career,
             squadCatalogStore = squadCatalogStore,
             competitionCatalogStore = competitionCatalogStore,
+            calendarCatalogStore = calendarCatalogStore,
             modifier = modifier,
         )
         return
@@ -146,6 +149,7 @@ private fun CareerHomeScreen(
     career: CareerState,
     squadCatalogStore: CareerSquadCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
+    calendarCatalogStore: CareerCalendarCatalogStore,
     modifier: Modifier,
 ) {
     var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
@@ -155,6 +159,9 @@ private fun CareerHomeScreen(
         mutableStateOf<List<CareerCompetitionCatalogStore.CompetitionRow>?>(null)
     }
     var standingsRequested by remember(career.id) { mutableStateOf(false) }
+    var calendar by remember(career.id) { mutableStateOf<CareerCalendarCatalogStore.CalendarSnapshot?>(null) }
+    var calendarRequested by remember(career.id) { mutableStateOf(false) }
+    var calendarUnavailable by remember(career.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     if (squadRequested) {
@@ -177,6 +184,18 @@ private fun CareerHomeScreen(
         }
         CompetitionStandingsScreen(competitions = loadedCompetitions, modifier = modifier)
         return
+    }
+
+    if (calendarRequested) {
+        val loadedCalendar = calendar
+        if (loadedCalendar != null) {
+            CareerCalendarScreen(calendar = loadedCalendar, modifier = modifier)
+            return
+        }
+        if (!calendarUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
     }
 
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
@@ -224,10 +243,29 @@ private fun CareerHomeScreen(
             ) {
                 Text("Classificação")
             }
+            Button(
+                onClick = {
+                    calendarRequested = true
+                    calendarUnavailable = false
+                    scope.launch {
+                        calendar = calendarCatalogStore.loadCalendar(career.id)
+                        calendarUnavailable = calendar == null
+                    }
+                },
+            ) {
+                Text("Calendário")
+            }
         }
         if (squadUnavailable) {
             Text(
                 text = "Elenco persistido indisponível.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (calendarUnavailable) {
+            Text(
+                text = "Calendário persistido indisponível.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 10.dp),
             )
@@ -303,6 +341,47 @@ private fun CompetitionStandingsScreen(
                             text = "${index + 1}. ${standing.clubName} — ${standing.points} pts • ${standing.played} J • ${standing.wins} V • ${standing.losses} D • ${standing.goalsFor}:${standing.goalsAgainst}",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CareerCalendarScreen(
+    calendar: CareerCalendarCatalogStore.CalendarSnapshot,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+        Text(text = "Calendário", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "Dia atual ${calendar.currentDayIndex + 1}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
+        )
+        if (calendar.matches.isEmpty()) {
+            Text(text = "Nenhuma partida persistida encontrada.", style = MaterialTheme.typography.bodyLarge)
+            return
+        }
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(calendar.matches, key = { it.matchId }) { match ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Dia ${match.dayIndex + 1}", style = MaterialTheme.typography.titleMedium)
+                    val score = if (match.processed && match.homeGoals != null && match.awayGoals != null) {
+                        "${match.homeGoals} x ${match.awayGoals}"
+                    } else {
+                        "x"
+                    }
+                    Text(
+                        text = "${match.homeClubName} $score ${match.awayClubName}",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    match.competitionLinks.forEach { link ->
+                        Text(
+                            text = "${link.competitionId} • Rodada ${link.roundNumber}",
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                 }
