@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
+import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
@@ -31,12 +32,12 @@ import kotlinx.coroutines.launch
 
 /**
  * First production-facing Phase 17 Compose path backed exclusively by the
- * certified persisted-career read boundaries.
+ * certified persisted-career boundaries.
  *
  * New-career creation is intentionally not exposed here yet: the owner of the
  * career identity/RNG seed policy is still being proven. Loading an existing
- * career and reading its persisted squad/competition/calendar state are
- * end-to-end and therefore safe to expose.
+ * career, reading its persisted state and moving to the next persisted scheduled
+ * event are end-to-end and therefore safe to expose.
  */
 @Composable
 fun Phase17CareerEntryScreen(
@@ -44,6 +45,7 @@ fun Phase17CareerEntryScreen(
     squadCatalogStore: CareerSquadCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
+    calendarCommandStore: CareerCalendarCommandStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -62,6 +64,8 @@ fun Phase17CareerEntryScreen(
             squadCatalogStore = squadCatalogStore,
             competitionCatalogStore = competitionCatalogStore,
             calendarCatalogStore = calendarCatalogStore,
+            calendarCommandStore = calendarCommandStore,
+            onCareerChanged = { loadedCareer = it },
             modifier = modifier,
         )
         return
@@ -150,6 +154,8 @@ private fun CareerHomeScreen(
     squadCatalogStore: CareerSquadCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
+    calendarCommandStore: CareerCalendarCommandStore,
+    onCareerChanged: (CareerState) -> Unit,
     modifier: Modifier,
 ) {
     var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
@@ -165,6 +171,9 @@ private fun CareerHomeScreen(
     var selectedCalendarMatch by remember(career.id) {
         mutableStateOf<CareerCalendarCatalogStore.MatchRow?>(null)
     }
+    var nextEventInProgress by remember(career.id) { mutableStateOf(false) }
+    var nextEventMessage by remember(career.id) { mutableStateOf<String?>(null) }
+    var nextEventError by remember(career.id) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     if (squadRequested) {
@@ -284,6 +293,48 @@ private fun CareerHomeScreen(
             ) {
                 Text("Calendário")
             }
+        }
+        Button(
+            onClick = {
+                nextEventInProgress = true
+                nextEventMessage = null
+                nextEventError = null
+                scope.launch {
+                    try {
+                        val transition = calendarCommandStore.moveToNextScheduledEvent(career.id)
+                        onCareerChanged(transition.state)
+                        calendar = calendarCatalogStore.loadCalendar(career.id)
+                        calendarUnavailable = calendar == null
+                        nextEventMessage = if (transition.eventFound) {
+                            "Próximo evento: dia ${transition.state.calendar.currentDayIndex + 1}."
+                        } else {
+                            "Nenhum próximo evento agendado."
+                        }
+                    } catch (_: Exception) {
+                        nextEventError = "Não foi possível avançar ao próximo evento persistido."
+                    } finally {
+                        nextEventInProgress = false
+                    }
+                }
+            },
+            enabled = !nextEventInProgress,
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Text(if (nextEventInProgress) "Avançando..." else "Próximo evento")
+        }
+        nextEventMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        nextEventError?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
         }
         if (squadUnavailable) {
             Text(

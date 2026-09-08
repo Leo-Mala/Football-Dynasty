@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
+import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
         val squadCatalogStore = CareerSquadCatalogStore(database)
         val competitionCatalogStore = CareerCompetitionCatalogStore(database)
         val calendarCatalogStore = CareerCalendarCatalogStore(database)
+        val calendarCommandStore = CareerCalendarCommandStore(database)
 
         setContent {
             MaterialTheme {
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         squadCatalogStore = squadCatalogStore,
                         competitionCatalogStore = competitionCatalogStore,
                         calendarCatalogStore = calendarCatalogStore,
+                        calendarCommandStore = calendarCommandStore,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
