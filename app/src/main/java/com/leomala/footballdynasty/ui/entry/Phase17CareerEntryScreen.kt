@@ -525,6 +525,11 @@ private fun SeniorSquadScreen(
                         text = "Posição ${player.position} • Idade ${player.age} • Força ${player.overall} • Valor de mercado ${player.marketValue}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    Text(
+                        text = "Término contratual persistido (ms): ${player.contractEndEpochMillis}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
             }
         }
