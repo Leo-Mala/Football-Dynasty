@@ -26,6 +26,7 @@ import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
+import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -48,6 +49,7 @@ fun Phase17CareerEntryScreen(
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
     stadiumCatalogStore: CareerStadiumCatalogStore,
+    financeCatalogStore: CareerFinanceCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -68,6 +70,7 @@ fun Phase17CareerEntryScreen(
             calendarCatalogStore = calendarCatalogStore,
             calendarCommandStore = calendarCommandStore,
             stadiumCatalogStore = stadiumCatalogStore,
+            financeCatalogStore = financeCatalogStore,
             onCareerChanged = { loadedCareer = it },
             modifier = modifier,
         )
@@ -159,6 +162,7 @@ private fun CareerHomeScreen(
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
     stadiumCatalogStore: CareerStadiumCatalogStore,
+    financeCatalogStore: CareerFinanceCatalogStore,
     onCareerChanged: (CareerState) -> Unit,
     modifier: Modifier,
 ) {
@@ -178,6 +182,9 @@ private fun CareerHomeScreen(
     var stadium by remember(career.id) { mutableStateOf<CareerStadiumCatalogStore.StadiumSnapshot?>(null) }
     var stadiumRequested by remember(career.id) { mutableStateOf(false) }
     var stadiumUnavailable by remember(career.id) { mutableStateOf(false) }
+    var finances by remember(career.id) { mutableStateOf<CareerFinanceCatalogStore.FinanceSnapshot?>(null) }
+    var financesRequested by remember(career.id) { mutableStateOf(false) }
+    var financesUnavailable by remember(career.id) { mutableStateOf(false) }
     var nextEventInProgress by remember(career.id) { mutableStateOf(false) }
     var nextEventMessage by remember(career.id) { mutableStateOf<String?>(null) }
     var nextEventError by remember(career.id) { mutableStateOf<String?>(null) }
@@ -258,6 +265,22 @@ private fun CareerHomeScreen(
         }
     }
 
+    if (financesRequested) {
+        val loadedFinances = finances
+        if (loadedFinances != null) {
+            Phase17FinanceScreen(
+                finances = loadedFinances,
+                onBack = { financesRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+        if (!financesUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
         Text(text = "Central da carreira", style = MaterialTheme.typography.headlineMedium)
         Text(
@@ -317,18 +340,34 @@ private fun CareerHomeScreen(
                 Text("Calendário")
             }
         }
-        Button(
-            onClick = {
-                stadiumRequested = true
-                stadiumUnavailable = false
-                scope.launch {
-                    stadium = stadiumCatalogStore.loadStadium(career.id)
-                    stadiumUnavailable = stadium == null
-                }
-            },
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(top = 10.dp),
         ) {
-            Text("Estádio")
+            Button(
+                onClick = {
+                    stadiumRequested = true
+                    stadiumUnavailable = false
+                    scope.launch {
+                        stadium = stadiumCatalogStore.loadStadium(career.id)
+                        stadiumUnavailable = stadium == null
+                    }
+                },
+            ) {
+                Text("Estádio")
+            }
+            Button(
+                onClick = {
+                    financesRequested = true
+                    financesUnavailable = false
+                    scope.launch {
+                        finances = financeCatalogStore.loadFinances(career.id)
+                        financesUnavailable = finances == null
+                    }
+                },
+            ) {
+                Text("Finanças")
+            }
         }
         Button(
             onClick = {
@@ -389,6 +428,13 @@ private fun CareerHomeScreen(
         if (stadiumUnavailable) {
             Text(
                 text = "Estado persistido do estádio indisponível para esta carreira.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (financesUnavailable) {
+            Text(
+                text = "Estado financeiro persistido indisponível para esta carreira.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 10.dp),
             )
