@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -535,7 +537,12 @@ private fun StadiumScreen(
     onBack: () -> Unit,
     modifier: Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+    ) {
         Button(onClick = onBack) {
             Text("Voltar à central")
         }
@@ -567,6 +574,49 @@ private fun StadiumScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 6.dp),
             )
+        }
+        Text(
+            text = "Obras persistidas",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(top = 18.dp),
+        )
+        when (val constructions = stadium.constructions) {
+            null -> {
+                Text(
+                    text = "Obras persistidas indisponíveis: há registros migrados sem identificação de clube.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            else -> {
+                if (constructions.isEmpty()) {
+                    Text(
+                        text = "Nenhuma obra persistida encontrada para este clube.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                } else {
+                    constructions.forEachIndexed { index, construction ->
+                        Text(
+                            text = "Obra persistida ${index + 1}",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                        construction.additions.forEachIndexed { sectorIndex, addition ->
+                            Text(
+                                text = "Adição persistida — setor ${sectorIndex + 1}: $addition",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        Text(
+                            text = "Timestamp persistido de término: ${construction.endTimestampMillis}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }
