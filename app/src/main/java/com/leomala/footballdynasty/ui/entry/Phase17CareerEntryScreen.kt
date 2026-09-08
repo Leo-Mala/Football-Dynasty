@@ -27,6 +27,7 @@ import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
+import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
 import kotlinx.coroutines.launch
 
@@ -46,6 +47,7 @@ fun Phase17CareerEntryScreen(
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
+    stadiumCatalogStore: CareerStadiumCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -65,6 +67,7 @@ fun Phase17CareerEntryScreen(
             competitionCatalogStore = competitionCatalogStore,
             calendarCatalogStore = calendarCatalogStore,
             calendarCommandStore = calendarCommandStore,
+            stadiumCatalogStore = stadiumCatalogStore,
             onCareerChanged = { loadedCareer = it },
             modifier = modifier,
         )
@@ -155,6 +158,7 @@ private fun CareerHomeScreen(
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
+    stadiumCatalogStore: CareerStadiumCatalogStore,
     onCareerChanged: (CareerState) -> Unit,
     modifier: Modifier,
 ) {
@@ -171,6 +175,9 @@ private fun CareerHomeScreen(
     var selectedCalendarMatch by remember(career.id) {
         mutableStateOf<CareerCalendarCatalogStore.MatchRow?>(null)
     }
+    var stadium by remember(career.id) { mutableStateOf<CareerStadiumCatalogStore.StadiumSnapshot?>(null) }
+    var stadiumRequested by remember(career.id) { mutableStateOf(false) }
+    var stadiumUnavailable by remember(career.id) { mutableStateOf(false) }
     var nextEventInProgress by remember(career.id) { mutableStateOf(false) }
     var nextEventMessage by remember(career.id) { mutableStateOf<String?>(null) }
     var nextEventError by remember(career.id) { mutableStateOf<String?>(null) }
@@ -230,6 +237,22 @@ private fun CareerHomeScreen(
             return
         }
         if (!calendarUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
+    }
+
+    if (stadiumRequested) {
+        val loadedStadium = stadium
+        if (loadedStadium != null) {
+            StadiumScreen(
+                stadium = loadedStadium,
+                onBack = { stadiumRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+        if (!stadiumUnavailable) {
             LoadingScreen(modifier)
             return
         }
@@ -296,6 +319,19 @@ private fun CareerHomeScreen(
         }
         Button(
             onClick = {
+                stadiumRequested = true
+                stadiumUnavailable = false
+                scope.launch {
+                    stadium = stadiumCatalogStore.loadStadium(career.id)
+                    stadiumUnavailable = stadium == null
+                }
+            },
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Text("Estádio")
+        }
+        Button(
+            onClick = {
                 nextEventInProgress = true
                 nextEventMessage = null
                 nextEventError = null
@@ -350,6 +386,13 @@ private fun CareerHomeScreen(
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
+        if (stadiumUnavailable) {
+            Text(
+                text = "Estado persistido do estádio indisponível para esta carreira.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
     }
 }
 
@@ -394,6 +437,48 @@ private fun SeniorSquadScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StadiumScreen(
+    stadium: CareerStadiumCatalogStore.StadiumSnapshot,
+    onBack: () -> Unit,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+        Button(onClick = onBack) {
+            Text("Voltar à central")
+        }
+        Text(
+            text = "Estádio",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        Text(
+            text = "Clube: ${stadium.clubName}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        stadium.stadiumName?.let { stadiumName ->
+            Text(
+                text = "Estádio: $stadiumName",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        Text(
+            text = "Capacidade persistida total: ${stadium.totalCapacity}",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        stadium.sectorCapacities.forEachIndexed { index, capacity ->
+            Text(
+                text = "Setor ${index + 1}: $capacity",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }
