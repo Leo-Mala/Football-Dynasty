@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.ui.entry
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -32,13 +34,14 @@ import kotlinx.coroutines.launch
  *
  * New-career creation is intentionally not exposed here yet: the owner of the
  * career identity/RNG seed policy is still being proven. Loading an existing
- * career and reading its persisted senior squad are already end-to-end and
+ * career and reading its persisted squad/competition state are end-to-end and
  * therefore safe to expose.
  */
 @Composable
 fun Phase17CareerEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
     squadCatalogStore: CareerSquadCatalogStore,
+    competitionCatalogStore: CareerCompetitionCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -55,6 +58,7 @@ fun Phase17CareerEntryScreen(
         CareerHomeScreen(
             career = career,
             squadCatalogStore = squadCatalogStore,
+            competitionCatalogStore = competitionCatalogStore,
             modifier = modifier,
         )
         return
@@ -100,28 +104,19 @@ private fun CareerListScreen(
     modifier: Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
-        Text(
-            text = "Football Dynasty",
-            style = MaterialTheme.typography.headlineMedium,
-        )
+        Text(text = "Football Dynasty", style = MaterialTheme.typography.headlineMedium)
         Text(
             text = "Carregar carreira",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
         )
         if (careers.isEmpty()) {
-            Text(
-                text = "Nenhuma carreira persistida encontrada.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            Text(text = "Nenhuma carreira persistida encontrada.", style = MaterialTheme.typography.bodyLarge)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(careers, key = { it.careerId }) { career ->
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = career.displayName ?: career.careerId,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
+                        Text(text = career.displayName ?: career.careerId, style = MaterialTheme.typography.titleMedium)
                         val detail = listOfNotNull(
                             career.managedClubName,
                             career.seasonYear?.let { "Temporada $it" },
@@ -141,11 +136,7 @@ private fun CareerListScreen(
             }
         }
         if (loadError != null) {
-            Text(
-                text = loadError,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            Text(text = loadError, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
         }
     }
 }
@@ -154,13 +145,16 @@ private fun CareerListScreen(
 private fun CareerHomeScreen(
     career: CareerState,
     squadCatalogStore: CareerSquadCatalogStore,
+    competitionCatalogStore: CareerCompetitionCatalogStore,
     modifier: Modifier,
 ) {
-    var squad by remember(career.id) {
-        mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null)
-    }
+    var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
     var squadRequested by remember(career.id) { mutableStateOf(false) }
     var squadUnavailable by remember(career.id) { mutableStateOf(false) }
+    var competitions by remember(career.id) {
+        mutableStateOf<List<CareerCompetitionCatalogStore.CompetitionRow>?>(null)
+    }
+    var standingsRequested by remember(career.id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     if (squadRequested) {
@@ -170,22 +164,23 @@ private fun CareerHomeScreen(
             return
         }
         if (!squadUnavailable) {
-            Column(
-                modifier = modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CircularProgressIndicator()
-            }
+            LoadingScreen(modifier)
             return
         }
     }
 
+    if (standingsRequested) {
+        val loadedCompetitions = competitions
+        if (loadedCompetitions == null) {
+            LoadingScreen(modifier)
+            return
+        }
+        CompetitionStandingsScreen(competitions = loadedCompetitions, modifier = modifier)
+        return
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
-        Text(
-            text = "Central da carreira",
-            style = MaterialTheme.typography.headlineMedium,
-        )
+        Text(text = "Central da carreira", style = MaterialTheme.typography.headlineMedium)
         Text(
             text = "Temporada ${career.season.year}",
             style = MaterialTheme.typography.titleLarge,
@@ -203,18 +198,32 @@ private fun CareerHomeScreen(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
-        Button(
-            onClick = {
-                squadRequested = true
-                squadUnavailable = false
-                scope.launch {
-                    squad = squadCatalogStore.loadSeniorSquad(career.id)
-                    squadUnavailable = squad == null
-                }
-            },
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(top = 16.dp),
         ) {
-            Text("Elenco")
+            Button(
+                onClick = {
+                    squadRequested = true
+                    squadUnavailable = false
+                    scope.launch {
+                        squad = squadCatalogStore.loadSeniorSquad(career.id)
+                        squadUnavailable = squad == null
+                    }
+                },
+            ) {
+                Text("Elenco")
+            }
+            Button(
+                onClick = {
+                    standingsRequested = true
+                    scope.launch {
+                        competitions = competitionCatalogStore.loadCompetitions(career.id)
+                    }
+                },
+            ) {
+                Text("Classificação")
+            }
         }
         if (squadUnavailable) {
             Text(
@@ -227,15 +236,23 @@ private fun CareerHomeScreen(
 }
 
 @Composable
+private fun LoadingScreen(modifier: Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
 private fun SeniorSquadScreen(
     squad: CareerSquadCatalogStore.SeniorSquad,
     modifier: Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
-        Text(
-            text = "Elenco",
-            style = MaterialTheme.typography.headlineMedium,
-        )
+        Text(text = "Elenco", style = MaterialTheme.typography.headlineMedium)
         Text(
             text = "Clube: ${squad.clubId}",
             style = MaterialTheme.typography.bodyLarge,
@@ -244,14 +261,50 @@ private fun SeniorSquadScreen(
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(squad.players, key = { it.playerId }) { player ->
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = player.name,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Text(text = player.name, style = MaterialTheme.typography.titleMedium)
                     Text(
                         text = "Posição ${player.position} • Idade ${player.age} • Força ${player.overall}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompetitionStandingsScreen(
+    competitions: List<CareerCompetitionCatalogStore.CompetitionRow>,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
+        Text(text = "Classificação", style = MaterialTheme.typography.headlineMedium)
+        if (competitions.isEmpty()) {
+            Text(
+                text = "Nenhuma competição persistida encontrada.",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            return
+        }
+        LazyColumn(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            items(competitions, key = { it.competitionId }) { competition ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = competition.competitionId, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "Rodada ${competition.currentRoundNumber}/${competition.totalRounds}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    competition.standings.forEachIndexed { index, standing ->
+                        Text(
+                            text = "${index + 1}. ${standing.clubName} — ${standing.points} pts • ${standing.played} J • ${standing.wins} V • ${standing.losses} D • ${standing.goalsFor}:${standing.goalsAgainst}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
                 }
             }
         }
