@@ -16,6 +16,7 @@ import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogSt
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
+import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
         )
         val entryCoordinator = CareerEntryFlowCoordinator(catalogStore)
         val squadCatalogStore = CareerSquadCatalogStore(database)
+        val juniorCatalogStore = CareerJuniorCatalogStore(database)
         val competitionCatalogStore = CareerCompetitionCatalogStore(database)
         val calendarCatalogStore = CareerCalendarCatalogStore(database)
         val calendarCommandStore = CareerCalendarCommandStore(database)
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
                         Phase17CareerEntryScreen(
                             coordinator = entryCoordinator,
                             squadCatalogStore = squadCatalogStore,
+                            juniorCatalogStore = juniorCatalogStore,
                             competitionCatalogStore = competitionCatalogStore,
                             calendarCatalogStore = calendarCatalogStore,
                             calendarCommandStore = calendarCommandStore,

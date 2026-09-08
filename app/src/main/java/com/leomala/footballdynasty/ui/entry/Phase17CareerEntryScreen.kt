@@ -27,6 +27,7 @@ import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
+import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
 fun Phase17CareerEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
     squadCatalogStore: CareerSquadCatalogStore,
+    juniorCatalogStore: CareerJuniorCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
@@ -66,6 +68,7 @@ fun Phase17CareerEntryScreen(
         CareerHomeScreen(
             career = career,
             squadCatalogStore = squadCatalogStore,
+            juniorCatalogStore = juniorCatalogStore,
             competitionCatalogStore = competitionCatalogStore,
             calendarCatalogStore = calendarCatalogStore,
             calendarCommandStore = calendarCommandStore,
@@ -158,6 +161,7 @@ private fun CareerListScreen(
 private fun CareerHomeScreen(
     career: CareerState,
     squadCatalogStore: CareerSquadCatalogStore,
+    juniorCatalogStore: CareerJuniorCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
     calendarCommandStore: CareerCalendarCommandStore,
@@ -169,6 +173,9 @@ private fun CareerHomeScreen(
     var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
     var squadRequested by remember(career.id) { mutableStateOf(false) }
     var squadUnavailable by remember(career.id) { mutableStateOf(false) }
+    var juniors by remember(career.id) { mutableStateOf<CareerJuniorCatalogStore.JuniorSquad?>(null) }
+    var juniorsRequested by remember(career.id) { mutableStateOf(false) }
+    var juniorsUnavailable by remember(career.id) { mutableStateOf(false) }
     var competitions by remember(career.id) {
         mutableStateOf<List<CareerCompetitionCatalogStore.CompetitionRow>?>(null)
     }
@@ -201,6 +208,22 @@ private fun CareerHomeScreen(
             return
         }
         if (!squadUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
+    }
+
+    if (juniorsRequested) {
+        val loadedJuniors = juniors
+        if (loadedJuniors != null) {
+            Phase17JuniorScreen(
+                squad = loadedJuniors,
+                onBack = { juniorsRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+        if (!juniorsUnavailable) {
             LoadingScreen(modifier)
             return
         }
@@ -368,6 +391,18 @@ private fun CareerHomeScreen(
             ) {
                 Text("Finanças")
             }
+            Button(
+                onClick = {
+                    juniorsRequested = true
+                    juniorsUnavailable = false
+                    scope.launch {
+                        juniors = juniorCatalogStore.loadJuniorSquad(career.id)
+                        juniorsUnavailable = juniors == null
+                    }
+                },
+            ) {
+                Text("Juniores")
+            }
         }
         Button(
             onClick = {
@@ -414,6 +449,13 @@ private fun CareerHomeScreen(
         if (squadUnavailable) {
             Text(
                 text = "Elenco persistido indisponível.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (juniorsUnavailable) {
+            Text(
+                text = "Estado persistido dos juniores indisponível para esta carreira.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 10.dp),
             )
