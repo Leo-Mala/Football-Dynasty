@@ -34,17 +34,17 @@ class CareerSquadCatalogStoreTest {
             )
             val runtimeStore = CareerPlayerRuntimeStore(database, clockMillis = { 100L })
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_A2, 24, 71, 7_100, 2_222L),
+                runtime = runtime(PLAYER_A2, 24, 71, 7_100, 2_222L, 63),
                 procedural = procedural(PLAYER_A2, "Player A2", 2),
                 membership = membership(PLAYER_A2, CLUB_A, 1),
             )
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_A1, 21, 74, 7_400, 1_111L),
+                runtime = runtime(PLAYER_A1, 21, 74, 7_400, 1_111L, 88),
                 procedural = procedural(PLAYER_A1, "Player A1", 1),
                 membership = membership(PLAYER_A1, CLUB_A, 0),
             )
             runtimeStore.saveProceduralPlayer(
-                runtime = runtime(PLAYER_B, 30, 80, 8_000, 9_999L),
+                runtime = runtime(PLAYER_B, 30, 80, 8_000, 9_999L, 42),
                 procedural = procedural(PLAYER_B, "Player B", 3),
                 membership = membership(PLAYER_B, CLUB_B, 0),
             )
@@ -57,6 +57,7 @@ class CareerSquadCatalogStoreTest {
             assertEquals(listOf("Player A1", "Player A2"), squad?.players?.map { it.name })
             assertEquals(listOf(74, 71), squad?.players?.map { it.overall })
             assertEquals(listOf(7_400, 7_100), squad?.players?.map { it.marketValue })
+            assertEquals(listOf(88, 63), squad?.players?.map { it.energy })
             assertEquals(listOf(1_111L, 2_222L), squad?.players?.map { it.contractEndEpochMillis })
         } finally {
             database.close()
@@ -92,6 +93,7 @@ class CareerSquadCatalogStoreTest {
         overall: Int,
         marketValue: Int,
         contractEndEpochMillis: Long,
+        energy: Int,
     ) = CareerPlayerRuntimeEntity(
         careerId = CAREER_A,
         playerId = playerId,
@@ -114,7 +116,7 @@ class CareerSquadCatalogStoreTest {
         legacyAnnualM = false,
         legacyAnnualN = 0.0,
         legacyRawPayrollN = 0,
-        energy = 100,
+        energy = energy,
         injuryUntilEpochDay = 0L,
     )
 
