@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerContractCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
+import com.leomala.footballdynasty.application.career.CareerTransferSearchCatalogStore
 import kotlinx.coroutines.launch
 
 /**
@@ -35,12 +36,19 @@ fun Phase17ManagerScreen(
     modifier: Modifier = Modifier,
 ) {
     val contractCatalogStore = LocalCareerContractCatalogStore.current
+    val transferSearchCatalogStore = LocalCareerTransferSearchCatalogStore.current
     var contracts by remember(manager.careerId) {
         mutableStateOf<CareerContractCatalogStore.ContractList?>(null)
     }
     var contractsRequested by remember(manager.careerId) { mutableStateOf(false) }
     var contractsLoading by remember(manager.careerId) { mutableStateOf(false) }
     var contractsError by remember(manager.careerId) { mutableStateOf<String?>(null) }
+    var transferCatalog by remember(manager.careerId) {
+        mutableStateOf<CareerTransferSearchCatalogStore.SearchCatalog?>(null)
+    }
+    var transferRequested by remember(manager.careerId) { mutableStateOf(false) }
+    var transferLoading by remember(manager.careerId) { mutableStateOf(false) }
+    var transferError by remember(manager.careerId) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     if (contractsRequested) {
@@ -49,6 +57,18 @@ fun Phase17ManagerScreen(
             Phase17ContractScreen(
                 contracts = loadedContracts,
                 onBack = { contractsRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+    }
+
+    if (transferRequested) {
+        val loadedTransferCatalog = transferCatalog
+        if (loadedTransferCatalog != null) {
+            Phase17TransferMarketScreen(
+                catalog = loadedTransferCatalog,
+                onBack = { transferRequested = false },
                 modifier = modifier,
             )
             return
@@ -97,6 +117,40 @@ fun Phase17ManagerScreen(
             Text(if (contractsLoading) "Carregando contratos..." else "Contratos do elenco")
         }
         contractsError?.let { error ->
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        Button(
+            onClick = {
+                val store = transferSearchCatalogStore ?: return@Button
+                if (transferLoading) return@Button
+                transferLoading = true
+                transferError = null
+                scope.launch {
+                    try {
+                        val loaded = store.loadOtherSeniorPlayers(manager.careerId)
+                        if (loaded == null) {
+                            transferError = "Catálogo persistido do mercado indisponível para esta carreira."
+                        } else {
+                            transferCatalog = loaded
+                            transferRequested = true
+                        }
+                    } catch (_: Exception) {
+                        transferError = "Catálogo persistido do mercado indisponível para esta carreira."
+                    } finally {
+                        transferLoading = false
+                    }
+                }
+            },
+            enabled = transferSearchCatalogStore != null && !transferLoading,
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Text(if (transferLoading) "Carregando mercado..." else "Mercado — buscar jogadores")
+        }
+        transferError?.let { error ->
             Text(
                 text = error,
                 style = MaterialTheme.typography.bodyMedium,

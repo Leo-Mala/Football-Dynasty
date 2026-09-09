@@ -23,12 +23,14 @@ import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogSt
 import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
+import com.leomala.footballdynasty.application.career.CareerTransferSearchCatalogStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabaseFactory
 import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
 import com.leomala.footballdynasty.ui.entry.LocalCareerActiveLoanCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerContractCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
+import com.leomala.footballdynasty.ui.entry.LocalCareerTransferSearchCatalogStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
 class MainActivity : ComponentActivity() {
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
         val financeCatalogStore = CareerFinanceCatalogStore(database)
         val managerCatalogStore = CareerManagerCatalogStore(database)
         val contractCatalogStore = CareerContractCatalogStore(database)
+        val transferSearchCatalogStore = CareerTransferSearchCatalogStore(database)
         val financeCommandStore = CareerFinanceCommandStore(database)
         val activeLoanCatalogStore = CareerActiveLoanCatalogStore(database)
 
@@ -65,6 +68,7 @@ class MainActivity : ComponentActivity() {
                         LocalCareerFinanceCommandStore provides financeCommandStore,
                         LocalCareerActiveLoanCatalogStore provides activeLoanCatalogStore,
                         LocalCareerContractCatalogStore provides contractCatalogStore,
+                        LocalCareerTransferSearchCatalogStore provides transferSearchCatalogStore,
                     ) {
                         Phase17CareerEntryScreen(
                             coordinator = entryCoordinator,
