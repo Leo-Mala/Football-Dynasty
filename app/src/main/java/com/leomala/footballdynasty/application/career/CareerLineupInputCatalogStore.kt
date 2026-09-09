@@ -1,6 +1,7 @@
 package com.leomala.footballdynasty.application.career
 
 import androidx.room.withTransaction
+import com.leomala.footballdynasty.data.local.CareerClubTacticsStore
 import com.leomala.footballdynasty.data.local.CareerCoreStateRoomAdapter
 import com.leomala.footballdynasty.data.local.CareerPlayerRuntimeStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
@@ -230,22 +231,31 @@ class CareerLineupInputCatalogStore(
         val homeSeniorRosterCount = seniorRosterCount(target.homeClubId)
         val awaySeniorRosterCount = seniorRosterCount(target.awayClubId)
         val managerDao = database.careerManagerRuntimeDao()
+        val homeClubRuntime = managerDao.findClubRuntime(state.id, target.homeClubId)
+        val awayClubRuntime = managerDao.findClubRuntime(state.id, target.awayClubId)
         val transientOwners = resolveTransientClubOwners(
-            homeLegacyModeFlag = managerDao.findClubRuntime(state.id, target.homeClubId)?.active,
-            awayLegacyModeFlag = managerDao.findClubRuntime(state.id, target.awayClubId)?.active,
+            homeLegacyModeFlag = homeClubRuntime?.active,
+            awayLegacyModeFlag = awayClubRuntime?.active,
         )
-        // All recovered best.c0 constructors initialize serialized S to {0,0,0,0}; best.s.k
-        // consumes raw S[2]. This exact initial value is exposed now, but readiness remains
-        // fail-closed until DialogTatics mutations have a durable club-local owner.
-        val constructorTacticIndex = LegacyTacticsMatchRuntimeRule
-            .constructorInitialMatchEngineTacticIndex()
+        val homeTacticIndex = homeClubRuntime?.let { runtime ->
+            LegacyTacticsMatchRuntimeRule.matchEngineTacticIndex(
+                CareerClubTacticsStore.toRawState(runtime)
+            )
+        }
+        val awayTacticIndex = awayClubRuntime?.let { runtime ->
+            LegacyTacticsMatchRuntimeRule.matchEngineTacticIndex(
+                CareerClubTacticsStore.toRawState(runtime)
+            )
+        }
 
         val blockers = linkedSetOf<MatchPreparationBlocker>()
         if (homeSeniorRosterCount == 0) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
-        blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
+        if (homeTacticIndex == null || awayTacticIndex == null) {
+            blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
+        }
         if (transientOwners == null) {
             // `best.s.N` is globally proven as {5,5}, but the match-side transient pack remains
             // fail-closed until both persisted `best.c0.Q0()` values are available. We therefore
@@ -267,8 +277,8 @@ class CareerLineupInputCatalogStore(
             },
             homeSeniorRosterCount = homeSeniorRosterCount,
             awaySeniorRosterCount = awaySeniorRosterCount,
-            homeTacticIndex = constructorTacticIndex,
-            awayTacticIndex = constructorTacticIndex,
+            homeTacticIndex = homeTacticIndex,
+            awayTacticIndex = awayTacticIndex,
             homeSubstitutionsRemaining = transientOwners?.homeSubstitutionsRemaining,
             awaySubstitutionsRemaining = transientOwners?.awaySubstitutionsRemaining,
             homeLegacyModeFlag = transientOwners?.homeLegacyModeFlag,
