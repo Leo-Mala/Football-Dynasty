@@ -27,7 +27,8 @@ class Migration7To8Test {
             Phase14CompetitionInputsMigration.MIGRATION_11_12,Phase14CompetitionInputsMigration.MIGRATION_12_13,
             Phase15JuniorDraftMigration.MIGRATION_13_14,Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
-            Phase17LegacyDurabilityMigration.MIGRATION_16_17)
+            Phase17LegacyDurabilityMigration.MIGRATION_16_17,
+            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18)
         db.execSQL("PRAGMA foreign_keys=ON")
         db.query("SELECT COUNT(*) FROM career_stadium_runtime").use { c -> assertTrue(c.moveToFirst()); assertEquals("V8 migration must not synthesize stadium sectors",0,c.getInt(0)) }
         for(table in listOf("career_club_ticket_runtime","career_manager_ticket_runtime","career_match_construction_source")) db.query("SELECT COUNT(*) FROM `$table`").use { c -> assertTrue(c.moveToFirst()); assertEquals("V9 migration must not synthesize $table rows",0,c.getInt(0)) }

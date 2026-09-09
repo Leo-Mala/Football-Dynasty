@@ -6,7 +6,7 @@ from pathlib import Path
 
 SCHEMA_DIR = Path("app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase")
 BASELINE_DIR = Path("/tmp/versioned-room-schemas")
-EXPECTED_FILES = {"1.json", "2.json", "3.json", "13.json", "14.json", "15.json", "16.json", "17.json"}
+EXPECTED_FILES = {"1.json", "2.json", "3.json", "13.json", "14.json", "15.json", "16.json", "17.json", "18.json"}
 IDENTITIES = {
     1: "37c2e4df984290903730a25553bdbed5",
     2: "fc4ed30d6548037a1226144e0c576c59",
@@ -20,6 +20,7 @@ IDENTITIES = {
     15: "f928b7c2fd9fbc202cb5dfb238ddcc3e",
     16: "80aface69f2421741631f9438b4bd88a",
     17: "5c9f4997fab8ccd026c20143daf1d2b6",
+    18: "7d624ca85c843395b29510fc1d13354b",
 }
 
 
@@ -44,7 +45,7 @@ if {p.name for p in SCHEMA_DIR.glob("*.json")} != EXPECTED_FILES:
 if {p.name for p in BASELINE_DIR.glob("*.json")} != EXPECTED_FILES:
     fail("Unexpected versioned Room schema baseline")
 
-db = {version: load_schema(version) for version in (1, 2, 3, 13, 14, 15, 16, 17)}
+db = {version: load_schema(version) for version in (1, 2, 3, 13, 14, 15, 16, 17, 18)}
 
 v1_from_phase3 = json.loads(
     subprocess.check_output(
@@ -64,6 +65,7 @@ e14 = {e["tableName"]: e for e in db[14]["entities"]}
 e15 = {e["tableName"]: e for e in db[15]["entities"]}
 e16 = {e["tableName"]: e for e in db[16]["entities"]}
 e17 = {e["tableName"]: e for e in db[17]["entities"]}
+e18 = {e["tableName"]: e for e in db[18]["entities"]}
 
 required3 = {"career_core_state", "career_player_runtime", "career_procedural_players", "career_squad_memberships"}
 if not required3.issubset(e3):
@@ -83,6 +85,8 @@ new_v17 = {
 }
 if set(e17) != set(e16) | new_v17:
     fail("Room V17 must add only the three proven non-reconstructible durability tables")
+if set(e18) != set(e17):
+    fail("Room V18 must preserve the V17 table set")
 
 junior = e14.get("career_junior_drafts")
 expected_junior = {
@@ -300,6 +304,25 @@ if history.get("foreignKeys") != [{
 }]:
     fail("V17 player rating history ownership FK changed")
 
+# V18 is deliberately additive to the existing club-manager runtime and nothing else.
+tactics = {
+    "legacyTacticOption0", "legacyTacticOption1", "legacyTacticOption2", "legacyTacticOption3",
+    "legacyTacticCheckboxT",
+}
+club17 = e17["career_club_manager_runtime"]
+club18 = e18["career_club_manager_runtime"]
+club17_fields = {f["columnName"] for f in club17["fields"]}
+club18_fields = {f["columnName"] for f in club18["fields"]}
+if club18_fields != club17_fields | tactics:
+    fail("V18 must add only the five proven best.c0.S/T tactics fields")
+for field_name in tactics:
+    field = next(f for f in club18["fields"] if f["columnName"] == field_name)
+    if field.get("affinity") != "INTEGER" or not field.get("notNull", False):
+        fail(f"V18 {field_name} must be non-null INTEGER")
+for table in set(e17) - {"career_club_manager_runtime"}:
+    if e18[table] != e17[table]:
+        fail(f"V18 unexpectedly changed table contract: {table}")
+
 src = Path("app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabase.kt").read_text()
 factory = Path("app/src/main/java/com/leomala/footballdynasty/data/local/FootballDynastyDatabaseFactory.kt").read_text()
 p10 = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase10CompetitionMigration.kt").read_text()
@@ -313,13 +336,14 @@ p15 = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase15Juni
 p15senior = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase15SeniorRuntimeMigration.kt").read_text()
 p16 = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase16CompetitionPlayerRatingMigration.kt").read_text()
 p17 = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase17LegacyDurabilityMigration.kt").read_text()
+p18 = Path("app/src/main/java/com/leomala/footballdynasty/data/local/Phase17ClubTacticsPersistenceMigration.kt").read_text()
 migration9 = Path("app/src/test/java/com/leomala/footballdynasty/data/local/Migration9To10Test.kt").read_text()
 migration10 = Path("app/src/test/java/com/leomala/footballdynasty/data/local/Migration10To11Test.kt").read_text()
 migration12 = Path("app/src/test/java/com/leomala/footballdynasty/data/local/Migration12To13Test.kt").read_text()
 migration13 = Path("app/src/test/java/com/leomala/footballdynasty/data/local/Migration13To14Test.kt").read_text()
 
-if "const val SCHEMA_VERSION: Int = 17" not in src:
-    fail("SCHEMA_VERSION must be 17")
+if "const val SCHEMA_VERSION: Int = 18" not in src:
+    fail("SCHEMA_VERSION must be 18")
 if IDENTITIES[9] not in migration9:
     fail("Migration9To10Test must pin certified V9 identity")
 if IDENTITIES[10] not in migration10:
@@ -330,7 +354,7 @@ if IDENTITIES[13] not in migration13:
     fail("Migration13To14Test must pin certified V13 identity")
 for label, migration in (
     ("V10->V11", p14), ("V11->V13", p14inputs), ("V13->V14", p15),
-    ("V14->V15", p15senior), ("V15->V16", p16), ("V16->V17", p17),
+    ("V14->V15", p15senior), ("V15->V16", p16), ("V16->V17", p17), ("V17->V18", p18),
 ):
     if re.search(r"\bINSERT\s+INTO\b", migration, re.I) or re.search(r"\bUPDATE\s+career_", migration, re.I):
         fail(f"{label} migration must not fabricate historical state")
@@ -338,6 +362,10 @@ if "ADD COLUMN `legacyRelegationCount` INTEGER" not in p14inputs:
     fail("V11->V12 must add nullable exact relegation count")
 if "ADD COLUMN `legacyLeagueSubtype` INTEGER" not in p14inputs:
     fail("V12->V13 must add nullable exact x0 subtype")
+for field_name in tactics:
+    marker = f"ADD COLUMN `{field_name}` INTEGER NOT NULL DEFAULT 0"
+    if marker not in p18:
+        fail(f"V17->V18 tactics migration must materialize proven constructor state: {field_name}")
 for migration in ("Migration(1, 2)", "Migration(2, 3)", "Migration(3, 4)", "Migration(4, 5)"):
     if migration not in factory:
         fail(f"Explicit Room migration missing: {migration}")
@@ -347,9 +375,9 @@ if (
     or "Migration(10, 11)" not in p14 or "Migration(11, 12)" not in p14inputs
     or "Migration(12, 13)" not in p14inputs or "Migration(13, 14)" not in p15
     or "Migration(14, 15)" not in p15senior or "Migration(15, 16)" not in p16
-    or "Migration(16, 17)" not in p17
+    or "Migration(16, 17)" not in p17 or "Migration(17, 18)" not in p18
 ):
-    fail("V5->V6 through V16->V17 migration chain incomplete")
+    fail("V5->V6 through V17->V18 migration chain incomplete")
 
 match = re.search(r"val ALL: Array<Migration> = arrayOf\((.*?)\)", factory, re.S)
 order = re.findall(r"MIGRATION_\d+_\d+", match.group(1) if match else "")
@@ -357,12 +385,12 @@ expected_order = [
     "MIGRATION_1_2", "MIGRATION_2_3", "MIGRATION_3_4", "MIGRATION_4_5", "MIGRATION_5_6",
     "MIGRATION_6_7", "MIGRATION_7_8", "MIGRATION_8_9", "MIGRATION_9_10", "MIGRATION_10_11",
     "MIGRATION_11_12", "MIGRATION_12_13", "MIGRATION_13_14", "MIGRATION_14_15", "MIGRATION_15_16",
-    "MIGRATION_16_17",
+    "MIGRATION_16_17", "MIGRATION_17_18",
 ]
 if order != expected_order:
     fail(f"Migration registry order changed: {order}")
 
-for version in (3, 9, 10, 12, 13, 14, 15, 16, 17):
+for version in (3, 9, 10, 12, 13, 14, 15, 16, 17, 18):
     print(f"ROOM_V{version}_IDENTITY_HASH={IDENTITIES[version]}")
 print("ROOM_V10_STADIUM_OWNERSHIP_CONTRACT=PASS")
 print("ROOM_V11_COACH_RUNTIME_FAIL_CLOSED_CONTRACT=PASS")
@@ -372,3 +400,4 @@ print("ROOM_V14_JUNIOR_DRAFT_CONTRACT=PASS")
 print("ROOM_V15_SENIOR_RUNTIME_FAIL_CLOSED_CONTRACT=PASS")
 print("ROOM_V16_COMPETITION_PLAYER_RATING_CONTRACT=PASS")
 print("ROOM_V17_LEGACY_DURABILITY_CONTRACT=PASS")
+print("ROOM_V18_CLUB_TACTICS_PERSISTENCE_CONTRACT=PASS")
