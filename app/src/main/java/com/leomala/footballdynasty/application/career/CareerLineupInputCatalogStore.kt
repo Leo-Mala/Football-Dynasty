@@ -25,6 +25,7 @@ class CareerLineupInputCatalogStore(
 
     data class PlayerInput(
         val playerId: String,
+        val name: String,
         val positionCode: Int,
         val sideCode: Int,
         val subroleCode: Int,
@@ -65,6 +66,7 @@ class CareerLineupInputCatalogStore(
                             "Missing canonical player ${runtime.playerId}"
                         }
                         StaticInput(
+                            name = canonical.name,
                             positionCode = canonical.position,
                             sideCode = canonical.side,
                             cr1 = canonical.cr1,
@@ -79,6 +81,7 @@ class CareerLineupInputCatalogStore(
                             "Missing procedural player career=$careerId player=${runtime.playerId}"
                         }
                         StaticInput(
+                            name = procedural.name,
                             positionCode = procedural.position,
                             sideCode = procedural.side,
                             cr1 = procedural.cr1,
@@ -91,6 +94,7 @@ class CareerLineupInputCatalogStore(
 
                 PlayerInput(
                     playerId = runtime.playerId,
+                    name = staticInput.name,
                     positionCode = staticInput.positionCode,
                     sideCode = staticInput.sideCode,
                     subroleCode = LegacyPlayerSubroleCodeRule.resolve(
@@ -115,6 +119,7 @@ class CareerLineupInputCatalogStore(
         }
 
     private data class StaticInput(
+        val name: String,
         val positionCode: Int,
         val sideCode: Int,
         val cr1: Int,
