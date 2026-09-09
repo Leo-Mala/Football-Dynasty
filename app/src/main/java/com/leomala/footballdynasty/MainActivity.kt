@@ -19,6 +19,7 @@ import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
 import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
+import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
@@ -50,6 +51,7 @@ class MainActivity : ComponentActivity() {
         val calendarCommandStore = CareerCalendarCommandStore(database)
         val stadiumCatalogStore = CareerStadiumCatalogStore(database)
         val financeCatalogStore = CareerFinanceCatalogStore(database)
+        val managerCatalogStore = CareerManagerCatalogStore(database)
         val financeCommandStore = CareerFinanceCommandStore(database)
         val activeLoanCatalogStore = CareerActiveLoanCatalogStore(database)
 
@@ -70,6 +72,7 @@ class MainActivity : ComponentActivity() {
                             calendarCommandStore = calendarCommandStore,
                             stadiumCatalogStore = stadiumCatalogStore,
                             financeCatalogStore = financeCatalogStore,
+                            managerCatalogStore = managerCatalogStore,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(innerPadding),
