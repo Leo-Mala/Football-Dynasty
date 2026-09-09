@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerContractCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
+import com.leomala.footballdynasty.application.career.CareerResultCatalogStore
 import com.leomala.footballdynasty.application.career.CareerTransferSearchCatalogStore
 import kotlinx.coroutines.launch
 
@@ -37,6 +38,7 @@ fun Phase17ManagerScreen(
 ) {
     val contractCatalogStore = LocalCareerContractCatalogStore.current
     val transferSearchCatalogStore = LocalCareerTransferSearchCatalogStore.current
+    val resultCatalogStore = LocalCareerResultCatalogStore.current
     var contracts by remember(manager.careerId) {
         mutableStateOf<CareerContractCatalogStore.ContractList?>(null)
     }
@@ -49,6 +51,12 @@ fun Phase17ManagerScreen(
     var transferRequested by remember(manager.careerId) { mutableStateOf(false) }
     var transferLoading by remember(manager.careerId) { mutableStateOf(false) }
     var transferError by remember(manager.careerId) { mutableStateOf<String?>(null) }
+    var results by remember(manager.careerId) {
+        mutableStateOf<CareerResultCatalogStore.ResultCatalog?>(null)
+    }
+    var resultsRequested by remember(manager.careerId) { mutableStateOf(false) }
+    var resultsLoading by remember(manager.careerId) { mutableStateOf(false) }
+    var resultsError by remember(manager.careerId) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     if (contractsRequested) {
@@ -69,6 +77,18 @@ fun Phase17ManagerScreen(
             Phase17TransferMarketScreen(
                 catalog = loadedTransferCatalog,
                 onBack = { transferRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+    }
+
+    if (resultsRequested) {
+        val loadedResults = results
+        if (loadedResults != null) {
+            Phase17ResultsScreen(
+                catalog = loadedResults,
+                onBack = { resultsRequested = false },
                 modifier = modifier,
             )
             return
@@ -151,6 +171,40 @@ fun Phase17ManagerScreen(
             Text(if (transferLoading) "Carregando mercado..." else "Mercado — buscar jogadores")
         }
         transferError?.let { error ->
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        Button(
+            onClick = {
+                val store = resultCatalogStore ?: return@Button
+                if (resultsLoading) return@Button
+                resultsLoading = true
+                resultsError = null
+                scope.launch {
+                    try {
+                        val loaded = store.loadResults(manager.careerId)
+                        if (loaded == null) {
+                            resultsError = "Resultados persistidos indisponíveis para esta carreira."
+                        } else {
+                            results = loaded
+                            resultsRequested = true
+                        }
+                    } catch (_: Exception) {
+                        resultsError = "Resultados persistidos indisponíveis ou inconsistentes para esta carreira."
+                    } finally {
+                        resultsLoading = false
+                    }
+                }
+            },
+            enabled = resultCatalogStore != null && !resultsLoading,
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Text(if (resultsLoading) "Carregando resultados..." else "Resultados")
+        }
+        resultsError?.let { error ->
             Text(
                 text = error,
                 style = MaterialTheme.typography.bodyMedium,

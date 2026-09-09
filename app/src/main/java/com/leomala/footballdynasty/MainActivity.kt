@@ -21,6 +21,7 @@ import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
 import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
+import com.leomala.footballdynasty.application.career.CareerResultCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.application.career.CareerTransferSearchCatalogStore
@@ -30,6 +31,7 @@ import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
 import com.leomala.footballdynasty.ui.entry.LocalCareerActiveLoanCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerContractCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
+import com.leomala.footballdynasty.ui.entry.LocalCareerResultCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerTransferSearchCatalogStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
         val juniorCatalogStore = CareerJuniorCatalogStore(database)
         val competitionCatalogStore = CareerCompetitionCatalogStore(database)
         val calendarCatalogStore = CareerCalendarCatalogStore(database)
+        val resultCatalogStore = CareerResultCatalogStore(calendarCatalogStore)
         val calendarCommandStore = CareerCalendarCommandStore(database)
         val stadiumCatalogStore = CareerStadiumCatalogStore(database)
         val financeCatalogStore = CareerFinanceCatalogStore(database)
@@ -69,6 +72,7 @@ class MainActivity : ComponentActivity() {
                         LocalCareerActiveLoanCatalogStore provides activeLoanCatalogStore,
                         LocalCareerContractCatalogStore provides contractCatalogStore,
                         LocalCareerTransferSearchCatalogStore provides transferSearchCatalogStore,
+                        LocalCareerResultCatalogStore provides resultCatalogStore,
                     ) {
                         Phase17CareerEntryScreen(
                             coordinator = entryCoordinator,
