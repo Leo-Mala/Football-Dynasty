@@ -31,6 +31,7 @@ import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
+import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -56,6 +57,7 @@ fun Phase17CareerEntryScreen(
     calendarCommandStore: CareerCalendarCommandStore,
     stadiumCatalogStore: CareerStadiumCatalogStore,
     financeCatalogStore: CareerFinanceCatalogStore,
+    managerCatalogStore: CareerManagerCatalogStore,
     modifier: Modifier = Modifier,
 ) {
     var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
@@ -79,6 +81,7 @@ fun Phase17CareerEntryScreen(
             calendarCommandStore = calendarCommandStore,
             stadiumCatalogStore = stadiumCatalogStore,
             financeCatalogStore = financeCatalogStore,
+            managerCatalogStore = managerCatalogStore,
             onCareerChanged = { loadedCareer = it },
             modifier = modifier,
         )
@@ -173,6 +176,7 @@ private fun CareerHomeScreen(
     calendarCommandStore: CareerCalendarCommandStore,
     stadiumCatalogStore: CareerStadiumCatalogStore,
     financeCatalogStore: CareerFinanceCatalogStore,
+    managerCatalogStore: CareerManagerCatalogStore,
     onCareerChanged: (CareerState) -> Unit,
     modifier: Modifier,
 ) {
@@ -201,6 +205,9 @@ private fun CareerHomeScreen(
     var finances by remember(career.id) { mutableStateOf<CareerFinanceCatalogStore.FinanceSnapshot?>(null) }
     var financesRequested by remember(career.id) { mutableStateOf(false) }
     var financesUnavailable by remember(career.id) { mutableStateOf(false) }
+    var manager by remember(career.id) { mutableStateOf<CareerManagerCatalogStore.ManagerSnapshot?>(null) }
+    var managerRequested by remember(career.id) { mutableStateOf(false) }
+    var managerUnavailable by remember(career.id) { mutableStateOf(false) }
     var nextEventInProgress by remember(career.id) { mutableStateOf(false) }
     var nextEventMessage by remember(career.id) { mutableStateOf<String?>(null) }
     var nextEventError by remember(career.id) { mutableStateOf<String?>(null) }
@@ -329,6 +336,22 @@ private fun CareerHomeScreen(
         }
     }
 
+    if (managerRequested) {
+        val loadedManager = manager
+        if (loadedManager != null) {
+            Phase17ManagerScreen(
+                manager = loadedManager,
+                onBack = { managerRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+        if (!managerUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
         Text(text = "Central da carreira", style = MaterialTheme.typography.headlineMedium)
         Text(
@@ -429,18 +452,34 @@ private fun CareerHomeScreen(
                 Text("Juniores")
             }
         }
-        Button(
-            onClick = {
-                lineupRequested = true
-                lineupUnavailable = false
-                scope.launch {
-                    lineupInputs = lineupCatalogStore.loadManagedClubLineupInputs(career.id)
-                    lineupUnavailable = lineupInputs == null
-                }
-            },
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(top = 10.dp),
         ) {
-            Text("Escalação")
+            Button(
+                onClick = {
+                    lineupRequested = true
+                    lineupUnavailable = false
+                    scope.launch {
+                        lineupInputs = lineupCatalogStore.loadManagedClubLineupInputs(career.id)
+                        lineupUnavailable = lineupInputs == null
+                    }
+                },
+            ) {
+                Text("Escalação")
+            }
+            Button(
+                onClick = {
+                    managerRequested = true
+                    managerUnavailable = false
+                    scope.launch {
+                        manager = managerCatalogStore.loadManager(career.id)
+                        managerUnavailable = manager == null
+                    }
+                },
+            ) {
+                Text("Treinador")
+            }
         }
         Button(
             onClick = {
@@ -522,6 +561,13 @@ private fun CareerHomeScreen(
         if (financesUnavailable) {
             Text(
                 text = "Estado financeiro persistido indisponível para esta carreira.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (managerUnavailable) {
+            Text(
+                text = "Estado persistido do treinador indisponível para esta carreira.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 10.dp),
             )
