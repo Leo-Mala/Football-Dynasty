@@ -49,7 +49,6 @@ class CareerTransferSearchCatalogStore(
         val playerRuntimeDao = database.careerPlayerRuntimeDao()
         val runtimesByPlayerId = playerRuntimeDao.runtimeForCareer(careerId).associateBy { it.playerId }
         val rows = playerRuntimeDao.membershipsForCareer(careerId)
-            .asSequence()
             .filter { membership ->
                 membership.rosterKind == ROSTER_SENIOR && membership.clubId != managedClubId
             }
@@ -91,7 +90,6 @@ class CareerTransferSearchCatalogStore(
                     sourceOrdinal = membership.sourceOrdinal,
                 )
             }
-            .toList()
 
         SearchCatalog(
             careerId = careerId,
