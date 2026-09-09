@@ -11,9 +11,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.leomala.footballdynasty.application.career.CareerContractCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagerCatalogStore
+import kotlinx.coroutines.launch
 
 /**
  * Phase 17 presentation of the already-persisted manager runtime.
@@ -27,6 +34,27 @@ fun Phase17ManagerScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val contractCatalogStore = LocalCareerContractCatalogStore.current
+    var contracts by remember(manager.careerId) {
+        mutableStateOf<CareerContractCatalogStore.ContractList?>(null)
+    }
+    var contractsRequested by remember(manager.careerId) { mutableStateOf(false) }
+    var contractsLoading by remember(manager.careerId) { mutableStateOf(false) }
+    var contractsError by remember(manager.careerId) { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    if (contractsRequested) {
+        val loadedContracts = contracts
+        if (loadedContracts != null) {
+            Phase17ContractScreen(
+                contracts = loadedContracts,
+                onBack = { contractsRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
         Button(onClick = onBack) {
             Text("Voltar à central")
@@ -41,6 +69,40 @@ fun Phase17ManagerScreen(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(top = 8.dp),
         )
+        Button(
+            onClick = {
+                val store = contractCatalogStore ?: return@Button
+                if (contractsLoading) return@Button
+                contractsLoading = true
+                contractsError = null
+                scope.launch {
+                    try {
+                        val loaded = store.loadContracts(manager.careerId)
+                        if (loaded == null) {
+                            contractsError = "Contratos persistidos indisponíveis para esta carreira."
+                        } else {
+                            contracts = loaded
+                            contractsRequested = true
+                        }
+                    } catch (_: Exception) {
+                        contractsError = "Contratos persistidos indisponíveis para esta carreira."
+                    } finally {
+                        contractsLoading = false
+                    }
+                }
+            },
+            enabled = contractCatalogStore != null && !contractsLoading,
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Text(if (contractsLoading) "Carregando contratos..." else "Contratos do elenco")
+        }
+        contractsError?.let { error ->
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
         Text(
             text = "Identificador legado: ${manager.legacyManagerId}",
             style = MaterialTheme.typography.bodyLarge,

@@ -14,6 +14,7 @@ import com.leomala.footballdynasty.application.career.CareerActiveLoanCatalogSto
 import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
+import com.leomala.footballdynasty.application.career.CareerContractCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
@@ -26,6 +27,7 @@ import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabaseFactory
 import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
 import com.leomala.footballdynasty.ui.entry.LocalCareerActiveLoanCatalogStore
+import com.leomala.footballdynasty.ui.entry.LocalCareerContractCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
         val stadiumCatalogStore = CareerStadiumCatalogStore(database)
         val financeCatalogStore = CareerFinanceCatalogStore(database)
         val managerCatalogStore = CareerManagerCatalogStore(database)
+        val contractCatalogStore = CareerContractCatalogStore(database)
         val financeCommandStore = CareerFinanceCommandStore(database)
         val activeLoanCatalogStore = CareerActiveLoanCatalogStore(database)
 
@@ -61,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     CompositionLocalProvider(
                         LocalCareerFinanceCommandStore provides financeCommandStore,
                         LocalCareerActiveLoanCatalogStore provides activeLoanCatalogStore,
+                        LocalCareerContractCatalogStore provides contractCatalogStore,
                     ) {
                         Phase17CareerEntryScreen(
                             coordinator = entryCoordinator,
