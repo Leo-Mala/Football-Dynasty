@@ -207,6 +207,7 @@ class CareerManagerCatalogStoreTest {
         legacySid = 0,
         legacyTid = 0,
         legacyVid = 0,
+        legacyId = 0,
         legacyValid = true,
     )
 
