@@ -13,7 +13,6 @@ import com.leomala.footballdynasty.data.local.entity.ClubEntity
 import com.leomala.footballdynasty.domain.manager.LegacyManagerIdentityRule
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,6 +65,35 @@ class CareerManagerCatalogStoreTest {
                 state = CareerClubTicketRuntimeState(
                     rawDivisionCode = 3,
                     legacyManagerId = LegacyManagerIdentityRule.clubStoredManagerId(null),
+                ),
+            )
+
+            assertNull(CareerManagerCatalogStore(database).loadManager(CAREER_A))
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `ordered manager without V11 coach state remains unavailable`() = runBlocking {
+        val database = database()
+        try {
+            database.clubDao().upsertAll(listOf(club(CLUB_A, "Club A")))
+            createCareer(database)
+            val ticketStore = CareerTicketRuntimeStore(database)
+            ticketStore.materializeClubState(
+                careerId = CAREER_A,
+                clubId = CLUB_A,
+                state = CareerClubTicketRuntimeState(rawDivisionCode = 3, legacyManagerId = MANAGER_ID),
+            )
+            ticketStore.materializeManagers(
+                careerId = CAREER_A,
+                managersInWorldOrder = listOf(
+                    CareerManagerTicketRuntimeState(
+                        sourceOrdinal = 0,
+                        legacyManagerId = MANAGER_ID,
+                        rawH = 79,
+                    )
                 ),
             )
 
@@ -179,7 +207,6 @@ class CareerManagerCatalogStoreTest {
         legacySid = 0,
         legacyTid = 0,
         legacyVid = 0,
-        legacyId = 0,
         legacyValid = true,
     )
 
