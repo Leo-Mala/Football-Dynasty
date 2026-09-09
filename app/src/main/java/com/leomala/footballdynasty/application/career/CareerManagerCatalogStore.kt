@@ -40,7 +40,13 @@ class CareerManagerCatalogStore(
         val clubId = core.managedClubId ?: return null
         val club = database.clubDao().findById(clubId) ?: return null
         val clubState = ticketStore.findClubState(careerId, clubId) ?: return null
-        val coach = coachStore.resolveFirstCoachState(careerId, clubState.legacyManagerId) ?: return null
+
+        // Preserve `best.b.b1(id)` first-match semantics without turning an incomplete V11 slice
+        // into a presentation crash: a missing ordered parent or coach row is simply unavailable.
+        val managerParent = ticketStore.managersInWorldOrder(careerId)
+            .firstOrNull { it.legacyManagerId == clubState.legacyManagerId }
+            ?: return null
+        val coach = coachStore.find(careerId, managerParent.sourceOrdinal) ?: return null
 
         // The club->manager id and the V11 coach employment link must describe the same persisted
         // relationship. A stale/dismissed/incomplete slice is not repaired by the presentation layer.
