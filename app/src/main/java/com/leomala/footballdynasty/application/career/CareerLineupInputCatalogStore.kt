@@ -9,14 +9,15 @@ import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
+import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
 import com.leomala.footballdynasty.domain.match.LegacyMatchSubstitutionRules
 
 /**
- * Read-only Phase 17 boundary for the persisted inputs already proven to feed
+ * Read-only Phase 17 boundary for the persisted/source-proven inputs already proven to feed
  * the legacy lineup runtime.
  *
  * The boundary also exposes fail-closed readiness for the next managed match.
- * It never substitutes test fixtures/defaults for unresolved legacy owners.
+ * It never substitutes test fixtures or unproven defaults for unresolved legacy owners.
  */
 class CareerLineupInputCatalogStore(
     private val database: FootballDynastyDatabase,
@@ -65,6 +66,8 @@ class CareerLineupInputCatalogStore(
         val managedSide: ManagedMatchSide?,
         val homeSeniorRosterCount: Int?,
         val awaySeniorRosterCount: Int?,
+        val homeTacticIndex: Int?,
+        val awayTacticIndex: Int?,
         val homeSubstitutionsRemaining: Int?,
         val awaySubstitutionsRemaining: Int?,
         val homeLegacyModeFlag: Boolean?,
@@ -231,12 +234,17 @@ class CareerLineupInputCatalogStore(
             homeLegacyModeFlag = managerDao.findClubRuntime(state.id, target.homeClubId)?.active,
             awayLegacyModeFlag = managerDao.findClubRuntime(state.id, target.awayClubId)?.active,
         )
+        // All recovered best.c0 constructors initialize serialized S to {0,0,0,0}; best.s.k
+        // consumes raw S[2]. No modern DialogTatics mutation exists yet, so this source-owned
+        // constructor state is the exact current owner for both clubs, not a synthesized fallback.
+        val constructorTacticIndex = LegacyTacticsMatchRuntimeRule
+            .constructorInitialMatchEngineTacticIndex()
+
         val blockers = linkedSetOf<MatchPreparationBlocker>()
         if (homeSeniorRosterCount == 0) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
-        blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
         if (transientOwners == null) {
             // `best.s.N` is globally proven as {5,5}, but the match-side transient pack remains
             // fail-closed until both persisted `best.c0.Q0()` values are available. We therefore
@@ -258,6 +266,8 @@ class CareerLineupInputCatalogStore(
             },
             homeSeniorRosterCount = homeSeniorRosterCount,
             awaySeniorRosterCount = awaySeniorRosterCount,
+            homeTacticIndex = constructorTacticIndex,
+            awayTacticIndex = constructorTacticIndex,
             homeSubstitutionsRemaining = transientOwners?.homeSubstitutionsRemaining,
             awaySubstitutionsRemaining = transientOwners?.awaySubstitutionsRemaining,
             homeLegacyModeFlag = transientOwners?.homeLegacyModeFlag,
@@ -277,6 +287,8 @@ class CareerLineupInputCatalogStore(
         managedSide = null,
         homeSeniorRosterCount = null,
         awaySeniorRosterCount = null,
+        homeTacticIndex = null,
+        awayTacticIndex = null,
         homeSubstitutionsRemaining = null,
         awaySubstitutionsRemaining = null,
         homeLegacyModeFlag = null,
