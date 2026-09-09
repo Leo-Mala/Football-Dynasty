@@ -30,6 +30,7 @@ import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogSt
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
+import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
 import com.leomala.footballdynasty.application.career.CareerSquadCatalogStore
 import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -48,6 +49,7 @@ import kotlinx.coroutines.launch
 fun Phase17CareerEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
     squadCatalogStore: CareerSquadCatalogStore,
+    lineupCatalogStore: CareerLineupInputCatalogStore,
     juniorCatalogStore: CareerJuniorCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
@@ -70,6 +72,7 @@ fun Phase17CareerEntryScreen(
         CareerHomeScreen(
             career = career,
             squadCatalogStore = squadCatalogStore,
+            lineupCatalogStore = lineupCatalogStore,
             juniorCatalogStore = juniorCatalogStore,
             competitionCatalogStore = competitionCatalogStore,
             calendarCatalogStore = calendarCatalogStore,
@@ -163,6 +166,7 @@ private fun CareerListScreen(
 private fun CareerHomeScreen(
     career: CareerState,
     squadCatalogStore: CareerSquadCatalogStore,
+    lineupCatalogStore: CareerLineupInputCatalogStore,
     juniorCatalogStore: CareerJuniorCatalogStore,
     competitionCatalogStore: CareerCompetitionCatalogStore,
     calendarCatalogStore: CareerCalendarCatalogStore,
@@ -175,6 +179,9 @@ private fun CareerHomeScreen(
     var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
     var squadRequested by remember(career.id) { mutableStateOf(false) }
     var squadUnavailable by remember(career.id) { mutableStateOf(false) }
+    var lineupInputs by remember(career.id) { mutableStateOf<CareerLineupInputCatalogStore.LineupInputs?>(null) }
+    var lineupRequested by remember(career.id) { mutableStateOf(false) }
+    var lineupUnavailable by remember(career.id) { mutableStateOf(false) }
     var juniors by remember(career.id) { mutableStateOf<CareerJuniorCatalogStore.JuniorSquad?>(null) }
     var juniorsRequested by remember(career.id) { mutableStateOf(false) }
     var juniorsUnavailable by remember(career.id) { mutableStateOf(false) }
@@ -210,6 +217,22 @@ private fun CareerHomeScreen(
             return
         }
         if (!squadUnavailable) {
+            LoadingScreen(modifier)
+            return
+        }
+    }
+
+    if (lineupRequested) {
+        val loadedLineupInputs = lineupInputs
+        if (loadedLineupInputs != null) {
+            Phase17LineupInputsScreen(
+                inputs = loadedLineupInputs,
+                onBack = { lineupRequested = false },
+                modifier = modifier,
+            )
+            return
+        }
+        if (!lineupUnavailable) {
             LoadingScreen(modifier)
             return
         }
@@ -408,6 +431,19 @@ private fun CareerHomeScreen(
         }
         Button(
             onClick = {
+                lineupRequested = true
+                lineupUnavailable = false
+                scope.launch {
+                    lineupInputs = lineupCatalogStore.loadManagedClubLineupInputs(career.id)
+                    lineupUnavailable = lineupInputs == null
+                }
+            },
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Text("Escalação")
+        }
+        Button(
+            onClick = {
                 nextEventInProgress = true
                 nextEventMessage = null
                 nextEventError = null
@@ -451,6 +487,13 @@ private fun CareerHomeScreen(
         if (squadUnavailable) {
             Text(
                 text = "Elenco persistido indisponível.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        if (lineupUnavailable) {
+            Text(
+                text = "Dados persistidos de escalação indisponíveis para esta carreira.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 10.dp),
             )
