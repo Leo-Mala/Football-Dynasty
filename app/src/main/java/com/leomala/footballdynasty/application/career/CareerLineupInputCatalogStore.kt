@@ -9,6 +9,7 @@ import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
+import com.leomala.footballdynasty.domain.match.LegacyMatchSubstitutionRules
 
 /**
  * Read-only Phase 17 boundary for the persisted inputs already proven to feed
@@ -64,11 +65,22 @@ class CareerLineupInputCatalogStore(
         val managedSide: ManagedMatchSide?,
         val homeSeniorRosterCount: Int?,
         val awaySeniorRosterCount: Int?,
+        val homeSubstitutionsRemaining: Int?,
+        val awaySubstitutionsRemaining: Int?,
+        val homeLegacyModeFlag: Boolean?,
+        val awayLegacyModeFlag: Boolean?,
         val blockers: Set<MatchPreparationBlocker>,
     ) {
         val executable: Boolean
             get() = matchId != null && blockers.isEmpty()
     }
+
+    internal data class TransientClubOwners(
+        val homeSubstitutionsRemaining: Int,
+        val awaySubstitutionsRemaining: Int,
+        val homeLegacyModeFlag: Boolean,
+        val awayLegacyModeFlag: Boolean,
+    )
 
     suspend fun loadManagedClubLineupInputs(careerId: String): LineupInputs? =
         database.withTransaction {
@@ -176,15 +188,9 @@ class CareerLineupInputCatalogStore(
             scheduledDays = CareerScheduleCalendarProjection.calendarDays(schedule),
         )
         if (!nextSelection.found) {
-            return MatchPreparation(
+            return unavailablePreparation(
                 nextPlayableDayIndex = null,
-                matchId = null,
-                homeClubId = null,
-                awayClubId = null,
-                managedSide = null,
-                homeSeniorRosterCount = null,
-                awaySeniorRosterCount = null,
-                blockers = setOf(MatchPreparationBlocker.NO_PLAYABLE_MATCH),
+                blocker = MatchPreparationBlocker.NO_PLAYABLE_MATCH,
             )
         }
 
@@ -198,15 +204,9 @@ class CareerLineupInputCatalogStore(
             "Managed club $managedClubId has multiple matches on next playable day $nextDayIndex"
         }
         val target = managedMatches.singleOrNull()
-            ?: return MatchPreparation(
+            ?: return unavailablePreparation(
                 nextPlayableDayIndex = nextDayIndex,
-                matchId = null,
-                homeClubId = null,
-                awayClubId = null,
-                managedSide = null,
-                homeSeniorRosterCount = null,
-                awaySeniorRosterCount = null,
-                blockers = setOf(MatchPreparationBlocker.MANAGED_CLUB_NOT_ON_NEXT_PLAYABLE_DAY),
+                blocker = MatchPreparationBlocker.MANAGED_CLUB_NOT_ON_NEXT_PLAYABLE_DAY,
             )
 
         val playerRuntimeDao = database.careerPlayerRuntimeDao()
@@ -226,16 +226,24 @@ class CareerLineupInputCatalogStore(
 
         val homeSeniorRosterCount = seniorRosterCount(target.homeClubId)
         val awaySeniorRosterCount = seniorRosterCount(target.awayClubId)
+        val managerDao = database.careerManagerRuntimeDao()
+        val transientOwners = resolveTransientClubOwners(
+            homeLegacyModeFlag = managerDao.findClubRuntime(state.id, target.homeClubId)?.active,
+            awayLegacyModeFlag = managerDao.findClubRuntime(state.id, target.awayClubId)?.active,
+        )
         val blockers = linkedSetOf<MatchPreparationBlocker>()
         if (homeSeniorRosterCount == 0) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
-        // These values are deliberately not inferred from current tests or modern defaults. They
-        // remain blocked until their legacy producers/owners are connected to persisted production state.
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
         blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
-        blockers += MatchPreparationBlocker.SUBSTITUTION_BUDGET_OWNER_UNRESOLVED
-        blockers += MatchPreparationBlocker.LEGACY_MODE_FLAG_OWNER_UNRESOLVED
+        if (transientOwners == null) {
+            // `best.s.N` is globally proven as {5,5}, but the match-side transient pack remains
+            // fail-closed until both persisted `best.c0.Q0()` values are available. We therefore
+            // do not publish a partial club-runtime input pack.
+            blockers += MatchPreparationBlocker.SUBSTITUTION_BUDGET_OWNER_UNRESOLVED
+            blockers += MatchPreparationBlocker.LEGACY_MODE_FLAG_OWNER_UNRESOLVED
+        }
         blockers += MatchPreparationBlocker.MATCH_RUNTIME_COMPOSITION_UNWIRED
 
         return MatchPreparation(
@@ -250,9 +258,31 @@ class CareerLineupInputCatalogStore(
             },
             homeSeniorRosterCount = homeSeniorRosterCount,
             awaySeniorRosterCount = awaySeniorRosterCount,
+            homeSubstitutionsRemaining = transientOwners?.homeSubstitutionsRemaining,
+            awaySubstitutionsRemaining = transientOwners?.awaySubstitutionsRemaining,
+            homeLegacyModeFlag = transientOwners?.homeLegacyModeFlag,
+            awayLegacyModeFlag = transientOwners?.awayLegacyModeFlag,
             blockers = blockers,
         )
     }
+
+    private fun unavailablePreparation(
+        nextPlayableDayIndex: Int?,
+        blocker: MatchPreparationBlocker,
+    ) = MatchPreparation(
+        nextPlayableDayIndex = nextPlayableDayIndex,
+        matchId = null,
+        homeClubId = null,
+        awayClubId = null,
+        managedSide = null,
+        homeSeniorRosterCount = null,
+        awaySeniorRosterCount = null,
+        homeSubstitutionsRemaining = null,
+        awaySubstitutionsRemaining = null,
+        homeLegacyModeFlag = null,
+        awayLegacyModeFlag = null,
+        blockers = setOf(blocker),
+    )
 
     private data class StaticInput(
         val name: String,
@@ -262,7 +292,24 @@ class CareerLineupInputCatalogStore(
         val cr2: Int,
     )
 
-    private companion object {
-        const val ROSTER_SENIOR = "SENIOR"
+    companion object {
+        private const val ROSTER_SENIOR = "SENIOR"
+
+        /**
+         * Joins the two recovered transient owners used by `best.s`: constructor-owned `N={5,5}`
+         * and persisted club `Q0()`. Missing Q0 evidence keeps the whole pack fail-closed.
+         */
+        internal fun resolveTransientClubOwners(
+            homeLegacyModeFlag: Boolean?,
+            awayLegacyModeFlag: Boolean?,
+        ): TransientClubOwners? {
+            if (homeLegacyModeFlag == null || awayLegacyModeFlag == null) return null
+            return TransientClubOwners(
+                homeSubstitutionsRemaining = LegacyMatchSubstitutionRules.INITIAL_SUBSTITUTIONS_PER_SIDE,
+                awaySubstitutionsRemaining = LegacyMatchSubstitutionRules.INITIAL_SUBSTITUTIONS_PER_SIDE,
+                homeLegacyModeFlag = homeLegacyModeFlag,
+                awayLegacyModeFlag = awayLegacyModeFlag,
+            )
+        }
     }
 }
