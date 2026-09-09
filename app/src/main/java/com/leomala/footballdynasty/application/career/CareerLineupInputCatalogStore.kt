@@ -4,15 +4,18 @@ import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.CareerCoreStateRoomAdapter
 import com.leomala.footballdynasty.data.local.CareerPlayerRuntimeStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
+import com.leomala.footballdynasty.domain.career.CareerScheduleCalendarProjection
+import com.leomala.footballdynasty.domain.career.CareerState
+import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
+import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
 
 /**
  * Read-only Phase 17 boundary for the persisted inputs already proven to feed
  * the legacy lineup runtime.
  *
- * This store deliberately does not classify availability, choose a formation,
- * restore saved tactics or execute a match. Those decisions still depend on
- * separately-owned legacy inputs whose persisted producers are not proven yet.
+ * The boundary also exposes fail-closed readiness for the next managed match.
+ * It never substitutes test fixtures/defaults for unresolved legacy owners.
  */
 class CareerLineupInputCatalogStore(
     private val database: FootballDynastyDatabase,
@@ -21,6 +24,7 @@ class CareerLineupInputCatalogStore(
         val careerId: String,
         val clubId: String,
         val players: List<PlayerInput>,
+        val matchPreparation: MatchPreparation,
     )
 
     data class PlayerInput(
@@ -34,6 +38,37 @@ class CareerLineupInputCatalogStore(
         val star: Boolean,
         val sourceOrdinal: Int,
     )
+
+    enum class ManagedMatchSide {
+        HOME,
+        AWAY,
+    }
+
+    enum class MatchPreparationBlocker {
+        NO_PLAYABLE_MATCH,
+        MANAGED_CLUB_NOT_ON_NEXT_PLAYABLE_DAY,
+        HOME_SENIOR_ROSTER_EMPTY,
+        AWAY_SENIOR_ROSTER_EMPTY,
+        LINEUP_ELIGIBILITY_OWNER_UNRESOLVED,
+        TACTICS_STATE_OWNER_UNRESOLVED,
+        SUBSTITUTION_BUDGET_OWNER_UNRESOLVED,
+        LEGACY_MODE_FLAG_OWNER_UNRESOLVED,
+        MATCH_RUNTIME_COMPOSITION_UNWIRED,
+    }
+
+    data class MatchPreparation(
+        val nextPlayableDayIndex: Int?,
+        val matchId: String?,
+        val homeClubId: String?,
+        val awayClubId: String?,
+        val managedSide: ManagedMatchSide?,
+        val homeSeniorRosterCount: Int?,
+        val awaySeniorRosterCount: Int?,
+        val blockers: Set<MatchPreparationBlocker>,
+    ) {
+        val executable: Boolean
+            get() = matchId != null && blockers.isEmpty()
+    }
 
     suspend fun loadManagedClubLineupInputs(careerId: String): LineupInputs? =
         database.withTransaction {
@@ -115,8 +150,109 @@ class CareerLineupInputCatalogStore(
                 careerId = careerId,
                 clubId = clubId,
                 players = players,
+                matchPreparation = buildMatchPreparation(
+                    state = state,
+                    managedClubId = clubId,
+                ),
             )
         }
+
+    private suspend fun buildMatchPreparation(
+        state: CareerState,
+        managedClubId: String,
+    ): MatchPreparation {
+        val schedule = database.careerScheduledMatchDao().findAll(state.id).map { entity ->
+            ScheduledCareerMatch(
+                matchId = entity.matchId,
+                dayIndex = entity.dayIndex,
+                eventTypeCode = entity.eventTypeCode,
+                homeClubId = entity.homeClubId,
+                awayClubId = entity.awayClubId,
+                processed = entity.processed,
+            )
+        }
+        val nextSelection = LegacyCalendarRules.selectNextPlayableDay(
+            state = state,
+            scheduledDays = CareerScheduleCalendarProjection.calendarDays(schedule),
+        )
+        if (!nextSelection.found) {
+            return MatchPreparation(
+                nextPlayableDayIndex = null,
+                matchId = null,
+                homeClubId = null,
+                awayClubId = null,
+                managedSide = null,
+                homeSeniorRosterCount = null,
+                awaySeniorRosterCount = null,
+                blockers = setOf(MatchPreparationBlocker.NO_PLAYABLE_MATCH),
+            )
+        }
+
+        val nextDayIndex = requireNotNull(nextSelection.selectedIndex)
+        val managedMatches = schedule.filter { match ->
+            !match.processed &&
+                match.dayIndex == nextDayIndex &&
+                (match.homeClubId == managedClubId || match.awayClubId == managedClubId)
+        }
+        require(managedMatches.size <= 1) {
+            "Managed club $managedClubId has multiple matches on next playable day $nextDayIndex"
+        }
+        val target = managedMatches.singleOrNull()
+            ?: return MatchPreparation(
+                nextPlayableDayIndex = nextDayIndex,
+                matchId = null,
+                homeClubId = null,
+                awayClubId = null,
+                managedSide = null,
+                homeSeniorRosterCount = null,
+                awaySeniorRosterCount = null,
+                blockers = setOf(MatchPreparationBlocker.MANAGED_CLUB_NOT_ON_NEXT_PLAYABLE_DAY),
+            )
+
+        val playerRuntimeDao = database.careerPlayerRuntimeDao()
+        suspend fun seniorRosterCount(clubId: String): Int {
+            val seniorMemberships = playerRuntimeDao.membershipsForClub(
+                careerId = state.id,
+                clubId = clubId,
+                rosterKind = ROSTER_SENIOR,
+            )
+            seniorMemberships.forEach { membership ->
+                requireNotNull(playerRuntimeDao.findRuntime(state.id, membership.playerId)) {
+                    "Missing runtime for career=${state.id} player=${membership.playerId}"
+                }
+            }
+            return seniorMemberships.size
+        }
+
+        val homeSeniorRosterCount = seniorRosterCount(target.homeClubId)
+        val awaySeniorRosterCount = seniorRosterCount(target.awayClubId)
+        val blockers = linkedSetOf<MatchPreparationBlocker>()
+        if (homeSeniorRosterCount == 0) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
+        if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
+
+        // These values are deliberately not inferred from current tests or modern defaults. They
+        // remain blocked until their legacy producers/owners are connected to persisted production state.
+        blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
+        blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
+        blockers += MatchPreparationBlocker.SUBSTITUTION_BUDGET_OWNER_UNRESOLVED
+        blockers += MatchPreparationBlocker.LEGACY_MODE_FLAG_OWNER_UNRESOLVED
+        blockers += MatchPreparationBlocker.MATCH_RUNTIME_COMPOSITION_UNWIRED
+
+        return MatchPreparation(
+            nextPlayableDayIndex = nextDayIndex,
+            matchId = target.matchId,
+            homeClubId = target.homeClubId,
+            awayClubId = target.awayClubId,
+            managedSide = if (target.homeClubId == managedClubId) {
+                ManagedMatchSide.HOME
+            } else {
+                ManagedMatchSide.AWAY
+            },
+            homeSeniorRosterCount = homeSeniorRosterCount,
+            awaySeniorRosterCount = awaySeniorRosterCount,
+            blockers = blockers,
+        )
+    }
 
     private data class StaticInput(
         val name: String,
