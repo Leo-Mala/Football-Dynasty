@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import com.leomala.footballdynasty.application.career.CareerActiveLoanCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCalendarCatalogStore
 import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
@@ -23,6 +24,7 @@ import com.leomala.footballdynasty.application.career.CareerStadiumCatalogStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabaseFactory
 import com.leomala.footballdynasty.ui.entry.CareerEntryFlowCoordinator
+import com.leomala.footballdynasty.ui.entry.LocalCareerActiveLoanCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
 
@@ -49,11 +51,15 @@ class MainActivity : ComponentActivity() {
         val stadiumCatalogStore = CareerStadiumCatalogStore(database)
         val financeCatalogStore = CareerFinanceCatalogStore(database)
         val financeCommandStore = CareerFinanceCommandStore(database)
+        val activeLoanCatalogStore = CareerActiveLoanCatalogStore(database)
 
         setContent {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    CompositionLocalProvider(LocalCareerFinanceCommandStore provides financeCommandStore) {
+                    CompositionLocalProvider(
+                        LocalCareerFinanceCommandStore provides financeCommandStore,
+                        LocalCareerActiveLoanCatalogStore provides activeLoanCatalogStore,
+                    ) {
                         Phase17CareerEntryScreen(
                             coordinator = entryCoordinator,
                             squadCatalogStore = squadCatalogStore,
