@@ -31,7 +31,8 @@ class Migration4To5Test {
             Phase15JuniorDraftMigration.MIGRATION_13_14, Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
             Phase17LegacyDurabilityMigration.MIGRATION_16_17,
-            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18)
+            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18,
+            Phase17CompetitionDisciplineMigration.MIGRATION_18_19)
         db.execSQL("PRAGMA foreign_keys=ON")
         db.query("SELECT age,overall,energy,injuryUntilEpochDay,legacyAnnualM,legacyAnnualN,legacyRawPayrollN FROM career_player_runtime WHERE careerId='career-v5' AND playerId='p1'").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(35,c.getInt(0)); assertEquals(81,c.getInt(1)); assertEquals(100,c.getInt(2)); assertEquals(0L,c.getLong(3)); assertTrue(c.isNull(4)); assertTrue(c.isNull(5)); assertTrue(c.isNull(6))
