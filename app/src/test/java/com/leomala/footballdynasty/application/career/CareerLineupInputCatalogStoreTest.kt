@@ -87,6 +87,7 @@ class CareerLineupInputCatalogStoreTest {
             assertEquals(
                 setOf(
                     CareerLineupInputCatalogStore.MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED,
+                    CareerLineupInputCatalogStore.MatchPreparationBlocker.LINEUP_MODE_FLAG_OWNER_UNRESOLVED,
                     CareerLineupInputCatalogStore.MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED,
                     CareerLineupInputCatalogStore.MatchPreparationBlocker.SUBSTITUTION_BUDGET_OWNER_UNRESOLVED,
                     CareerLineupInputCatalogStore.MatchPreparationBlocker.LEGACY_MODE_FLAG_OWNER_UNRESOLVED,
