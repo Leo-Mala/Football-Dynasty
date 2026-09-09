@@ -73,6 +73,17 @@ fun Phase17LineupInputsScreen(
                         text = "Força ${player.skill} • Energia ${player.energy} • Estrela ${if (player.star) "sim" else "não"}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    player.excludedByCompetitionV0ForPreparedMatch?.let { excluded ->
+                        Text(
+                            text = if (excluded) {
+                                "Disciplina da competição: indisponível por V0"
+                            } else {
+                                "Disciplina da competição: liberado por V0"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
             }
         }
@@ -119,6 +130,19 @@ private fun MatchPreparationSummary(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 4.dp),
             )
+            when (preparation.competitionRestrictionActive) {
+                true -> Text(
+                    text = "Restrição disciplinar ${preparation.competitionId}: ${if (preparation.competitionDisciplineOwnerResolved == true) "estado V19 resolvido" else "estado V19 incompleto"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                false -> Text(
+                    text = "Restrição disciplinar V0: não ativa para esta partida.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                null -> Unit
+            }
         }
 
         if (preparation.blockers.isNotEmpty()) {

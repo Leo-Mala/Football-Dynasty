@@ -9,6 +9,8 @@ import com.leomala.footballdynasty.domain.career.CareerScheduleCalendarProjectio
 import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
+import com.leomala.footballdynasty.domain.manager.LegacyCompetitionDisciplineRules
+import com.leomala.footballdynasty.domain.manager.LegacyCompetitionDisciplineState
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
 import com.leomala.footballdynasty.domain.match.LegacyMatchSubstitutionRules
@@ -43,6 +45,12 @@ class CareerLineupInputCatalogStore(
         val sourceOrdinal: Int,
         /** Exact modern owner for legacy `best.o.M0()` against the prepared match date. */
         val blockedByM0ForPreparedMatch: Boolean?,
+        /**
+         * Exact V19 projection of `best.o.V0(best.k0)` for the prepared match.
+         * Null means the restrictive competition exists but its historical `best.r` row was not
+         * materialized; callers must keep lineup eligibility fail-closed in that case.
+         */
+        val excludedByCompetitionV0ForPreparedMatch: Boolean?,
     )
 
     enum class ManagedMatchSide {
@@ -70,6 +78,15 @@ class CareerLineupInputCatalogStore(
         val managedSide: ManagedMatchSide?,
         val homeSeniorRosterCount: Int?,
         val awaySeniorRosterCount: Int?,
+        /** Exact modern owner of legacy `best.s.B()` when the scheduled match belongs to a competition. */
+        val competitionId: String?,
+        /** Exact `best.o.K0`: restriction is active only when `best.s.B()!=null && best.k0.E()!=0`. */
+        val competitionRestrictionActive: Boolean?,
+        /**
+         * True when V0 is irrelevant or every senior player on both sides has an exact V19 `best.r`
+         * row. False means at least one restrictive-competition discipline row is unknown.
+         */
+        val competitionDisciplineOwnerResolved: Boolean?,
         val homeTacticIndex: Int?,
         val awayTacticIndex: Int?,
         val homeSubstitutionsRemaining: Int?,
@@ -182,6 +199,11 @@ class CareerLineupInputCatalogStore(
                             currentEpochDay = currentEpochDay,
                         )
                     },
+                    excludedByCompetitionV0ForPreparedMatch = resolveCompetitionExclusion(
+                        careerId = careerId,
+                        playerId = runtime.playerId,
+                        preparation = matchPreparation,
+                    ),
                 )
             }
 
@@ -192,6 +214,28 @@ class CareerLineupInputCatalogStore(
                 matchPreparation = matchPreparation,
             )
         }
+
+    private suspend fun resolveCompetitionExclusion(
+        careerId: String,
+        playerId: String,
+        preparation: MatchPreparation,
+    ): Boolean? {
+        if (preparation.matchId == null) return null
+        if (preparation.competitionRestrictionActive == false) return false
+        if (preparation.competitionRestrictionActive != true) return null
+        val competitionId = preparation.competitionId ?: return null
+        val entity = database.careerCompetitionDisciplineDao().find(
+            careerId = careerId,
+            playerId = playerId,
+            competitionId = competitionId,
+        ) ?: return null
+        return LegacyCompetitionDisciplineRules.isExcluded(
+            LegacyCompetitionDisciplineState(
+                legacyThreshold3Counter = entity.legacyThreshold3Counter,
+                legacyThreshold1Counter = entity.legacyThreshold1Counter,
+            )
+        )
+    }
 
     private suspend fun buildMatchPreparation(
         state: CareerState,
@@ -234,7 +278,7 @@ class CareerLineupInputCatalogStore(
             )
 
         val playerRuntimeDao = database.careerPlayerRuntimeDao()
-        suspend fun seniorRosterCount(clubId: String): Int {
+        suspend fun seniorRosterPlayerIds(clubId: String): List<String> {
             val seniorMemberships = playerRuntimeDao.membershipsForClub(
                 careerId = state.id,
                 clubId = clubId,
@@ -245,11 +289,35 @@ class CareerLineupInputCatalogStore(
                     "Missing runtime for career=${state.id} player=${membership.playerId}"
                 }
             }
-            return seniorMemberships.size
+            return seniorMemberships.map { it.playerId }
         }
 
-        val homeSeniorRosterCount = seniorRosterCount(target.homeClubId)
-        val awaySeniorRosterCount = seniorRosterCount(target.awayClubId)
+        val homeSeniorPlayerIds = seniorRosterPlayerIds(target.homeClubId)
+        val awaySeniorPlayerIds = seniorRosterPlayerIds(target.awayClubId)
+
+        // `career_competition_matches` is the durable owner for legacy `best.s.B()`: zero links
+        // means the scheduled match has no competition object, while one link identifies exact k0.
+        val competitionDao = database.careerCompetitionDao()
+        val competitionLinks = competitionDao.matchLinksForMatch(state.id, target.matchId)
+        require(competitionLinks.size <= 1) {
+            "Prepared match ${target.matchId} must resolve zero or one competition, found ${competitionLinks.size}"
+        }
+        val competition = competitionLinks.singleOrNull()?.let { link ->
+            requireNotNull(competitionDao.findCompetition(state.id, link.competitionId)) {
+                "Missing competition ${link.competitionId} linked to prepared match ${target.matchId}"
+            }
+        }
+        val competitionRestrictionActive = competition?.legacyCompetitionType?.let { it != 0 } ?: false
+        val competitionDisciplineOwnerResolved = if (!competitionRestrictionActive) {
+            true
+        } else {
+            val competitionId = requireNotNull(competition?.competitionId)
+            val disciplinePlayerIds = database.careerCompetitionDisciplineDao()
+                .forCompetition(state.id, competitionId)
+                .mapTo(hashSetOf()) { it.playerId }
+            (homeSeniorPlayerIds + awaySeniorPlayerIds).all { it in disciplinePlayerIds }
+        }
+
         val managerDao = database.careerManagerRuntimeDao()
         val homeClubRuntime = managerDao.findClubRuntime(state.id, target.homeClubId)
         val awayClubRuntime = managerDao.findClubRuntime(state.id, target.awayClubId)
@@ -269,9 +337,12 @@ class CareerLineupInputCatalogStore(
         }
 
         val blockers = linkedSetOf<MatchPreparationBlocker>()
-        if (homeSeniorRosterCount == 0) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
-        if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
+        if (homeSeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
+        if (awaySeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
+        // V19 now resolves the `V0(k0)` discipline slice above. K0 still also consumes the
+        // ActivityMainTeam mode flag, club/contract ownership and final eligible-list composition,
+        // so the aggregate eligibility blocker must remain until those owners are wired as well.
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
         if (homeTacticIndex == null || awayTacticIndex == null) {
             blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
@@ -295,8 +366,11 @@ class CareerLineupInputCatalogStore(
             } else {
                 ManagedMatchSide.AWAY
             },
-            homeSeniorRosterCount = homeSeniorRosterCount,
-            awaySeniorRosterCount = awaySeniorRosterCount,
+            homeSeniorRosterCount = homeSeniorPlayerIds.size,
+            awaySeniorRosterCount = awaySeniorPlayerIds.size,
+            competitionId = competition?.competitionId,
+            competitionRestrictionActive = competitionRestrictionActive,
+            competitionDisciplineOwnerResolved = competitionDisciplineOwnerResolved,
             homeTacticIndex = homeTacticIndex,
             awayTacticIndex = awayTacticIndex,
             homeSubstitutionsRemaining = transientOwners?.homeSubstitutionsRemaining,
@@ -318,6 +392,9 @@ class CareerLineupInputCatalogStore(
         managedSide = null,
         homeSeniorRosterCount = null,
         awaySeniorRosterCount = null,
+        competitionId = null,
+        competitionRestrictionActive = null,
+        competitionDisciplineOwnerResolved = null,
         homeTacticIndex = null,
         awayTacticIndex = null,
         homeSubstitutionsRemaining = null,
