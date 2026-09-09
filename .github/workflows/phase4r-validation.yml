@@ -81,27 +81,27 @@ jobs:
           mkdir -p /tmp/versioned-room-schemas
           cp "$DIR"/*.json /tmp/versioned-room-schemas/
 
-      - name: Generate Room schemas through V18
+      - name: Generate Room schemas through V19
         run: ./gradlew :app:kspDebugKotlin :app:copyRoomSchemas --no-daemon --stacktrace
 
-      - name: Materialize generated Room V18 baseline
+      - name: Materialize generated Room V19 baseline
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          SCHEMA=app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/18.json
+          SCHEMA=app/schemas/com.leomala.footballdynasty.data.local.FootballDynastyDatabase/19.json
           test -f "$SCHEMA"
           if git ls-files --error-unmatch "$SCHEMA" >/dev/null 2>&1; then
-            echo 'Room V18 baseline already versioned.'
+            echo 'Room V19 baseline already versioned.'
             exit 0
           fi
-          cp "$SCHEMA" /tmp/versioned-room-schemas/18.json
+          cp "$SCHEMA" /tmp/versioned-room-schemas/19.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$SCHEMA"
-          git commit -m 'chore: version generated Room V18 schema'
+          git commit -m 'chore: version generated Room V19 schema'
           git push origin "HEAD:${HEAD_REF}"
 
       - name: Retain generated Room schemas
@@ -137,7 +137,8 @@ jobs:
             'LegacyProceduralNameCorpusIntegrationTest','Migration1To2Test','Migration2To3Test','Migration3To4Test',
             'Migration4To5Test','Migration5To6Test','Migration6To7Test','Migration7To8Test','Migration8To9Test',
             'Migration9To10Test','Migration10To11Test','Migration12To13Test','Migration13To14Test','Migration14To15Test',
-            'Migration15To16Test','Migration16To17Test','Migration17To18Test','LegacyCompetitionPlayerRatingAggregateRulesTest',
+            'Migration15To16Test','Migration16To17Test','Migration17To18Test','Migration18To19Test',
+            'LegacyCompetitionDisciplineRulesTest','LegacyCompetitionPlayerRatingAggregateRulesTest',
             'LegacyLeagueTransientRatingCaptureRulesTest','CareerMatchPlayerRatingRuntimeExecutorTest',
             'CareerCompetitionPlayerRatingStoreTest','LegacyCompetitionSnapshotRulesTest',
             'CareerLeagueRoundTransientRatingRuntimeTest','CareerCompetitionRoundSnapshotPersistenceTest',
@@ -213,7 +214,7 @@ jobs:
       - name: Debug build
         run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Verify Room schemas and migration policy through V18
+      - name: Verify Room schemas and migration policy through V19
         shell: bash
         run: |
           set -euo pipefail
@@ -224,9 +225,9 @@ jobs:
           echo "Exact Phase 7 head checkout: PASS (${{ steps.exact_head.outputs.sha }})"
           echo "Raw RNG/destructive migration guards: PASS"
           echo "Gradle help: PASS"
-          echo "Room V1/V2/V3/V13 immutable regression + V14 junior-draft + V15 senior-runtime + V16 competition-rating + V17 durability + V18 tactics persistence: PASS"
-          echo "Unit tests + migrations through 17->18 + manager/stadium/ticket/coach/competition-input/junior/senior/rating/snapshot/tactics persistence: PASS"
+          echo "Room V1/V2/V3/V13 immutable regression + V14 junior-draft + V15 senior-runtime + V16 competition-rating + V17 durability + V18 tactics persistence + V19 competition discipline: PASS"
+          echo "Unit tests + migrations through 18->19 + manager/stadium/ticket/coach/competition-input/junior/senior/rating/snapshot/tactics/discipline persistence: PASS"
           echo "Brasfoot 2026 corpus/fixture integrity: PASS"
           echo "Phase 9/10 persisted runtime regressions: PASS"
-          echo "Room migrations V1->V2->V3->V4->V5->V6->V7->V8->V9->V10->V11->V12->V13->V14->V15->V16->V17->V18: PASS"
+          echo "Room migrations V1->V2->V3->V4->V5->V6->V7->V8->V9->V10->V11->V12->V13->V14->V15->V16->V17->V18->V19: PASS"
           echo "assembleDebug: PASS"
