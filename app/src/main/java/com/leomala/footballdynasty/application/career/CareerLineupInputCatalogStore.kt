@@ -235,8 +235,8 @@ class CareerLineupInputCatalogStore(
             awayLegacyModeFlag = managerDao.findClubRuntime(state.id, target.awayClubId)?.active,
         )
         // All recovered best.c0 constructors initialize serialized S to {0,0,0,0}; best.s.k
-        // consumes raw S[2]. No modern DialogTatics mutation exists yet, so this source-owned
-        // constructor state is the exact current owner for both clubs, not a synthesized fallback.
+        // consumes raw S[2]. This exact initial value is exposed now, but readiness remains
+        // fail-closed until DialogTatics mutations have a durable club-local owner.
         val constructorTacticIndex = LegacyTacticsMatchRuntimeRule
             .constructorInitialMatchEngineTacticIndex()
 
@@ -245,6 +245,7 @@ class CareerLineupInputCatalogStore(
         if (awaySeniorRosterCount == 0) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
+        blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
         if (transientOwners == null) {
             // `best.s.N` is globally proven as {5,5}, but the match-side transient pack remains
             // fail-closed until both persisted `best.c0.Q0()` values are available. We therefore
