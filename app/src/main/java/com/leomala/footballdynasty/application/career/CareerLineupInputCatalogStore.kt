@@ -2,8 +2,10 @@ package com.leomala.footballdynasty.application.career
 
 import androidx.room.withTransaction
 import com.leomala.footballdynasty.data.local.CareerClubTacticsStore
+import com.leomala.footballdynasty.data.local.CareerCoachRuntimeStore
 import com.leomala.footballdynasty.data.local.CareerCoreStateRoomAdapter
 import com.leomala.footballdynasty.data.local.CareerPlayerRuntimeStore
+import com.leomala.footballdynasty.data.local.CareerTicketRuntimeStore
 import com.leomala.footballdynasty.data.local.FootballDynastyDatabase
 import com.leomala.footballdynasty.domain.career.CareerScheduleCalendarProjection
 import com.leomala.footballdynasty.domain.career.CareerState
@@ -11,6 +13,7 @@ import com.leomala.footballdynasty.domain.career.LegacyCalendarRules
 import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyCompetitionDisciplineRules
 import com.leomala.footballdynasty.domain.manager.LegacyCompetitionDisciplineState
+import com.leomala.footballdynasty.domain.manager.LegacyManagerIdentityRule
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
 import com.leomala.footballdynasty.domain.match.LegacyMatchSubstitutionRules
@@ -64,6 +67,7 @@ class CareerLineupInputCatalogStore(
         HOME_SENIOR_ROSTER_EMPTY,
         AWAY_SENIOR_ROSTER_EMPTY,
         LINEUP_ELIGIBILITY_OWNER_UNRESOLVED,
+        LINEUP_MODE_FLAG_OWNER_UNRESOLVED,
         TACTICS_STATE_OWNER_UNRESOLVED,
         SUBSTITUTION_BUDGET_OWNER_UNRESOLVED,
         LEGACY_MODE_FLAG_OWNER_UNRESOLVED,
@@ -87,6 +91,11 @@ class CareerLineupInputCatalogStore(
          * row. False means at least one restrictive-competition discipline row is unknown.
          */
         val competitionDisciplineOwnerResolved: Boolean?,
+        /**
+         * Exact projection of `ActivityMainTeam.D` used as the second argument of `best.o.K0`.
+         * Null means the persisted club/manager ownership chain is not fully materialized.
+         */
+        val lineupModeFlag: Boolean?,
         val homeTacticIndex: Int?,
         val awayTacticIndex: Int?,
         val homeSubstitutionsRemaining: Int?,
@@ -237,6 +246,30 @@ class CareerLineupInputCatalogStore(
         )
     }
 
+    /**
+     * Exact persisted reconstruction of `ActivityMainTeam.D`:
+     * `club.y0() != null && club.y0().y() == club`.
+     *
+     * `CareerClubTicketRuntimeState.legacyManagerId` owns the serialized manager id and
+     * `CareerCoachRuntimeState.currentClubId` owns the resolved manager's current club pointer.
+     * Missing historical V9/V11 state remains unknown rather than becoming false.
+     */
+    private suspend fun resolveActivityMainTeamLineupModeFlag(
+        careerId: String,
+        clubId: String,
+    ): Boolean? {
+        val clubState = CareerTicketRuntimeStore(database).findClubState(careerId, clubId)
+            ?: return null
+        if (clubState.legacyManagerId == LegacyManagerIdentityRule.clubStoredManagerId(null)) {
+            return false
+        }
+        val coachState = CareerCoachRuntimeStore(database).resolveFirstCoachState(
+            careerId = careerId,
+            legacyManagerId = clubState.legacyManagerId,
+        ) ?: return null
+        return coachState.currentClubId == clubId
+    }
+
     private suspend fun buildMatchPreparation(
         state: CareerState,
         managedClubId: String,
@@ -318,6 +351,11 @@ class CareerLineupInputCatalogStore(
             (homeSeniorPlayerIds + awaySeniorPlayerIds).all { it in disciplinePlayerIds }
         }
 
+        val lineupModeFlag = resolveActivityMainTeamLineupModeFlag(
+            careerId = state.id,
+            clubId = managedClubId,
+        )
+
         val managerDao = database.careerManagerRuntimeDao()
         val homeClubRuntime = managerDao.findClubRuntime(state.id, target.homeClubId)
         val awayClubRuntime = managerDao.findClubRuntime(state.id, target.awayClubId)
@@ -340,10 +378,13 @@ class CareerLineupInputCatalogStore(
         if (homeSeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
-        // V19 now resolves the `V0(k0)` discipline slice above. K0 still also consumes the
-        // ActivityMainTeam mode flag, club/contract ownership and final eligible-list composition,
-        // so the aggregate eligibility blocker must remain until those owners are wired as well.
+        // V19 resolves `V0(k0)` and the V9/V11 manager chain now resolves ActivityMainTeam.D.
+        // K0 still consumes the exact career-clock/contract comparison and final eligible-list
+        // composition, so the aggregate eligibility blocker remains until those owners are wired.
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
+        if (lineupModeFlag == null) {
+            blockers += MatchPreparationBlocker.LINEUP_MODE_FLAG_OWNER_UNRESOLVED
+        }
         if (homeTacticIndex == null || awayTacticIndex == null) {
             blockers += MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED
         }
@@ -371,6 +412,7 @@ class CareerLineupInputCatalogStore(
             competitionId = competition?.competitionId,
             competitionRestrictionActive = competitionRestrictionActive,
             competitionDisciplineOwnerResolved = competitionDisciplineOwnerResolved,
+            lineupModeFlag = lineupModeFlag,
             homeTacticIndex = homeTacticIndex,
             awayTacticIndex = awayTacticIndex,
             homeSubstitutionsRemaining = transientOwners?.homeSubstitutionsRemaining,
@@ -395,6 +437,7 @@ class CareerLineupInputCatalogStore(
         competitionId = null,
         competitionRestrictionActive = null,
         competitionDisciplineOwnerResolved = null,
+        lineupModeFlag = null,
         homeTacticIndex = null,
         awayTacticIndex = null,
         homeSubstitutionsRemaining = null,

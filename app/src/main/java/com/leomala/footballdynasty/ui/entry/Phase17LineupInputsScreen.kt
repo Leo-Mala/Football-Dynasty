@@ -143,6 +143,16 @@ private fun MatchPreparationSummary(
                 )
                 null -> Unit
             }
+            val lineupModeLabel = when (preparation.lineupModeFlag) {
+                true -> "ativo"
+                false -> "inativo"
+                null -> "não materializado"
+            }
+            Text(
+                text = "ActivityMainTeam.D: $lineupModeLabel",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
 
         if (preparation.blockers.isNotEmpty()) {
@@ -179,12 +189,14 @@ private fun CareerLineupInputCatalogStore.MatchPreparationBlocker.presentationLa
         "elenco sênior persistido do visitante"
     CareerLineupInputCatalogStore.MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED ->
         "owner legado dos predicados de elegibilidade da escalação"
+    CareerLineupInputCatalogStore.MatchPreparationBlocker.LINEUP_MODE_FLAG_OWNER_UNRESOLVED ->
+        "owner persistido de ActivityMainTeam.D"
     CareerLineupInputCatalogStore.MatchPreparationBlocker.TACTICS_STATE_OWNER_UNRESOLVED ->
         "owner persistido do estado de tática"
     CareerLineupInputCatalogStore.MatchPreparationBlocker.SUBSTITUTION_BUDGET_OWNER_UNRESOLVED ->
         "owner legado da quantidade de substituições"
     CareerLineupInputCatalogStore.MatchPreparationBlocker.LEGACY_MODE_FLAG_OWNER_UNRESOLVED ->
-        "owner do legacy mode flag da partida"
+        "owner do best.c0.Q0() usado no runtime da partida"
     CareerLineupInputCatalogStore.MatchPreparationBlocker.MATCH_RUNTIME_COMPOSITION_UNWIRED ->
         "composição produtiva do runtime de partida até o executor atômico"
 }
