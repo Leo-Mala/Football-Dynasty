@@ -12,6 +12,7 @@ import com.leomala.footballdynasty.domain.career.ScheduledCareerMatch
 import com.leomala.footballdynasty.domain.manager.LegacyPlayerSubroleCodeRule
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsMatchRuntimeRule
 import com.leomala.footballdynasty.domain.match.LegacyMatchSubstitutionRules
+import java.time.LocalDate
 
 /**
  * Read-only Phase 17 boundary for the persisted/source-proven inputs already proven to feed
@@ -40,6 +41,8 @@ class CareerLineupInputCatalogStore(
         val energy: Int,
         val star: Boolean,
         val sourceOrdinal: Int,
+        /** Exact modern owner for legacy `best.o.M0()` against the prepared match date. */
+        val blockedByM0ForPreparedMatch: Boolean?,
     )
 
     enum class ManagedMatchSide {
@@ -96,6 +99,20 @@ class CareerLineupInputCatalogStore(
             val clubId = state.managedClub?.clubId ?: return@withTransaction null
             if (database.clubDao().findById(clubId) == null) {
                 return@withTransaction null
+            }
+
+            val matchPreparation = buildMatchPreparation(
+                state = state,
+                managedClubId = clubId,
+            )
+            val preparedMatchEpochDay = matchPreparation.matchId?.let {
+                val dayIndex = requireNotNull(matchPreparation.nextPlayableDayIndex) {
+                    "Prepared match must expose its playable day"
+                }
+                val gameDate = LegacyCalendarRules.dateAt(
+                    state.calendar.copy(currentDayIndex = dayIndex)
+                )
+                LocalDate.of(gameDate.year, gameDate.month, gameDate.day).toEpochDay()
             }
 
             val playerRuntimeDao = database.careerPlayerRuntimeDao()
@@ -159,6 +176,12 @@ class CareerLineupInputCatalogStore(
                     energy = runtime.energy,
                     star = runtime.star,
                     sourceOrdinal = membership.sourceOrdinal,
+                    blockedByM0ForPreparedMatch = preparedMatchEpochDay?.let { currentEpochDay ->
+                        blockedByLegacyM0(
+                            injuryUntilEpochDay = runtime.injuryUntilEpochDay,
+                            currentEpochDay = currentEpochDay,
+                        )
+                    },
                 )
             }
 
@@ -166,10 +189,7 @@ class CareerLineupInputCatalogStore(
                 careerId = careerId,
                 clubId = clubId,
                 players = players,
-                matchPreparation = buildMatchPreparation(
-                    state = state,
-                    managedClubId = clubId,
-                ),
+                matchPreparation = matchPreparation,
             )
         }
 
@@ -317,6 +337,18 @@ class CareerLineupInputCatalogStore(
 
     companion object {
         private const val ROSTER_SENIOR = "SENIOR"
+
+        /**
+         * Exact day-granularity projection of `best.o.M0()` for the already-certified modern
+         * `injuryUntilEpochDay` owner. Legacy M0 is strict `J > 0 && J > currentCalendarMillis`.
+         */
+        internal fun blockedByLegacyM0(
+            injuryUntilEpochDay: Long,
+            currentEpochDay: Long,
+        ): Boolean {
+            require(injuryUntilEpochDay >= 0L) { "Injury deadline must not be negative" }
+            return injuryUntilEpochDay > 0L && injuryUntilEpochDay > currentEpochDay
+        }
 
         /**
          * Joins the two recovered transient owners used by `best.s`: constructor-owned `N={5,5}`
