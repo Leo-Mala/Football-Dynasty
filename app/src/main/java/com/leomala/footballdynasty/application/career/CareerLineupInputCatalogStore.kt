@@ -46,6 +46,10 @@ class CareerLineupInputCatalogStore(
         val energy: Int,
         val star: Boolean,
         val sourceOrdinal: Int,
+        /** Exact prepared-roster owner for legacy `best.o.u0() != null`. */
+        val hasClubForPreparedMatch: Boolean?,
+        /** Exact persisted `best.o.u0().Q0()` owner; null stays unresolved/fail-closed. */
+        val clubActiveQ0ForPreparedMatch: Boolean?,
         /** Exact modern owner for legacy `best.o.M0()` against the prepared match date. */
         val blockedByM0ForPreparedMatch: Boolean?,
         /**
@@ -147,6 +151,8 @@ class CareerLineupInputCatalogStore(
                 clubId = clubId,
                 rosterKind = ROSTER_SENIOR,
             )
+            val managedClubRuntime = database.careerManagerRuntimeDao()
+                .findClubRuntime(careerId, clubId)
             val players = memberships.map { membership ->
                 val runtime = requireNotNull(
                     playerRuntimeDao.findRuntime(careerId, membership.playerId)
@@ -185,6 +191,11 @@ class CareerLineupInputCatalogStore(
 
                     else -> error("Unknown player runtime sourceType=${runtime.sourceType}")
                 }
+                val clubEligibilityOwner = CareerLineupClubEligibilityOwnerStore.resolvePersisted(
+                    careerId = careerId,
+                    membership = membership,
+                    clubRuntime = managedClubRuntime,
+                )
 
                 PlayerInput(
                     playerId = runtime.playerId,
@@ -202,6 +213,8 @@ class CareerLineupInputCatalogStore(
                     energy = runtime.energy,
                     star = runtime.star,
                     sourceOrdinal = membership.sourceOrdinal,
+                    hasClubForPreparedMatch = clubEligibilityOwner?.hasClub,
+                    clubActiveQ0ForPreparedMatch = clubEligibilityOwner?.clubActiveQ0,
                     blockedByM0ForPreparedMatch = preparedMatchEpochDay?.let { currentEpochDay ->
                         blockedByLegacyM0(
                             injuryUntilEpochDay = runtime.injuryUntilEpochDay,
@@ -378,9 +391,9 @@ class CareerLineupInputCatalogStore(
         if (homeSeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
-        // V19 resolves `V0(k0)` and the V9/V11 manager chain now resolves ActivityMainTeam.D.
-        // K0 still consumes the exact career-clock/contract comparison and final eligible-list
-        // composition, so the aggregate eligibility blocker remains until those owners are wired.
+        // V19 resolves `V0(k0)`, u0/Q0 is now exposed per player, and the V9/V11 manager chain
+        // resolves ActivityMainTeam.D. K0 still consumes the exact career-clock/contract comparison
+        // and final eligible-list composition, so aggregate eligibility remains fail-closed.
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
         if (lineupModeFlag == null) {
             blockers += MatchPreparationBlocker.LINEUP_MODE_FLAG_OWNER_UNRESOLVED
