@@ -228,12 +228,24 @@ class CareerLineupInputCatalogStore(
                     ),
                 )
             }
+            val eligibilityProjections = players.map { player ->
+                CareerLineupEligibilityProjection.resolveWithoutCareerClock(
+                    player = player,
+                    preparation = matchPreparation,
+                )
+            }
+            val resolvedMatchPreparation = matchPreparation.copy(
+                blockers = resolveLineupEligibilityBlockers(
+                    blockers = matchPreparation.blockers,
+                    eligibilityProjections = eligibilityProjections,
+                )
+            )
 
             LineupInputs(
                 careerId = careerId,
                 clubId = clubId,
                 players = players,
-                matchPreparation = matchPreparation,
+                matchPreparation = resolvedMatchPreparation,
             )
         }
 
@@ -391,9 +403,9 @@ class CareerLineupInputCatalogStore(
         if (homeSeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.HOME_SENIOR_ROSTER_EMPTY
         if (awaySeniorPlayerIds.isEmpty()) blockers += MatchPreparationBlocker.AWAY_SENIOR_ROSTER_EMPTY
 
-        // V19 resolves `V0(k0)`, u0/Q0 is now exposed per player, and the V9/V11 manager chain
-        // resolves ActivityMainTeam.D. K0 still consumes the exact career-clock/contract comparison
-        // and final eligible-list composition, so aggregate eligibility remains fail-closed.
+        // V19 resolves `V0(k0)`, u0/Q0 is exposed per player, and the V9/V11 manager chain
+        // resolves ActivityMainTeam.D. The aggregate remains fail-closed here until the concrete
+        // player projections are evaluated after roster materialization above.
         blockers += MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
         if (lineupModeFlag == null) {
             blockers += MatchPreparationBlocker.LINEUP_MODE_FLAG_OWNER_UNRESOLVED
@@ -481,6 +493,21 @@ class CareerLineupInputCatalogStore(
         ): Boolean {
             require(injuryUntilEpochDay >= 0L) { "Injury deadline must not be negative" }
             return injuryUntilEpochDay > 0L && injuryUntilEpochDay > currentEpochDay
+        }
+
+        /**
+         * Removes the aggregate K0 blocker only when every prepared managed player has a complete
+         * projection from the already-certified known-input evaluator. A null projection means the
+         * exact career clock or another owner can still change K0 and must remain fail-closed.
+         */
+        internal fun resolveLineupEligibilityBlockers(
+            blockers: Set<MatchPreparationBlocker>,
+            eligibilityProjections: List<Boolean?>,
+        ): Set<MatchPreparationBlocker> {
+            if (eligibilityProjections.isEmpty() || eligibilityProjections.any { it == null }) {
+                return blockers
+            }
+            return blockers - MatchPreparationBlocker.LINEUP_ELIGIBILITY_OWNER_UNRESOLVED
         }
 
         /**
