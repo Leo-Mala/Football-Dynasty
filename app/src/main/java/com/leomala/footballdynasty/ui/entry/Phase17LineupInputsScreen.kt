@@ -20,14 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagedLineupFormationPlanner
+import com.leomala.footballdynasty.application.career.CareerManagedLineupSelection
+import com.leomala.footballdynasty.application.career.CareerManagedLineupSelectionPlanner
 
 /**
  * Phase 17 presentation of the persisted lineup inputs and the fail-closed
  * preparation state for the next managed match.
  *
- * Formation is now an explicit manager-owned UI input. The selection is not persisted as a
- * fabricated legacy saved-lineup owner and it is never derived from tactics. Match execution
- * remains blocked until the remaining legacy owners and the productive runtime are wired.
+ * Formation is an explicit manager-owned UI input. Confirmation produces a transient selection
+ * bound to the current career/match/club/side and never persists a fabricated legacy saved-lineup
+ * owner. The selection is invalidated automatically when the prepared match changes.
  */
 @Composable
 fun Phase17LineupInputsScreen(
@@ -37,6 +39,9 @@ fun Phase17LineupInputsScreen(
 ) {
     var selectedFormationIndex by remember(inputs.careerId, inputs.matchPreparation.matchId) {
         mutableStateOf<Int?>(null)
+    }
+    var confirmedSelection by remember(inputs.careerId, inputs.matchPreparation.matchId) {
+        mutableStateOf<CareerManagedLineupSelection?>(null)
     }
     val formationResolution = remember(inputs, selectedFormationIndex) {
         CareerManagedLineupFormationPlanner.prepare(
@@ -84,7 +89,12 @@ fun Phase17LineupInputsScreen(
                     items = CareerManagedLineupFormationPlanner.availableFormationIndices,
                     key = { it },
                 ) { formationIndex ->
-                    Button(onClick = { selectedFormationIndex = formationIndex }) {
+                    Button(
+                        onClick = {
+                            selectedFormationIndex = formationIndex
+                            confirmedSelection = null
+                        }
+                    ) {
                         Text("${formationIndex + 1}")
                     }
                 }
@@ -93,6 +103,31 @@ fun Phase17LineupInputsScreen(
                 resolution = formationResolution,
                 modifier = Modifier.padding(top = 8.dp),
             )
+
+            if (formationResolution.prepared != null) {
+                Button(
+                    onClick = {
+                        val formationIndex = requireNotNull(selectedFormationIndex)
+                        confirmedSelection = CareerManagedLineupSelectionPlanner.confirm(
+                            inputs = inputs,
+                            formationIndex = formationIndex,
+                        )
+                    },
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text("Confirmar escalação")
+                }
+            }
+
+            confirmedSelection
+                ?.takeIf { CareerManagedLineupSelectionPlanner.isCurrent(it, inputs) }
+                ?.let { selection ->
+                    Text(
+                        text = "Escalação confirmada para ${selection.matchId}: formação ${selection.formationIndex + 1}, ${selection.lineup.clubStarters.size} titulares.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
         }
 
         Text(
