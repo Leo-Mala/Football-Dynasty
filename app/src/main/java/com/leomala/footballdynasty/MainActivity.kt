@@ -16,6 +16,7 @@ import com.leomala.footballdynasty.application.career.CareerCalendarCommandStore
 import com.leomala.footballdynasty.application.career.CareerCompetitionCatalogStore
 import com.leomala.footballdynasty.application.career.CareerContractCatalogStore
 import com.leomala.footballdynasty.application.career.CareerEntryCatalogStore
+import com.leomala.footballdynasty.application.career.CareerEntryCommandStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCatalogStore
 import com.leomala.footballdynasty.application.career.CareerFinanceCommandStore
 import com.leomala.footballdynasty.application.career.CareerJuniorCatalogStore
@@ -34,6 +35,7 @@ import com.leomala.footballdynasty.ui.entry.LocalCareerFinanceCommandStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerResultCatalogStore
 import com.leomala.footballdynasty.ui.entry.LocalCareerTransferSearchCatalogStore
 import com.leomala.footballdynasty.ui.entry.Phase17CareerEntryScreen
+import com.leomala.footballdynasty.ui.entry.Phase17ProductEntryScreen
 
 class MainActivity : ComponentActivity() {
     private lateinit var database: FootballDynastyDatabase
@@ -48,7 +50,8 @@ class MainActivity : ComponentActivity() {
             careerCoreStateDao = database.careerCoreStateDao(),
             clubDao = database.clubDao(),
         )
-        val entryCoordinator = CareerEntryFlowCoordinator(catalogStore)
+        val entryCommandStore = CareerEntryCommandStore(database)
+        val entryCoordinator = CareerEntryFlowCoordinator(catalogStore, entryCommandStore)
         val squadCatalogStore = CareerSquadCatalogStore(database)
         val lineupCatalogStore = CareerLineupInputCatalogStore(database)
         val juniorCatalogStore = CareerJuniorCatalogStore(database)
@@ -67,6 +70,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    val contentModifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
                     CompositionLocalProvider(
                         LocalCareerFinanceCommandStore provides financeCommandStore,
                         LocalCareerActiveLoanCatalogStore provides activeLoanCatalogStore,
@@ -74,20 +80,24 @@ class MainActivity : ComponentActivity() {
                         LocalCareerTransferSearchCatalogStore provides transferSearchCatalogStore,
                         LocalCareerResultCatalogStore provides resultCatalogStore,
                     ) {
-                        Phase17CareerEntryScreen(
+                        Phase17ProductEntryScreen(
                             coordinator = entryCoordinator,
-                            squadCatalogStore = squadCatalogStore,
-                            lineupCatalogStore = lineupCatalogStore,
-                            juniorCatalogStore = juniorCatalogStore,
-                            competitionCatalogStore = competitionCatalogStore,
-                            calendarCatalogStore = calendarCatalogStore,
-                            calendarCommandStore = calendarCommandStore,
-                            stadiumCatalogStore = stadiumCatalogStore,
-                            financeCatalogStore = financeCatalogStore,
-                            managerCatalogStore = managerCatalogStore,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding),
+                            modifier = contentModifier,
+                            existingCareerContent = {
+                                Phase17CareerEntryScreen(
+                                    coordinator = entryCoordinator,
+                                    squadCatalogStore = squadCatalogStore,
+                                    lineupCatalogStore = lineupCatalogStore,
+                                    juniorCatalogStore = juniorCatalogStore,
+                                    competitionCatalogStore = competitionCatalogStore,
+                                    calendarCatalogStore = calendarCatalogStore,
+                                    calendarCommandStore = calendarCommandStore,
+                                    stadiumCatalogStore = stadiumCatalogStore,
+                                    financeCatalogStore = financeCatalogStore,
+                                    managerCatalogStore = managerCatalogStore,
+                                    modifier = contentModifier,
+                                )
+                            },
                         )
                     }
                 }
