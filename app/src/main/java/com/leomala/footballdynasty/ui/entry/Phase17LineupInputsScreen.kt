@@ -6,22 +6,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
+import com.leomala.footballdynasty.application.career.CareerManagedLineupFormationPlanner
 
 /**
  * Phase 17 presentation of the persisted lineup inputs and the fail-closed
  * preparation state for the next managed match.
  *
- * The screen still does not mutate formation/tactics or execute a match. It
- * makes the remaining evidence owners visible instead of silently substituting
- * modern defaults or values copied from characterization tests.
+ * Formation is now an explicit manager-owned UI input. The selection is not persisted as a
+ * fabricated legacy saved-lineup owner and it is never derived from tactics. Match execution
+ * remains blocked until the remaining legacy owners and the productive runtime are wired.
  */
 @Composable
 fun Phase17LineupInputsScreen(
@@ -29,6 +35,16 @@ fun Phase17LineupInputsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var selectedFormationIndex by remember(inputs.careerId, inputs.matchPreparation.matchId) {
+        mutableStateOf<Int?>(null)
+    }
+    val formationResolution = remember(inputs, selectedFormationIndex) {
+        CareerManagedLineupFormationPlanner.prepare(
+            inputs = inputs,
+            formationIndex = selectedFormationIndex,
+        )
+    }
+
     Column(modifier = modifier.fillMaxSize().padding(20.dp)) {
         Button(onClick = onBack) {
             Text("Voltar à central")
@@ -49,8 +65,38 @@ fun Phase17LineupInputsScreen(
             modifier = Modifier.padding(top = 14.dp),
         )
 
+        if (inputs.matchPreparation.matchId != null && inputs.players.isNotEmpty()) {
+            Text(
+                text = "Formação para a próxima partida",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Text(
+                text = "Escolha explícita do treinador; nenhum índice é assumido automaticamente.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(
+                    items = CareerManagedLineupFormationPlanner.availableFormationIndices,
+                    key = { it },
+                ) { formationIndex ->
+                    Button(onClick = { selectedFormationIndex = formationIndex }) {
+                        Text("${formationIndex + 1}")
+                    }
+                }
+            }
+            FormationSelectionSummary(
+                resolution = formationResolution,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+
         Text(
-            text = "Nenhuma formação, titularidade ou tática é alterada nesta tela enquanto os owners legados abaixo não estiverem resolvidos.",
+            text = "A escolha acima prepara titulares e banco pela regra legada certificada, mas não altera tática nem persiste um falso save de escalação.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
         )
@@ -88,6 +134,33 @@ fun Phase17LineupInputsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun FormationSelectionSummary(
+    resolution: CareerManagedLineupFormationPlanner.Resolution,
+    modifier: Modifier = Modifier,
+) {
+    val prepared = resolution.prepared
+    val message = when {
+        prepared != null -> {
+            val starterCount = prepared.state.starters.count { it.player != null }
+            "Formação ${prepared.formationIndex + 1} preparada: $starterCount/11 titulares e ${prepared.state.bench.size} opções no banco bruto legado."
+        }
+        resolution.blocker == CareerManagedLineupFormationPlanner.Blocker.FORMATION_NOT_SELECTED ->
+            "Selecione uma das 11 formações recuperadas para continuar a preparação."
+        resolution.blocker == CareerManagedLineupFormationPlanner.Blocker.INVALID_FORMATION ->
+            "Formação inválida; nenhum fallback foi aplicado."
+        resolution.blocker == CareerManagedLineupFormationPlanner.Blocker.LINEUP_ELIGIBILITY_UNRESOLVED ->
+            "A formação continua bloqueada porque há elegibilidade K0 sem owner resolvido."
+        else ->
+            "A formação depende de uma próxima partida do clube gerenciado."
+    }
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = modifier,
+    )
 }
 
 @Composable
