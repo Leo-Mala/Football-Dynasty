@@ -116,6 +116,7 @@ class CareerEntryFlowCoordinatorTest {
             displayName = null,
             seed = 7L,
         )
+        Unit
     }
 
     private fun coordinator(
