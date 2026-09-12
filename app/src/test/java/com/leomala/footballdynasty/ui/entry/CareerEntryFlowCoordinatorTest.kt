@@ -2,10 +2,12 @@ package com.leomala.footballdynasty.ui.entry
 
 import com.leomala.footballdynasty.application.career.CareerEntrySummary
 import com.leomala.footballdynasty.application.career.CareerSelectableClub
+import com.leomala.footballdynasty.domain.career.CareerState
 import com.leomala.footballdynasty.domain.career.CareerStateFactory
 import com.leomala.footballdynasty.ui.navigation.LegacyUiDestination
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -20,6 +22,7 @@ class CareerEntryFlowCoordinatorTest {
         assertEquals(LegacyUiDestination.NEW_OR_LOAD_CAREER, state.destination)
         assertEquals(careers, state.careers)
         assertTrue(state.clubs.isEmpty())
+        assertFalse(coordinator.careerCreationAvailable)
     }
 
     @Test
@@ -66,14 +69,65 @@ class CareerEntryFlowCoordinatorTest {
         assertEquals(expected, (result as CareerEntryOpenResult.Loaded).state)
     }
 
+    @Test
+    fun `creation forwards only explicit identity seed and canonical selected club`() = runBlocking {
+        val created = CareerStateFactory.create(
+            id = CAREER_A,
+            seed = 91L,
+            managedClubId = CLUB_B,
+        )
+        var captured: List<Any?>? = null
+        val coordinator = coordinator(
+            clubs = listOf(club(CLUB_A), club(CLUB_B)),
+            createCareer = { careerId, displayName, seed, clubId ->
+                captured = listOf(careerId, displayName, seed, clubId)
+                created
+            },
+        )
+        val selection = coordinator.selectClub(coordinator.openClubSelection(), CLUB_B)
+
+        val result = coordinator.createCareerFromExplicitInputs(
+            state = selection,
+            careerId = CAREER_A,
+            displayName = "My career",
+            seed = 91L,
+        )
+
+        assertTrue(coordinator.careerCreationAvailable)
+        assertEquals(listOf(CAREER_A, "My career", 91L, CLUB_B), captured)
+        assertEquals(created, result)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `creation cannot bypass canonical club selection`() = runBlocking {
+        val coordinator = coordinator(
+            clubs = listOf(club(CLUB_A)),
+            createCareer = { _, _, _, _ -> error("must not run") },
+        )
+        val invalid = CareerEntryUiState(
+            destination = LegacyUiDestination.CLUB_SELECTION,
+            clubs = listOf(club(CLUB_A)),
+            selectedClubId = CLUB_B,
+        )
+
+        coordinator.createCareerFromExplicitInputs(
+            state = invalid,
+            careerId = CAREER_A,
+            displayName = null,
+            seed = 7L,
+        )
+    }
+
     private fun coordinator(
         careers: List<CareerEntrySummary> = emptyList(),
         clubs: List<CareerSelectableClub> = emptyList(),
-        loadedCareer: com.leomala.footballdynasty.domain.career.CareerState? = null,
+        loadedCareer: CareerState? = null,
+        createCareer: (suspend (String, String?, Long, String) -> CareerState)? = null,
     ) = CareerEntryFlowCoordinator(
         listCareers = { careers },
         loadCareer = { loadedCareer },
         listClubs = { clubs },
+        createCareer = createCareer,
     )
 
     private fun summary(id: String, loadable: Boolean) = CareerEntrySummary(
