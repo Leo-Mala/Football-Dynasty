@@ -10,6 +10,22 @@ package com.leomala.footballdynasty.domain.manager
 object LegacyTacticsMatchRuntimeRule {
     const val MATCH_ENGINE_OPTION_SLOT: Int = 2
 
+    /**
+     * Exact constructor-owned state from every recovered `best.c0` constructor in the certified
+     * 2026/27 corpus: `S = new int[]{0, 0, 0, 0}` and `T = false`/JVM false initialization.
+     *
+     * This is source evidence, not a modern fallback. It is valid only while no modern mutation of
+     * `DialogTatics.j()` is exposed without persistence; once that mutation surface is wired, the
+     * caller must load the persisted club-local state instead of recreating this constructor state.
+     */
+    fun constructorInitialState(): LegacyTacticsRawState = LegacyTacticsRawState(
+        optionSlots = listOf(0, 0, 0, 0),
+        checkboxT = false,
+    )
+
     fun matchEngineTacticIndex(state: LegacyTacticsRawState): Int =
         state.optionSlots[MATCH_ENGINE_OPTION_SLOT]
+
+    fun constructorInitialMatchEngineTacticIndex(): Int =
+        matchEngineTacticIndex(constructorInitialState())
 }

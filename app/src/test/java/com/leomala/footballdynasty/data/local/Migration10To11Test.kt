@@ -24,6 +24,11 @@ class Migration10To11Test {
         CareerTicketRuntimeStore(current).materializeManagers(CAREER,listOf(CareerManagerTicketRuntimeState(0,7,61))); current.close()
         val path=context.getDatabasePath(name).absolutePath; val raw=SQLiteDatabase.openDatabase(path,null,SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption0`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption1`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption2`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption3`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticCheckboxT`")
         raw.execSQL("DROP TABLE `career_competition_snapshot_members`")
         raw.execSQL("DROP TABLE `career_competition_snapshots`")
         raw.execSQL("DROP TABLE `career_player_match_rating_history`")
@@ -50,6 +55,8 @@ class Migration10To11Test {
             Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
             Phase17LegacyDurabilityMigration.MIGRATION_16_17,
+            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18,
+            Phase17CompetitionDisciplineMigration.MIGRATION_18_19,
         ).build()
         val ticket=CareerTicketRuntimeStore(migrated); val coach=CareerCoachRuntimeStore(migrated)
         assertEquals(61,ticket.resolveCoachRawH(CAREER,7)); assertNull(coach.find(CAREER,0)); assertNull(migrated.careerCoachRuntimeDao().findCoachRuntime(CAREER,0)); assertTrue(migrated.careerCoachRuntimeDao().seasonClubRecords(CAREER,0).isEmpty()); assertEquals("Migration V11 probe",migrated.careerMetadataDao().findById(CAREER)?.displayName)

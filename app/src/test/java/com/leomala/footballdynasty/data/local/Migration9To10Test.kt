@@ -25,6 +25,11 @@ class Migration9To10Test {
         current.close()
         val path=context.getDatabasePath(name).absolutePath; val raw=SQLiteDatabase.openDatabase(path,null,SQLiteDatabase.OPEN_READWRITE)
         raw.execSQL("PRAGMA foreign_keys=OFF")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption0`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption1`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption2`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticOption3`")
+        raw.execSQL("ALTER TABLE `career_club_manager_runtime` DROP COLUMN `legacyTacticCheckboxT`")
         raw.execSQL("DROP TABLE `career_competition_snapshot_members`")
         raw.execSQL("DROP TABLE `career_competition_snapshots`")
         raw.execSQL("DROP TABLE `career_player_match_rating_history`")
@@ -54,6 +59,8 @@ class Migration9To10Test {
             Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
             Phase17LegacyDurabilityMigration.MIGRATION_16_17,
+            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18,
+            Phase17CompetitionDisciplineMigration.MIGRATION_18_19,
         ).build()
         val row=migrated.careerManagerRuntimeDao().stadiumConstructions(CAREER).single()
         assertEquals(77,row.stadiumCode); assertEquals(listOf(100,20,30,40),listOf(row.addition0,row.addition1,row.addition2,row.addition3)); assertNull(row.ownerClubId)

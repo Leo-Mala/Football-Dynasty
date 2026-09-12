@@ -45,7 +45,7 @@ object CareerMatchRuntimeBridge {
 
         val nextBefore = LegacyCalendarRules.selectNextPlayableDay(
             state = state,
-            scheduledDays = toCalendarDays(schedule),
+            scheduledDays = CareerScheduleCalendarProjection.calendarDays(schedule),
         )
         require(nextBefore.found) { "Career has no playable scheduled match" }
         require(target.dayIndex == nextBefore.selectedIndex) {
@@ -78,7 +78,7 @@ object CareerMatchRuntimeBridge {
 
         val nextAfter = LegacyCalendarRules.selectNextPlayableDay(
             state = stateAfterMatch,
-            scheduledDays = toCalendarDays(updatedSchedule),
+            scheduledDays = CareerScheduleCalendarProjection.calendarDays(updatedSchedule),
         )
         val finalState = nextAfter.state
         CareerIntegrityValidator.validate(finalState)
@@ -135,17 +135,4 @@ object CareerMatchRuntimeBridge {
             "Runtime must return a resolved non-negative away score"
         }
     }
-
-    private fun toCalendarDays(schedule: List<ScheduledCareerMatch>): List<ScheduledCalendarDay> =
-        schedule
-            .groupBy { it.dayIndex }
-            .toSortedMap()
-            .map { (dayIndex, events) ->
-                ScheduledCalendarDay(
-                    dayIndex = dayIndex,
-                    eventTypeCode = events.maxOf { it.eventTypeCode },
-                    matchCount = events.size,
-                    processed = events.all { it.processed },
-                )
-            }
 }
