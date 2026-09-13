@@ -34,6 +34,11 @@ class CareerEntrySessionController(
         )
     }
 
+    suspend fun reopenCareer(
+        current: State,
+        careerId: String,
+    ): State = openCareer(closeCareer(current), careerId)
+
     fun careerChanged(
         current: State,
         career: CareerState,
