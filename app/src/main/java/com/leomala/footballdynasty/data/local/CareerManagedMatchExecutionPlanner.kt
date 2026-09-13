@@ -3,6 +3,7 @@ package com.leomala.footballdynasty.data.local
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagedLineupSelection
 import com.leomala.footballdynasty.application.career.CareerManagedLineupSelectionPlanner
+import com.leomala.footballdynasty.application.career.CareerOpponentLineupSelection
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitResult
 import com.leomala.footballdynasty.domain.manager.LegacyTacticsRawState
 
@@ -11,9 +12,10 @@ import com.leomala.footballdynasty.domain.manager.LegacyTacticsRawState
  * [CareerMatchExecutionCommandStore].
  *
  * The planner deliberately does not choose an opponent formation or fabricate an opponent lineup.
- * A caller must supply a source-proven opponent [LegacyLineupCommitResult]. Likewise, the productive
+ * A caller must supply a source-proven [CareerOpponentLineupSelection]. Likewise, the productive
  * runtime composition must be wired on the exact command store that will execute the returned
- * command. This keeps the UI from maintaining a parallel interpretation of match readiness.
+ * command. This keeps the UI from maintaining a parallel interpretation of match readiness and
+ * prevents a raw opponent lineup from bypassing the formation/context proof boundary.
  */
 class CareerManagedMatchExecutionPlanner internal constructor(
     private val loadTactics: suspend (careerId: String, clubId: String) -> LegacyTacticsRawState?,
@@ -31,6 +33,7 @@ class CareerManagedMatchExecutionPlanner internal constructor(
         MATCH_PREPARATION_BLOCKED,
         MANAGED_LINEUP_NOT_CONFIRMED,
         OPPONENT_LINEUP_UNRESOLVED,
+        OPPONENT_LINEUP_CONTEXT_MISMATCH,
         OPPONENT_LINEUP_SIDE_MISMATCH,
         HOME_TACTICS_UNRESOLVED,
         AWAY_TACTICS_UNRESOLVED,
@@ -50,7 +53,7 @@ class CareerManagedMatchExecutionPlanner internal constructor(
     suspend fun prepare(
         inputs: CareerLineupInputCatalogStore.LineupInputs,
         managedSelection: CareerManagedLineupSelection?,
-        opponentLineup: LegacyLineupCommitResult<String>?,
+        opponentSelection: CareerOpponentLineupSelection?,
     ): Resolution {
         val preparation = inputs.matchPreparation
         val unresolvedPreparation = preparation.blockers
@@ -78,14 +81,42 @@ class CareerManagedMatchExecutionPlanner internal constructor(
             blockers += Blocker.MATCH_PREPARATION_BLOCKED
         }
 
-        if (opponentLineup == null) {
+        val expectedOpponentClubId = when (managedSide) {
+            CareerLineupInputCatalogStore.ManagedMatchSide.HOME -> awayClubId
+            CareerLineupInputCatalogStore.ManagedMatchSide.AWAY -> homeClubId
+            null -> null
+        }
+        val expectedOpponentSide = when (managedSide) {
+            CareerLineupInputCatalogStore.ManagedMatchSide.HOME ->
+                CareerLineupInputCatalogStore.ManagedMatchSide.AWAY
+            CareerLineupInputCatalogStore.ManagedMatchSide.AWAY ->
+                CareerLineupInputCatalogStore.ManagedMatchSide.HOME
+            null -> null
+        }
+        val expectedOpponentSideIndex = when (managedSide) {
+            CareerLineupInputCatalogStore.ManagedMatchSide.HOME -> 1
+            CareerLineupInputCatalogStore.ManagedMatchSide.AWAY -> 0
+            null -> null
+        }
+
+        if (opponentSelection == null) {
             blockers += Blocker.OPPONENT_LINEUP_UNRESOLVED
-        } else if (managedSide != null) {
-            val expectedOpponentSide = when (managedSide) {
-                CareerLineupInputCatalogStore.ManagedMatchSide.HOME -> 1
-                CareerLineupInputCatalogStore.ManagedMatchSide.AWAY -> 0
+        } else {
+            val currentContext =
+                matchId != null &&
+                    expectedOpponentClubId != null &&
+                    expectedOpponentSide != null &&
+                    opponentSelection.careerId == inputs.careerId &&
+                    opponentSelection.matchId == matchId &&
+                    opponentSelection.clubId == expectedOpponentClubId &&
+                    opponentSelection.side == expectedOpponentSide
+            if (!currentContext) {
+                blockers += Blocker.OPPONENT_LINEUP_CONTEXT_MISMATCH
             }
-            if (opponentLineup.matchLists.sideIndex != expectedOpponentSide) {
+            if (
+                expectedOpponentSideIndex != null &&
+                opponentSelection.lineup.matchLists.sideIndex != expectedOpponentSideIndex
+            ) {
                 blockers += Blocker.OPPONENT_LINEUP_SIDE_MISMATCH
             }
         }
@@ -121,7 +152,7 @@ class CareerManagedMatchExecutionPlanner internal constructor(
         }
 
         val selection = requireNotNull(currentManagedSelection)
-        val opponent = requireNotNull(opponentLineup)
+        val opponent = requireNotNull(opponentSelection).lineup
         val homeLineup: LegacyLineupCommitResult<String>
         val awayLineup: LegacyLineupCommitResult<String>
         when (requireNotNull(managedSide)) {
