@@ -60,16 +60,23 @@ fun Phase17CareerEntryScreen(
     managerCatalogStore: CareerManagerCatalogStore,
     modifier: Modifier = Modifier,
 ) {
-    var entryState by remember { mutableStateOf<CareerEntryUiState?>(null) }
-    var loadedCareer by remember { mutableStateOf<CareerState?>(null) }
-    var loadError by remember { mutableStateOf<String?>(null) }
+    val sessionController = remember(coordinator) { CareerEntrySessionController(coordinator) }
+    var sessionState by remember(sessionController) {
+        mutableStateOf<CareerEntrySessionController.State?>(null)
+    }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(coordinator) {
-        entryState = coordinator.openEntry()
+    LaunchedEffect(sessionController) {
+        sessionState = sessionController.openEntry()
     }
 
-    val career = loadedCareer
+    val currentSession = sessionState
+    if (currentSession == null) {
+        LoadingScreen(modifier)
+        return
+    }
+
+    val career = currentSession.loadedCareer
     if (career != null) {
         CareerHomeScreen(
             career = career,
@@ -82,38 +89,35 @@ fun Phase17CareerEntryScreen(
             stadiumCatalogStore = stadiumCatalogStore,
             financeCatalogStore = financeCatalogStore,
             managerCatalogStore = managerCatalogStore,
-            onCareerChanged = { loadedCareer = it },
+            onCareerChanged = { changedCareer ->
+                sessionState = sessionController.careerChanged(currentSession, changedCareer)
+            },
+            onCloseCareer = {
+                scope.launch {
+                    sessionState = sessionController.closeCareer(currentSession)
+                }
+            },
             modifier = modifier,
         )
         return
     }
 
-    val state = entryState
-    if (state == null) {
-        Column(
-            modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CircularProgressIndicator()
-        }
+    val entry = currentSession.entry
+    if (entry == null) {
+        LoadingScreen(modifier)
         return
     }
 
     CareerListScreen(
-        careers = state.careers,
-        loadError = loadError,
+        careers = entry.careers,
+        loadError = if (currentSession.loadError) {
+            "Carreira indisponível para carregamento."
+        } else {
+            null
+        },
         onLoad = { careerId ->
             scope.launch {
-                when (val result = coordinator.openCareer(careerId)) {
-                    is CareerEntryOpenResult.Loaded -> {
-                        loadError = null
-                        loadedCareer = result.state
-                    }
-                    is CareerEntryOpenResult.NotLoadable -> {
-                        loadError = "Carreira indisponível para carregamento."
-                    }
-                }
+                sessionState = sessionController.openCareer(currentSession, careerId)
             }
         },
         modifier = modifier,
@@ -178,6 +182,7 @@ private fun CareerHomeScreen(
     financeCatalogStore: CareerFinanceCatalogStore,
     managerCatalogStore: CareerManagerCatalogStore,
     onCareerChanged: (CareerState) -> Unit,
+    onCloseCareer: () -> Unit,
     modifier: Modifier,
 ) {
     var squad by remember(career.id) { mutableStateOf<CareerSquadCatalogStore.SeniorSquad?>(null) }
@@ -370,6 +375,12 @@ private fun CareerHomeScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 6.dp),
             )
+        }
+        Button(
+            onClick = onCloseCareer,
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Text("Fechar carreira")
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
