@@ -64,3 +64,45 @@ object CareerManagedLineupSelectionPlanner {
             selection.matchId == inputs.matchPreparation.matchId &&
             selection.managedSide == inputs.matchPreparation.managedSide
 }
+
+/**
+ * Process-local Phase 17 handoff for the manager's explicitly confirmed lineup.
+ *
+ * This is intentionally transient: it does not invent or persist a legacy saved-lineup owner.
+ * A selection is reusable only while the exact career/match/club/side preparation remains
+ * current. Observing different inputs evicts the stale payload so it cannot reappear later.
+ */
+class CareerManagedLineupSelectionSession {
+    private var selection: CareerManagedLineupSelection? = null
+
+    fun remember(selection: CareerManagedLineupSelection): CareerManagedLineupSelection {
+        this.selection = selection
+        return selection
+    }
+
+    fun currentFor(
+        inputs: CareerLineupInputCatalogStore.LineupInputs,
+    ): CareerManagedLineupSelection? {
+        val current = selection ?: return null
+        if (!CareerManagedLineupSelectionPlanner.isCurrent(current, inputs)) {
+            selection = null
+            return null
+        }
+        return current
+    }
+
+    fun clearFor(inputs: CareerLineupInputCatalogStore.LineupInputs) {
+        val current = selection ?: return
+        if (CareerManagedLineupSelectionPlanner.isCurrent(current, inputs)) {
+            selection = null
+        }
+    }
+
+    fun clear() {
+        selection = null
+    }
+}
+
+object CareerManagedLineupSelectionSessions {
+    val process: CareerManagedLineupSelectionSession = CareerManagedLineupSelectionSession()
+}

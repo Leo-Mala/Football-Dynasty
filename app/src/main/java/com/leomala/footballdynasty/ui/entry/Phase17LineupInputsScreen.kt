@@ -22,6 +22,7 @@ import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogSt
 import com.leomala.footballdynasty.application.career.CareerManagedLineupFormationPlanner
 import com.leomala.footballdynasty.application.career.CareerManagedLineupSelection
 import com.leomala.footballdynasty.application.career.CareerManagedLineupSelectionPlanner
+import com.leomala.footballdynasty.application.career.CareerManagedLineupSelectionSessions
 
 /**
  * Phase 17 presentation of the persisted lineup inputs and the fail-closed
@@ -29,7 +30,8 @@ import com.leomala.footballdynasty.application.career.CareerManagedLineupSelecti
  *
  * Formation is an explicit manager-owned UI input. Confirmation produces a transient selection
  * bound to the current career/match/club/side and never persists a fabricated legacy saved-lineup
- * owner. The selection is invalidated automatically when the prepared match changes.
+ * owner. The selection is retained only in process memory while that exact prepared match remains
+ * current and is evicted automatically when the prepared match changes.
  */
 @Composable
 fun Phase17LineupInputsScreen(
@@ -37,11 +39,30 @@ fun Phase17LineupInputsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedFormationIndex by remember(inputs.careerId, inputs.matchPreparation.matchId) {
-        mutableStateOf<Int?>(null)
+    val selectionSession = CareerManagedLineupSelectionSessions.process
+    val restoredSelection = remember(
+        inputs.careerId,
+        inputs.clubId,
+        inputs.matchPreparation.matchId,
+        inputs.matchPreparation.managedSide,
+    ) {
+        selectionSession.currentFor(inputs)
     }
-    var confirmedSelection by remember(inputs.careerId, inputs.matchPreparation.matchId) {
-        mutableStateOf<CareerManagedLineupSelection?>(null)
+    var selectedFormationIndex by remember(
+        inputs.careerId,
+        inputs.clubId,
+        inputs.matchPreparation.matchId,
+        inputs.matchPreparation.managedSide,
+    ) {
+        mutableStateOf(restoredSelection?.formationIndex)
+    }
+    var confirmedSelection by remember(
+        inputs.careerId,
+        inputs.clubId,
+        inputs.matchPreparation.matchId,
+        inputs.matchPreparation.managedSide,
+    ) {
+        mutableStateOf<CareerManagedLineupSelection?>(restoredSelection)
     }
     val formationResolution = remember(inputs, selectedFormationIndex) {
         CareerManagedLineupFormationPlanner.prepare(
@@ -92,6 +113,7 @@ fun Phase17LineupInputsScreen(
                     Button(
                         onClick = {
                             selectedFormationIndex = formationIndex
+                            selectionSession.clearFor(inputs)
                             confirmedSelection = null
                         }
                     ) {
@@ -108,10 +130,12 @@ fun Phase17LineupInputsScreen(
                 Button(
                     onClick = {
                         val formationIndex = requireNotNull(selectedFormationIndex)
-                        confirmedSelection = CareerManagedLineupSelectionPlanner.confirm(
+                        val selection = CareerManagedLineupSelectionPlanner.confirm(
                             inputs = inputs,
                             formationIndex = formationIndex,
                         )
+                        selectionSession.remember(selection)
+                        confirmedSelection = selection
                     },
                     modifier = Modifier.padding(top = 8.dp),
                 ) {

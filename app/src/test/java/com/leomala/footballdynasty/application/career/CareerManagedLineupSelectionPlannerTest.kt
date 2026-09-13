@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.application.career
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,6 +37,33 @@ class CareerManagedLineupSelectionPlannerTest {
         )
 
         assertFalse(CareerManagedLineupSelectionPlanner.isCurrent(selection, changed))
+    }
+
+    @Test
+    fun `transient session restores only exact current preparation and evicts stale selection`() {
+        val original = inputs()
+        val selection = CareerManagedLineupSelectionPlanner.confirm(original, formationIndex = 5)
+        val session = CareerManagedLineupSelectionSession()
+
+        session.remember(selection)
+        assertEquals(selection, session.currentFor(original))
+
+        val changed = original.copy(
+            matchPreparation = original.matchPreparation.copy(matchId = "match-2")
+        )
+        assertNull(session.currentFor(changed))
+        assertNull(session.currentFor(original))
+    }
+
+    @Test
+    fun `transient session clears explicit confirmation when manager changes formation`() {
+        val original = inputs()
+        val session = CareerManagedLineupSelectionSession()
+        session.remember(CareerManagedLineupSelectionPlanner.confirm(original, formationIndex = 2))
+
+        session.clearFor(original)
+
+        assertNull(session.currentFor(original))
     }
 
     @Test(expected = IllegalArgumentException::class)
