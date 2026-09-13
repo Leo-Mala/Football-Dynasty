@@ -2,6 +2,7 @@ package com.leomala.footballdynasty.data.local
 
 import com.leomala.footballdynasty.application.career.CareerLineupInputCatalogStore
 import com.leomala.footballdynasty.application.career.CareerManagedLineupSelection
+import com.leomala.footballdynasty.application.career.CareerOpponentLineupSelection
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitResult
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitRule
 import com.leomala.footballdynasty.domain.manager.LegacyLineupCommitSlot
@@ -31,7 +32,7 @@ class CareerManagedMatchExecutionPlannerTest {
         val resolution = planner.prepare(
             inputs = inputs,
             managedSelection = selection,
-            opponentLineup = null,
+            opponentSelection = null,
         )
 
         assertNull(resolution.command)
@@ -55,6 +56,7 @@ class CareerManagedMatchExecutionPlannerTest {
         val managed = lineup(0, "managed")
         val opponent = lineup(1, "opponent")
         val selection = selection(inputs, managed)
+        val opponentSelection = opponentSelection(inputs, opponent)
         val homeTactics = tactics(1)
         val awayTactics = tactics(2)
         val planner = CareerManagedMatchExecutionPlanner(
@@ -68,7 +70,7 @@ class CareerManagedMatchExecutionPlannerTest {
             runtimeCompositionAvailable = { true },
         )
 
-        val resolution = planner.prepare(inputs, selection, opponent)
+        val resolution = planner.prepare(inputs, selection, opponentSelection)
         val command = requireNotNull(resolution.command)
 
         assertTrue(resolution.executable)
@@ -87,6 +89,28 @@ class CareerManagedMatchExecutionPlannerTest {
     }
 
     @Test
+    fun `stale opponent selection cannot reach executor command`() = runBlocking {
+        val inputs = inputs(emptySet())
+        val planner = CareerManagedMatchExecutionPlanner(
+            loadTactics = { _, _ -> tactics() },
+            runtimeCompositionAvailable = { true },
+        )
+        val stale = opponentSelection(inputs, lineup(1, "opponent")).copy(matchId = "old-match")
+
+        val resolution = planner.prepare(
+            inputs = inputs,
+            managedSelection = selection(inputs, lineup(0, "managed")),
+            opponentSelection = stale,
+        )
+
+        assertNull(resolution.command)
+        assertFalse(resolution.executable)
+        assertTrue(
+            CareerManagedMatchExecutionPlanner.Blocker.OPPONENT_LINEUP_CONTEXT_MISMATCH in resolution.blockers
+        )
+    }
+
+    @Test
     fun `opponent lineup for wrong side cannot reach executor command`() = runBlocking {
         val inputs = inputs(emptySet())
         val planner = CareerManagedMatchExecutionPlanner(
@@ -97,7 +121,7 @@ class CareerManagedMatchExecutionPlannerTest {
         val resolution = planner.prepare(
             inputs = inputs,
             managedSelection = selection(inputs, lineup(0, "managed")),
-            opponentLineup = lineup(0, "wrong-side"),
+            opponentSelection = opponentSelection(inputs, lineup(0, "wrong-side")),
         )
 
         assertNull(resolution.command)
@@ -119,7 +143,7 @@ class CareerManagedMatchExecutionPlannerTest {
         val resolution = planner.prepare(
             inputs = inputs,
             managedSelection = selection(inputs, lineup(0, "managed")),
-            opponentLineup = lineup(1, "opponent"),
+            opponentSelection = opponentSelection(inputs, lineup(1, "opponent")),
         )
 
         assertNull(resolution.command)
@@ -169,6 +193,31 @@ class CareerManagedMatchExecutionPlannerTest {
         formationIndex = 3,
         lineup = lineup,
     )
+
+    private fun opponentSelection(
+        inputs: CareerLineupInputCatalogStore.LineupInputs,
+        lineup: LegacyLineupCommitResult<String>,
+    ): CareerOpponentLineupSelection {
+        val managedSide = requireNotNull(inputs.matchPreparation.managedSide)
+        return CareerOpponentLineupSelection(
+            careerId = inputs.careerId,
+            matchId = requireNotNull(inputs.matchPreparation.matchId),
+            clubId = when (managedSide) {
+                CareerLineupInputCatalogStore.ManagedMatchSide.HOME ->
+                    requireNotNull(inputs.matchPreparation.awayClubId)
+                CareerLineupInputCatalogStore.ManagedMatchSide.AWAY ->
+                    requireNotNull(inputs.matchPreparation.homeClubId)
+            },
+            side = when (managedSide) {
+                CareerLineupInputCatalogStore.ManagedMatchSide.HOME ->
+                    CareerLineupInputCatalogStore.ManagedMatchSide.AWAY
+                CareerLineupInputCatalogStore.ManagedMatchSide.AWAY ->
+                    CareerLineupInputCatalogStore.ManagedMatchSide.HOME
+            },
+            formationIndex = 3,
+            lineup = lineup,
+        )
+    }
 
     private fun lineup(side: Int, playerId: String): LegacyLineupCommitResult<String> =
         LegacyLineupCommitRule.commit(
