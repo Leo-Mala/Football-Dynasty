@@ -48,6 +48,14 @@ class CareerEntryFlowCoordinator(
             careers = listCareers(),
         )
 
+    /**
+     * Returns from an opened career to a freshly read persisted-career catalog.
+     *
+     * There is deliberately no in-memory snapshot reuse here: every close/reopen cycle must cross
+     * the certified catalog boundary again so the next [openCareer] reads the durable save state.
+     */
+    suspend fun closeCareerAndRefreshEntry(): CareerEntryUiState = openEntry()
+
     suspend fun openClubSelection(): CareerEntryUiState =
         CareerEntryUiState(
             destination = LegacyUiDestination.CLUB_SELECTION,
