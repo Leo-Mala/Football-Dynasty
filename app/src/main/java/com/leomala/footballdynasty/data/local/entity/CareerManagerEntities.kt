@@ -65,8 +65,13 @@ data class CareerPlayerTransferStateEntity(
 )
 
 /**
- * Career-local club state shared by characterized transfer and finance runtimes.
+ * Career-local club state shared by characterized transfer, finance and tactics runtimes.
  * Global `ClubEntity` remains immutable sporting/source data.
+ *
+ * `legacyTacticOption0..3` and `legacyTacticCheckboxT` are the exact serialized `best.c0.S/T`
+ * slice. The certified 2026/27 corpus initializes every recovered club constructor to
+ * `S={0,0,0,0}` and `T=false`. These defaults therefore reproduce source constructor state for
+ * newly materialized modern rows; they are not gameplay guesses.
  */
 @Entity(
     tableName = "career_club_manager_runtime",
@@ -109,6 +114,11 @@ data class CareerClubManagerRuntimeEntity(
     val miscellaneousExpense: Int,
     val borrowed: Int,
     val monthlyBorrowingCharge: Int,
+    val legacyTacticOption0: Int = 0,
+    val legacyTacticOption1: Int = 0,
+    val legacyTacticOption2: Int = 0,
+    val legacyTacticOption3: Int = 0,
+    val legacyTacticCheckboxT: Boolean = false,
 )
 
 /** Active loan record corresponding to serialized legacy `components.o2`. */

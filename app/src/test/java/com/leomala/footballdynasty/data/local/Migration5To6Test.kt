@@ -27,7 +27,9 @@ class Migration5To6Test {
             Phase14CompetitionInputsMigration.MIGRATION_11_12, Phase14CompetitionInputsMigration.MIGRATION_12_13,
             Phase15JuniorDraftMigration.MIGRATION_13_14, Phase15SeniorRuntimeMigration.MIGRATION_14_15,
             Phase16CompetitionPlayerRatingMigration.MIGRATION_15_16,
-            Phase17LegacyDurabilityMigration.MIGRATION_16_17)
+            Phase17LegacyDurabilityMigration.MIGRATION_16_17,
+            Phase17ClubTacticsPersistenceMigration.MIGRATION_17_18,
+            Phase17CompetitionDisciplineMigration.MIGRATION_18_19)
         db.execSQL("PRAGMA foreign_keys=ON")
         db.execSQL("INSERT INTO career_competitions (careerId,competitionId,legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds) VALUES ('career-v6','league-1',1,11,1,12)")
         db.query("SELECT legacyCompetitionType,legacyFormatCode,currentRoundNumber,totalRounds,legacyRelegationCount,legacyLeagueSubtype FROM career_competitions WHERE careerId='career-v6' AND competitionId='league-1'").use { c -> assertTrue(c.moveToFirst()); assertEquals(1,c.getInt(0)); assertEquals(11,c.getInt(1)); assertEquals(1,c.getInt(2)); assertEquals(12,c.getInt(3)); assertTrue(c.isNull(4)); assertTrue(c.isNull(5)) }

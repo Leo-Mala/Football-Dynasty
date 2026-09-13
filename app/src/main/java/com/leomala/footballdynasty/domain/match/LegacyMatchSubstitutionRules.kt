@@ -4,6 +4,12 @@ import com.leomala.footballdynasty.foundation.random.RandomSource
 
 /** Structural parity for reachable legacy substitution flow `best.s.p1(...) -> best.s.o1(...)`. */
 object LegacyMatchSubstitutionRules {
+    /**
+     * `best.s` initializes `N` as `{5, 5}` in every recovered constructor in the certified
+     * Brasfoot 26/27 corpus. `N[side]` is then gated by `p1(...)` and decremented by `o1(...)`.
+     */
+    const val INITIAL_SUBSTITUTIONS_PER_SIDE: Int = 5
+
     data class Player<T>(
         val value: T,
         val legacyG0: Int,
