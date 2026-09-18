@@ -27,14 +27,13 @@ import kotlinx.coroutines.launch
 /**
  * Product entry router for Phase 17.
  *
- * The first production screen is the persisted-career catalog. This keeps the
- * reopen path direct while preserving the explicit new-career path when the
- * caller provides the proven identity, seed and canonical club.
+ * The first production screen is the persisted-career catalog. New-career creation remains
+ * available from the dedicated product entry route once its explicit inputs are supplied.
  */
 @Composable
 fun Phase17ProductEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
-    existingCareerContent: @Composable (onCreateCareer: () -> Unit) -> Unit,
+    existingCareerContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var route by remember { mutableStateOf(ProductEntryRoute.LOAD) }
@@ -61,7 +60,7 @@ fun Phase17ProductEntryScreen(
             }
         }
 
-        ProductEntryRoute.LOAD -> existingCareerContent { route = ProductEntryRoute.CREATE }
+        ProductEntryRoute.LOAD -> existingCareerContent()
 
         ProductEntryRoute.CREATE -> ExplicitCareerCreationScreen(
             coordinator = coordinator,
