@@ -27,9 +27,9 @@ import kotlinx.coroutines.launch
 /**
  * Product entry router for Phase 17.
  *
- * No automatic career-id or RNG-seed policy is introduced. A new career is created only from
- * values explicitly entered by the user plus a club selected from the canonical persisted list.
- * Existing-career rendering remains delegated to the already-certified persisted flow.
+ * The first production screen is the persisted-career catalog. This keeps the
+ * reopen path direct while preserving the explicit new-career path when the
+ * caller provides the proven identity, seed and canonical club.
  */
 @Composable
 fun Phase17ProductEntryScreen(
@@ -37,7 +37,7 @@ fun Phase17ProductEntryScreen(
     existingCareerContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var route by remember { mutableStateOf(ProductEntryRoute.CHOICE) }
+    var route by remember { mutableStateOf(ProductEntryRoute.LOAD) }
 
     when (route) {
         ProductEntryRoute.CHOICE -> Column(
@@ -65,7 +65,7 @@ fun Phase17ProductEntryScreen(
 
         ProductEntryRoute.CREATE -> ExplicitCareerCreationScreen(
             coordinator = coordinator,
-            onBack = { route = ProductEntryRoute.CHOICE },
+            onBack = { route = ProductEntryRoute.LOAD },
             onCreated = { route = ProductEntryRoute.LOAD },
             modifier = modifier,
         )
