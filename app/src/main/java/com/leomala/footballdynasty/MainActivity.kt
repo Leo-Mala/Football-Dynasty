@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                         Phase17ProductEntryScreen(
                             coordinator = entryCoordinator,
                             modifier = contentModifier,
-                            existingCareerContent = {
+                            existingCareerContent = { onCreateCareer ->
                                 Phase17CareerEntryScreen(
                                     coordinator = entryCoordinator,
                                     squadCatalogStore = squadCatalogStore,
@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
                                     stadiumCatalogStore = stadiumCatalogStore,
                                     financeCatalogStore = financeCatalogStore,
                                     managerCatalogStore = managerCatalogStore,
+                                    onCreateCareer = onCreateCareer,
                                     modifier = contentModifier,
                                 )
                             },
