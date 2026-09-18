@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun Phase17ProductEntryScreen(
     coordinator: CareerEntryFlowCoordinator,
-    existingCareerContent: @Composable () -> Unit,
+    existingCareerContent: @Composable (onCreateCareer: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var route by remember { mutableStateOf(ProductEntryRoute.LOAD) }
@@ -61,7 +61,7 @@ fun Phase17ProductEntryScreen(
             }
         }
 
-        ProductEntryRoute.LOAD -> existingCareerContent()
+        ProductEntryRoute.LOAD -> existingCareerContent { route = ProductEntryRoute.CREATE }
 
         ProductEntryRoute.CREATE -> ExplicitCareerCreationScreen(
             coordinator = coordinator,
